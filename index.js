@@ -1,5 +1,5 @@
-import { animateMenu } from './src/js/menuAnimation';
-import { pageLoad } from './src/js/textAnimate';
+import { animateMenu } from './src/js/menuAnimation.js';
+import { pageLoad } from './src/js/textAnimate.js';
 
 const d = document;
 
