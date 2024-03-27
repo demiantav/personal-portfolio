@@ -4,23 +4,28 @@
   box-sizing: border-box;
 }
 
-body {
-  color: white;
-  background-color: black;
+.container-page {
+  background-color: #ffe494;
+  min-height: 100vh;
+  color: #0e0d0d;
+  position: relative;
+  font-family: 'Cabin', sans-serif;
 }
 
-.container-initial-animation {
-  background-color: #007991;
+/* .container-initial-animation {
+  background-color: black;
   position: fixed;
+  top: 0;
   width: 100vw;
   height: 100vh;
   display: grid;
   place-items: center;
   pointer-events: none;
   clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
-}
+} */
 
 .container-demi-title {
+  color: white;
   overflow: hidden;
   width: 50vw;
   display: grid;
@@ -53,4 +58,103 @@ span:last-child {
   display: inline-block;
   position: relative;
   transform: translate(0px, 0px);
+}
+
+/*Menu*/
+
+.hamb {
+  z-index: 9999;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  flex-direction: column;
+  border: 1px #ff06403f solid;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.linea,
+.linea2 {
+  background-color: #ff0642;
+  width: 30px;
+  height: 0.5px;
+  border-radius: 0.5em;
+  transition: all 0.2s ease-in-out;
+  justify-self: center;
+}
+
+.linea2 {
+  width: 22px;
+  margin-inline-start: 0.1rem;
+}
+
+.flex-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.container-flex-menu {
+  margin-inline: clamp(1.6875rem, 1.4049rem + 1.413vi, 2.5rem);
+  padding-block: 1rem;
+}
+
+.container-items-menu {
+  list-style: none;
+  top: -100%;
+  transition: top 0.45s;
+  position: absolute;
+}
+
+li:hover {
+  cursor: pointer;
+}
+
+.full-menu {
+  display: flex;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  min-height: 100vh;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.5rem;
+  align-items: flex-start;
+  font-size: 42px;
+  font-weight: bolder;
+  background-color: black;
+  color: white;
+  padding-inline: 1rem;
+}
+
+.open {
+  top: 0;
+}
+
+.container-social-links img {
+  width: 25px;
+}
+
+.container-social-links {
+  display: flex;
+  margin-block-start: 2.5rem;
+  gap: 20px;
+  width: 100%;
+}
+
+@media (width >= 600px) {
+  .hamb {
+    display: none;
+  }
+  .container-items-menu {
+    display: flex;
+    top: 0;
+    right: 0;
+  }
 }
