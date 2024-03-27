@@ -4,7 +4,7 @@ export const pageLoad = () => {
   const $titleChars = document.querySelectorAll('span');
   const $dot = document.querySelector('.dot');
   const $containerblue = document.querySelector('.container-initial-animation');
-  const tl = gsap.timeline({ delay: 1, paused: true });
+  const tl = gsap.timeline({ delay: 1 });
 
   tl.from($titleChars, {
     yPercent: 260,
