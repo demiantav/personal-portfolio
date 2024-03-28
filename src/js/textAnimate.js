@@ -1,5 +1,3 @@
-import gsap from 'gsap';
-
 export const pageLoad = () => {
   const $titleChars = document.querySelectorAll('span');
   const $dot = document.querySelector('.dot');
