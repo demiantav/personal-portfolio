@@ -6,6 +6,6 @@ export const animateMenu = () => {
   $hamb.addEventListener('click', () => {
     console.log('click');
 
-    $menu.classList.toggle('full-menu');
+    $menu.classList.toggle('open');
   });
 };

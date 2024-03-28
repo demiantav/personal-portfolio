@@ -108,21 +108,12 @@ span:last-child {
 .container-items-menu {
   list-style: none;
   top: -100%;
-  transition: top 0.45s;
+  transition: top 0.6s;
   position: absolute;
-}
-
-li:hover {
-  cursor: pointer;
-}
-
-.full-menu {
-  display: flex;
-  position: absolute;
-  top: 0;
   left: 0;
   width: 100vw;
   min-height: 100vh;
+  display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 0.5rem;
@@ -132,6 +123,10 @@ li:hover {
   background-color: black;
   color: white;
   padding-inline: 1rem;
+}
+
+li:hover {
+  cursor: pointer;
 }
 
 .open {
