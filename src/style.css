@@ -4,10 +4,18 @@
   box-sizing: border-box;
 }
 
+body {
+  background-color: #fcf2c9;
+}
+
+.margin-inline {
+  margin-inline: 2rem;
+}
+
 .container-page {
-  background-color: #ffe494;
+  background-color: #fcf2c9;
   min-height: 100vh;
-  color: #0e0d0d;
+  color: black;
   position: relative;
   font-family: 'Cabin', sans-serif;
 }
@@ -66,6 +74,10 @@
 .gsap-hamb {
   overflow: hidden;
 }
+
+.gsap-hamb {
+  z-index: 999;
+}
 .hamb {
   z-index: 9999;
   width: 50px;
@@ -96,6 +108,11 @@
   margin-inline-start: 0.1rem;
 }
 
+.linea-open {
+  transform: rotate(-30deg);
+  transform-origin: right;
+}
+
 .flex-row {
   display: flex;
   flex-direction: row;
@@ -109,6 +126,7 @@
 }
 
 .container-items-menu {
+  z-index: 99;
   list-style: none;
   top: -100%;
   transition: top 0.6s;
@@ -149,28 +167,88 @@ li:hover {
 
 /*Main*/
 
+.main-content-container {
+  margin-inline: 2rem;
+}
+
 .hero-title {
   height: 100dvh;
   display: flex;
   justify-content: center;
   flex-direction: column;
-  align-items: center;
-  font-size: 60px;
+  align-items: flex-start;
+  font-size: 70px;
 }
 
-.gsap-words:nth-child(2) {
+.container-gsap-words {
+  overflow: hidden;
+}
+
+.gsap-words {
+  display: block;
+}
+
+.container-gsap-words:nth-child(2) {
   color: #ff0642;
   font-family: 'Baumans', system-ui;
   letter-spacing: -8px;
+  font-size: 150px;
+}
+
+.section-2 {
+  color: black;
+  height: 100dvh;
+  font-size: 28px;
+}
+
+.about-me-section {
+  overflow: clip;
+}
+
+.about-text {
+  display: block;
+  text-wrap: balance;
+
+  view-timeline-name: --reveal;
+  animation-name: appear;
+  animation-timeline: --reveal;
+  animation-range: entry 0% cover 35%;
+  /* Ejecutar solo una vez */
+  animation-iteration-count: 1;
+
+  /* Mantener el estado final de la animación */
+  animation-fill-mode: forwards;
+}
+
+@keyframes appear {
+  from {
+    transform: translateY(-400px);
+  }
+
+  to {
+    transform: translateZ(0px);
+  }
 }
 
 @media (width >= 600px) {
-  .hamb {
+  .gsap-hamb {
     display: none;
   }
   .container-items-menu {
-    display: flex;
-    top: -100;
-    right: 0;
+    flex-direction: row;
+    font-size: 16px;
+    min-height: auto;
+    position: relative;
+    background-color: transparent;
+    color: black;
+    gap: 3rem;
+  }
+
+  .flex-row {
+    justify-content: space-between;
+  }
+
+  .container-social-links {
+    display: none;
   }
 }

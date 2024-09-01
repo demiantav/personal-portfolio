@@ -7,5 +7,6 @@ export const animateMenu = () => {
     console.log('click');
 
     $menu.classList.toggle('open');
+    d.querySelector('.linea').classList.toggle('linea-open');
   });
 };
