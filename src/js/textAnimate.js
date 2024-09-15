@@ -22,7 +22,7 @@ export const pageLoad = () => {
       '<+=1.8'
     )
     .from(
-      [$hamb, $logo, $menu_full_page],
+      [$hamb, $logo],
       {
         yPercent: 200,
         ease: 'power3.inOut',
@@ -33,7 +33,7 @@ export const pageLoad = () => {
     .from(
       '.gsap-words',
       {
-        yPercent: -120,
+        yPercent: -90,
         stagger: 0.2,
         ease: 'back.out',
         duration: '1.4',
