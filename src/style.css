@@ -152,6 +152,7 @@ body {
   background-color: black;
   color: white;
   padding-inline: 1rem;
+  overflow: clip;
 }
 
 li:hover {
@@ -226,10 +227,11 @@ li:hover {
   text-wrap: balance;
   animation: appear linear both;
   animation-timeline: view();
-  animation-range: entry 10px;
+  animation-range: entry 10px cover 100px;
 }
 
-.about-title {
+.prueba {
+  position: relative;
 }
 
 @keyframes appear {
@@ -254,6 +256,7 @@ li:hover {
     background-color: transparent;
     color: black;
     gap: 3rem;
+    top: 0;
   }
 
   .flex-row {

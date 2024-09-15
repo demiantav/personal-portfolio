@@ -2,7 +2,7 @@ export const pageLoad = () => {
   const $titleChars = document.querySelectorAll('.char');
   const $logo = document.querySelector('.demi-logo');
   const $hamb = document.querySelectorAll('.hamb');
-  const $menu_full_page = document.querySelector('.container-items-menu');
+  const $menu_full_page = document.querySelectorAll('.prueba');
   const $containerblue = document.querySelector('.container-initial-animation');
   const tl = gsap.timeline({ delay: 1 });
 
@@ -22,7 +22,7 @@ export const pageLoad = () => {
       '<+=1.8'
     )
     .from(
-      [$hamb, $logo],
+      [$hamb, $logo, $menu_full_page],
       {
         yPercent: 200,
         ease: 'power3.inOut',
