@@ -1,9 +1,8 @@
 import { animateMenu } from './js/menuAnimation.js';
 import { pageLoad } from './js/textAnimate.js';
+import { Waves } from './js/waves.js';
 
-const d = document;
-
-d.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
   pageLoad();
   animateMenu();
 });

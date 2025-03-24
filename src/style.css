@@ -5,7 +5,9 @@
 }
 
 body {
-  background-color: #fcf2c9;
+  /* background-color: #fcf2c9; */
+  background-color: black;
+  color: white;
 }
 
 .margin-inline {
@@ -13,9 +15,9 @@ body {
 }
 
 .container-page {
-  background-color: #fcf2c9;
+  /* background-color: #fcf2c9; */
   min-height: 100vh;
-  color: black;
+  color: white;
   position: relative;
   font-family: 'Cabin', sans-serif;
 }
@@ -75,7 +77,7 @@ body {
   z-index: 999;
   position: sticky;
   top: 0;
-  background-color: #fcf2c9;
+  /* background-color: #fcf2c9; */
 }
 
 .container-logo,
@@ -198,7 +200,7 @@ li:hover {
 }
 
 .container-gsap-words:nth-child(2) {
-  color: #ff0642;
+  color: #ef2e48;
   font-family: 'Baumans', system-ui;
   letter-spacing: -2px;
   font-size: clamp(3.6458rem, 2.827rem + 4.0942vw, 6rem);
@@ -207,8 +209,8 @@ li:hover {
 .section-2 {
   color: black;
   height: 100dvh;
-  font-size: 28px;
-  background-color: #ff0642;
+  font-size: 3rem;
+  background-color: #ef2e48;
 }
 
 .about-me-section {
@@ -227,7 +229,11 @@ li:hover {
   text-wrap: balance;
   animation: appear linear both;
   animation-timeline: view();
-  animation-range: entry 10px cover 100px;
+  animation-range: entry 10% cover 40%;
+}
+
+.about-title {
+  /* font-size: 16rem; */
 }
 
 .prueba {
@@ -254,7 +260,6 @@ li:hover {
     min-height: auto;
     position: relative;
     background-color: transparent;
-    color: black;
     gap: 3rem;
     top: 0;
   }
@@ -266,4 +271,13 @@ li:hover {
   .container-social-links {
     display: none;
   }
+}
+
+canvas {
+  position: absolute;
+  width: 100%;
+  top: 0;
+  left: -2px;
+  outline: none;
+  pointer-events: none;
 }
