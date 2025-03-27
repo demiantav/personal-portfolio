@@ -4,7 +4,7 @@ export const pageLoad = () => {
   const $hamb = document.querySelectorAll('.hamb');
   const $menu_full_page = document.querySelectorAll('.prueba');
   const $containerblue = document.querySelector('.container-initial-animation');
-  const tl = gsap.timeline({ delay: 1 });
+  const tl = gsap.timeline({ delay: 0.2 });
 
   tl.from($titleChars, {
     yPercent: 260,

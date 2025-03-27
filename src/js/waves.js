@@ -10,7 +10,7 @@ export class Waves {
     this.parameters.factor = 0.045;
     this.parameters.variation = 0.0004;
     this.parameters.amplitude = 700;
-    this.parameters.lines = 20;
+    this.parameters.lines = 8;
     this.parameters.waveColor = { r: 239, g: 46, b: 72, a: 1 };
     this.parameters.shadowColor = { r: 13, g: 14, b: 76, a: 1 };
     this.parameters.shadowBlur = 2;
