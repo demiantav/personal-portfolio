@@ -208,9 +208,9 @@ li:hover {
 
 .section-2 {
   color: black;
-  height: 100dvh;
   font-size: 3rem;
   background-color: #ef2e48;
+  padding: 2rem;
 }
 
 .about-me-section {
@@ -218,22 +218,6 @@ li:hover {
   height: 100%;
   position: relative;
   overflow: clip;
-}
-
-#about {
-  margin-bottom: 50px;
-}
-
-.about-text {
-  position: absolute;
-  text-wrap: balance;
-  animation: appear linear both;
-  animation-timeline: view();
-  animation-range: entry 10% cover 40%;
-}
-
-.about-title {
-  /* font-size: 16rem; */
 }
 
 .prueba {
@@ -276,7 +260,6 @@ li:hover {
 canvas {
   position: absolute;
   width: 100%;
-  top: 0;
   left: -2px;
   outline: none;
   pointer-events: none;

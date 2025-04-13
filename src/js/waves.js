@@ -6,34 +6,32 @@ export class Waves {
     this.perlin = createNoise3D();
 
     this.randomness = [];
-    this.parameters = [];
-    this.parameters.factor = 0.045;
-    this.parameters.variation = 0.0004;
-    this.parameters.amplitude = 700;
-    this.parameters.lines = 20;
-    this.parameters.waveColor = { r: 239, g: 46, b: 72, a: 1 };
-    this.parameters.shadowColor = { r: 13, g: 14, b: 76, a: 1 };
-    this.parameters.shadowBlur = 2;
-    this.parameters.lineStroke = 3;
-    this.parameters.speed = 0.00058;
+    this.parameters = {
+      factor: 0.045,
+      variation: 0.0004,
+      amplitude: 700, // será sobrescrito dinámicamente luego
+      lines: 20,
+      waveColor: { r: 239, g: 46, b: 72, a: 1 },
+      shadowColor: { r: 13, g: 14, b: 76, a: 1 },
+      shadowBlur: 2,
+      lineStroke: 3,
+      speed: 0.00058,
+    };
 
     this.setupCanvas();
     this.setSizes();
     this.setupRandomness();
-    this.drawPaths();
     this.render();
     this.setupResize();
   }
 
   setupCanvas() {
     this.context = this.container.getContext('2d');
-
     if (!this.context) {
       console.error('❌ No se pudo obtener el contexto 2D del canvas.');
       return;
     }
-
-    console.log('✅ Canvas y contexto creados con éxito.');
+    this.pixelRatio = Math.min(window.devicePixelRatio, 1.5);
     this.container.width = this.width * this.pixelRatio;
     this.container.height = this.height * this.pixelRatio;
     this.context.scale(this.pixelRatio, this.pixelRatio);
@@ -42,34 +40,29 @@ export class Waves {
   setSizes() {
     this.width = window.innerWidth;
     this.height = window.innerHeight;
-    this.pixelRatio = Math.min(window.devicePixelRatio, 1.5);
     this.container.width = this.width;
     this.container.height = this.height;
+
+    // Ajustar la amplitud para que no se desborde
+    this.parameters.amplitude = Math.min(this.height / 2.5, 700);
   }
 
   setupRandomness() {
+    this.randomness = [];
     for (let i = 0, rand = 0; i < this.parameters.lines; i++, rand += this.parameters.factor) {
       this.randomness[i] = rand;
     }
   }
 
   drawPaths() {
-    this.context.shadowColor =
-      'rgba(' +
-      this.parameters.shadowColor.r +
-      ', ' +
-      this.parameters.shadowColor.g +
-      ', ' +
-      this.parameters.shadowColor.b +
-      ',' +
-      this.parameters.shadowColor.a +
-      ')';
-    this.context.shadowBlur = this.parameters.shadowBlur;
-    this.context.lineWidth = this.parameters.lineStroke;
+    const ctx = this.context;
+    ctx.shadowColor = `rgba(${this.parameters.shadowColor.r}, ${this.parameters.shadowColor.g}, ${this.parameters.shadowColor.b}, ${this.parameters.shadowColor.a})`;
+    ctx.shadowBlur = this.parameters.shadowBlur;
+    ctx.lineWidth = this.parameters.lineStroke;
 
     for (let i = 0; i <= this.parameters.lines; i++) {
-      this.context.beginPath();
-      this.context.moveTo(0, this.height / 2);
+      ctx.beginPath();
+      ctx.moveTo(0, this.height / 2);
 
       let randomY = 0;
       for (let x = 0; x <= this.width; x++) {
@@ -78,25 +71,16 @@ export class Waves {
           x * this.parameters.variation,
           1
         );
-        this.context.lineTo(
-          x,
-          this.height / 2 + (this.parameters.amplitude + Math.random() * 0.005) * randomY
-        );
+
+        const y = this.height / 2 + this.parameters.amplitude * randomY;
+        ctx.lineTo(x, y);
       }
 
-      this.alpha = Math.min(Math.abs(randomY) + 0.001, 0.3);
-      this.context.strokeStyle =
-        'rgba(' +
-        this.parameters.waveColor.r +
-        ', ' +
-        this.parameters.waveColor.g +
-        ', ' +
-        this.parameters.waveColor.b +
-        ',' +
-        this.alpha * 2 +
-        ')';
-      this.context.stroke();
-      this.context.closePath();
+      const alpha = Math.min(Math.abs(randomY) * 2 + 0.002, 0.3);
+      ctx.strokeStyle = `rgba(${this.parameters.waveColor.r}, ${this.parameters.waveColor.g}, ${this.parameters.waveColor.b}, ${alpha})`;
+      ctx.stroke();
+      ctx.closePath();
+
       this.randomness[i] += this.parameters.speed;
     }
   }
@@ -106,16 +90,17 @@ export class Waves {
   }
 
   resize() {
+    // Reset context transform before resizing
+    this.context.setTransform(1, 0, 0, 1, 0, 0);
     this.setSizes();
+    this.setupCanvas();
+    this.setupRandomness();
   }
 
   render() {
     this.context.clearRect(0, 0, this.width, this.height);
     this.drawPaths();
-
-    setTimeout(() => {
-      window.requestAnimationFrame(this.render.bind(this));
-    }, 1000 / 60);
+    requestAnimationFrame(this.render.bind(this));
   }
 }
 
