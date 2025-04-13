@@ -1,16 +1,26 @@
 export const pageLoad = () => {
+  // 🔒 Bloquear scroll al inicio
+  document.body.classList.add('no-scroll');
+
   const $titleChars = document.querySelectorAll('.char');
   const $logo = document.querySelector('.demi-logo');
   const $hamb = document.querySelectorAll('.hamb');
   const $menu_full_page = document.querySelectorAll('.prueba');
   const $containerblue = document.querySelector('.container-initial-animation');
-  const tl = gsap.timeline({ delay: 1 });
+
+  const tl = gsap.timeline({
+    delay: 1,
+    onComplete: () => {
+      // 🔓 Desbloquear scroll cuando termina la animación
+      document.body.classList.remove('no-scroll');
+    },
+  });
 
   tl.from($titleChars, {
     yPercent: 260,
     stagger: 0.05,
     ease: 'back.out',
-    duration: '.65',
+    duration: 0.65,
   })
     .to(
       $containerblue,
@@ -36,7 +46,7 @@ export const pageLoad = () => {
         yPercent: -90,
         stagger: 0.2,
         ease: 'back.out',
-        duration: '1.4',
+        duration: 1.4,
       },
       '<+=.20'
     );
