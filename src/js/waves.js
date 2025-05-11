@@ -31,7 +31,7 @@ export class Waves {
       console.error('❌ No se pudo obtener el contexto 2D del canvas.');
       return;
     }
-    this.pixelRatio = Math.min(window.devicePixelRatio, 1.5);
+    this.pixelRatio = Math.min(window.devicePixelRatio, 2); // Ajustar para pantallas de alta densidad
     this.container.width = this.width * this.pixelRatio;
     this.container.height = this.height * this.pixelRatio;
     this.context.scale(this.pixelRatio, this.pixelRatio);
@@ -45,6 +45,10 @@ export class Waves {
 
     // Ajustar la amplitud para que no se desborde
     this.parameters.amplitude = Math.min(this.height / 2.5, 700);
+
+    // Ajustar el grosor de las líneas y el desenfoque dinámicamente
+    this.parameters.lineStroke = Math.max(1, this.width / 1920 * 3);
+    this.parameters.shadowBlur = Math.max(1, this.width / 1920 * 2);
   }
 
   setupRandomness() {
@@ -86,11 +90,17 @@ export class Waves {
   }
 
   setupResize() {
-    window.addEventListener('resize', this.resize.bind(this));
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        this.resize();
+      }, 200); // Debounce de 200ms
+    });
   }
 
   resize() {
-    // Reset context transform before resizing
+    // Reset context transform antes de redimensionar
     this.context.setTransform(1, 0, 0, 1, 0, 0);
     this.setSizes();
     this.setupCanvas();

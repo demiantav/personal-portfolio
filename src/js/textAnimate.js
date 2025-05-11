@@ -1,3 +1,8 @@
+import gsap from 'gsap';
+import SplitText from 'gsap/SplitText';
+
+gsap.registerPlugin(SplitText);
+
 export const pageLoad = () => {
   // 🔒 Bloquear scroll al inicio
   document.body.classList.add('no-scroll');
@@ -7,6 +12,8 @@ export const pageLoad = () => {
   const $hamb = document.querySelectorAll('.hamb');
   const $menu_full_page = document.querySelectorAll('.prueba');
   const $containerblue = document.querySelector('.container-initial-animation');
+
+  let splitText = new SplitText('.about-title', { type: 'words' });
 
   const tl = gsap.timeline({
     delay: 1,
@@ -51,3 +58,22 @@ export const pageLoad = () => {
       '<+=.20'
     );
 };
+
+// export const animateSectionText = () => {
+//   const $sectionText = document.querySelector('.about-title');
+//   const tl = gsap.timeline({
+//     scrollTrigger: {
+//       trigger: $sectionText,
+//       start: 'top 80%',
+//       end: 'top 30%',
+//       scrub: true,
+//     },
+//   });
+
+//   tl.from($sectionText, {
+//     yPercent: -90,
+//     stagger: 0.2,
+//     ease: 'back.out',
+//     duration: 1.4,
+//   });
+// };
