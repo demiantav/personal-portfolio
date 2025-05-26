@@ -10,7 +10,7 @@ export class Waves {
       factor: 0.045,
       variation: 0.0004,
       amplitude: 700, // será sobrescrito dinámicamente luego
-      lines: 20,
+      lines: 10,
       waveColor: { r: 239, g: 46, b: 72, a: 1 },
       shadowColor: { r: 13, g: 14, b: 76, a: 1 },
       shadowBlur: 2,

@@ -1,7 +1,8 @@
 import gsap from 'gsap';
 import SplitText from 'gsap/SplitText';
+import ScrollTrigger from 'gsap/ScrollTrigger';
 
-gsap.registerPlugin(SplitText);
+gsap.registerPlugin(SplitText, ScrollTrigger);
 
 export const pageLoad = () => {
   // 🔒 Bloquear scroll al inicio
@@ -12,8 +13,6 @@ export const pageLoad = () => {
   const $hamb = document.querySelectorAll('.hamb');
   const $menu_full_page = document.querySelectorAll('.prueba');
   const $containerblue = document.querySelector('.container-initial-animation');
-
-  let splitText = new SplitText('.about-title', { type: 'words' });
 
   const tl = gsap.timeline({
     delay: 1,
@@ -59,21 +58,23 @@ export const pageLoad = () => {
     );
 };
 
-// export const animateSectionText = () => {
-//   const $sectionText = document.querySelector('.about-title');
-//   const tl = gsap.timeline({
-//     scrollTrigger: {
-//       trigger: $sectionText,
-//       start: 'top 80%',
-//       end: 'top 30%',
-//       scrub: true,
-//     },
-//   });
+export const animateSectionText = () => {
+  let split = SplitText.create('.about-title', {
+    type: 'chars',
+    autoSplit: true,
+    onSplit(self) {
+      // runs every time it splits
+      gsap.from(self.chars, {
+        duration: 0.9,
+        y: 100,
+        autoAlpha: 0,
+        stagger: 0.05,
+        scrollTrigger: {
+          trigger: '.about-title', // o '.about-title'
+        },
+      });
+    },
+  });
 
-//   tl.from($sectionText, {
-//     yPercent: -90,
-//     stagger: 0.2,
-//     ease: 'back.out',
-//     duration: 1.4,
-//   });
-// };
+  console.log(split);
+};
