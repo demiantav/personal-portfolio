@@ -67,7 +67,7 @@ export const animateSectionText = () => {
       gsap.from(self.words, {
         duration: 0.8,
         yPercent: 'random([-80, 80])',
-        rotation: 'random([-10, 10])',
+        rotation: 'random([-20, 30])',
         ease: 'back.out',
         color: '#ef2e48',
         autoAlpha: 0,
@@ -79,17 +79,6 @@ export const animateSectionText = () => {
           trigger: '.about-title',
         },
       });
-
-      gsap.from(
-        '.imagen_mia',
-
-        {
-          y: 200,
-          animationDelay: 1,
-          repeat: -1,
-          autoAlpha: 0,
-        }
-      );
     },
   });
 
