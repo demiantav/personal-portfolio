@@ -60,19 +60,36 @@ export const pageLoad = () => {
 
 export const animateSectionText = () => {
   let split = SplitText.create('.about-title', {
-    type: 'chars',
+    type: 'words',
     autoSplit: true,
     onSplit(self) {
       // runs every time it splits
-      gsap.from(self.chars, {
-        duration: 0.9,
-        y: 100,
+      gsap.from(self.words, {
+        duration: 0.8,
+        yPercent: 'random([-80, 80])',
+        rotation: 'random([-10, 10])',
+        ease: 'back.out',
+        color: '#ef2e48',
         autoAlpha: 0,
-        stagger: 0.05,
+        stagger: {
+          amount: 0.9,
+          from: 'start',
+        },
         scrollTrigger: {
-          trigger: '.about-title', // o '.about-title'
+          trigger: '.about-title',
         },
       });
+
+      gsap.from(
+        '.imagen_mia',
+
+        {
+          y: 200,
+          animationDelay: 1,
+          repeat: -1,
+          autoAlpha: 0,
+        }
+      );
     },
   });
 

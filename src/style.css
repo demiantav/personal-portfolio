@@ -215,10 +215,14 @@ li:hover {
 }
 
 .section-2 {
-  color: black;
-  font-size: 3rem;
-  background-color: #ef2e48;
-  padding: 2rem;
+  text-align: center;
+  color: white;
+  font-size: clamp(1.375rem, 0.9837rem + 1.9565vw, 2.5rem);
+  text-wrap: balance;
+  display: grid;
+  gap: 3rem;
+  padding-block-end: 3rem;
+  /* width: 50ch; */
 }
 
 .about-me-section {
@@ -226,6 +230,12 @@ li:hover {
   height: 100%;
   position: relative;
   overflow: clip;
+}
+
+.imagen_mia {
+  width: 250px;
+  border: #ef2e48 2px solid;
+  rotate: -5deg;
 }
 
 .prueba {
