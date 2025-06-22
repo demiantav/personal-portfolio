@@ -59,7 +59,29 @@ export const pageLoad = () => {
 };
 
 export const animateSectionText = () => {
-  let split = SplitText.create('.about-title', {
+  SplitText.create('.section-title__about', {
+    type: 'words, chars',
+    mask: true,
+    autoSplit: true,
+    onSplit(self) {
+      // runs every time it splits
+      gsap.from(self.chars, {
+        duration: 0.6,
+        y: 200,
+        autoAlpha: 0,
+        stagger: {
+          from: 'start',
+          amount: 0.2,
+        },
+
+        scrollTrigger: {
+          trigger: '.section-title__about',
+        },
+      });
+    },
+  });
+
+  SplitText.create('.about-title', {
     type: 'words',
     autoSplit: true,
     onSplit(self) {
@@ -81,6 +103,4 @@ export const animateSectionText = () => {
       });
     },
   });
-
-  console.log(split);
 };
