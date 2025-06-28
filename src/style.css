@@ -187,7 +187,7 @@ li:hover {
 /*Main*/
 
 .main-content-container {
-  margin-inline: clamp(1rem, 0.913rem + 0.4348vw, 1.25rem);
+  /* margin-inline: clamp(1rem, 0.913rem + 0.4348vw, 1.25rem); */
 }
 
 .hero-title {
@@ -227,6 +227,7 @@ li:hover {
 
   .section-title {
     position: relative;
+    padding: 2rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -235,7 +236,7 @@ li:hover {
     padding-inline: 3rem;
 
     h2 {
-      font-size: 5rem;
+      font-size: 3.5rem;
       color: #ef2e48;
     }
 
@@ -259,14 +260,27 @@ li:hover {
   }
 }
 
+.image-container {
+  display: flex;
+  align-items: center;
+  gap: 5rem;
+
+  p {
+    font-size: 20rem;
+  }
+}
+
 .imagen_mia {
   scale: 0.5;
+
   opacity: 0;
   width: 250px;
+  height: 250px;
+  object-fit: contain;
   rotate: -5deg;
-  animation: appear linear;
+  animation: appear forwards;
   animation-timeline: view();
-  animation-range: cover exit;
+  animation-range: entry 0% cover 45%;
 }
 
 .prueba {

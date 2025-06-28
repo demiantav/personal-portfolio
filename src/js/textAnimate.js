@@ -66,7 +66,7 @@ export const animateSectionText = () => {
     onSplit(self) {
       // runs every time it splits
       gsap.from(self.chars, {
-        duration: 0.6,
+        duration: 0.5,
         y: 200,
         autoAlpha: 0,
         stagger: {
@@ -76,6 +76,29 @@ export const animateSectionText = () => {
 
         scrollTrigger: {
           trigger: '.section-title__about',
+        },
+      });
+    },
+  });
+
+  SplitText.create('.title-hola', {
+    type: 'chars',
+    mask: true,
+    autoSplit: true,
+    onSplit(self) {
+      // runs every time it splits
+      gsap.from(self.chars, {
+        duration: 0.87,
+        y: 400,
+        autoAlpha: 0,
+        stagger: {
+          from: 'start',
+          amount: 0.32,
+        },
+
+        scrollTrigger: {
+          trigger: '.title-hola',
+          start: 'top 80%',
         },
       });
     },
