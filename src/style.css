@@ -82,10 +82,9 @@ body.no-scroll {
 /*Menu*/
 
 .header-menu {
-  z-index: 999;
+  z-index: 1;
   position: sticky;
   top: 0;
-  /* background-color: #fcf2c9; */
 }
 
 .container-logo,

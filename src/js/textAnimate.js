@@ -127,6 +127,23 @@ export const animateSectionText = () => {
           start: 'top 87%',
         },
       });
+
+      gsap.from('.emoji', {
+        duration: 0.8,
+        yPercent: 'random([-80, 80])',
+        rotation: 'random([-20, 30])',
+        ease: 'back.out',
+        color: '#ef2e48',
+        autoAlpha: 0,
+        stagger: {
+          amount: 0.9,
+          from: 'start',
+        },
+        scrollTrigger: {
+          trigger: '.emoji',
+          start: 'top 87%',
+        },
+      });
     },
   });
 };
