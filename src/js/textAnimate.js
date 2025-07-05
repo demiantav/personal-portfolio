@@ -61,7 +61,7 @@ export const pageLoad = () => {
 export const animateSectionText = () => {
   SplitText.create('.section-title__about', {
     type: 'words, chars',
-    mask: true,
+    mask: 'chars',
     autoSplit: true,
     onSplit(self) {
       // runs every time it splits
@@ -76,6 +76,7 @@ export const animateSectionText = () => {
 
         scrollTrigger: {
           trigger: '.section-title__about',
+          start: 'top 86%',
         },
       });
     },
@@ -83,22 +84,23 @@ export const animateSectionText = () => {
 
   SplitText.create('.title-hola', {
     type: 'chars',
-    mask: true,
+    mask: 'chars',
     autoSplit: true,
     onSplit(self) {
       // runs every time it splits
       gsap.from(self.chars, {
-        duration: 0.87,
-        y: 400,
+        duration: 0.46,
+        y: 150,
         autoAlpha: 0,
         stagger: {
           from: 'start',
-          amount: 0.32,
+          amount: 0.8,
         },
 
         scrollTrigger: {
           trigger: '.title-hola',
-          start: 'top 80%',
+          start: 'top 73%',
+          toggleActions: 'play none none reverse',
         },
       });
     },
@@ -122,6 +124,7 @@ export const animateSectionText = () => {
         },
         scrollTrigger: {
           trigger: '.about-title',
+          start: 'top 87%',
         },
       });
     },

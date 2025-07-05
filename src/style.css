@@ -197,6 +197,7 @@ li:hover {
   flex-direction: column;
   align-items: flex-start;
   font-size: clamp(2.115rem, 2.9076rem + 1.087vw, 3.75rem);
+  padding-inline: 0.76rem;
 }
 
 .container-gsap-words {
@@ -234,9 +235,10 @@ li:hover {
     gap: 1rem;
     background-color: rgb(18, 13, 13);
     padding-inline: 3rem;
+    text-wrap: nowrap;
 
     h2 {
-      font-size: 3.5rem;
+      font-size: clamp(2.0625rem, 1.5625rem + 2.5vw, 3.5rem);
       color: #ef2e48;
     }
 
@@ -263,24 +265,27 @@ li:hover {
 .image-container {
   display: flex;
   align-items: center;
-  gap: 5rem;
-
-  p {
-    font-size: 20rem;
+  gap: clamp(1.25rem, -0.0543rem + 6.5217cqi, 5rem);
+  margin: auto;
+  .title-hola {
+    font-size: clamp(5rem, -0.2174rem + 26.087vw, 20rem);
+    text-wrap: nowrap;
+    font-weight: bold;
   }
 }
 
 .imagen_mia {
   scale: 0.5;
-
   opacity: 0;
-  width: 250px;
-  height: 250px;
-  object-fit: contain;
+  width: clamp(4.375rem, 0.462rem + 19.5652vw, 15.625rem);
   rotate: -5deg;
   animation: appear forwards;
   animation-timeline: view();
-  animation-range: entry 0% cover 45%;
+  animation-range: entry 70% cover 80%;
+}
+
+.about-title {
+  margin-inline: 0.3rem;
 }
 
 .prueba {
