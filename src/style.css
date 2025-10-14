@@ -223,7 +223,7 @@ li:hover {
   display: grid;
   gap: 3rem;
   padding-block-end: 3rem;
-  line-height: 1.3;
+  line-height: 1.6;
 
   .section-title {
     position: relative;
@@ -266,6 +266,7 @@ li:hover {
   align-items: center;
   gap: clamp(1.25rem, -0.0543rem + 6.5217cqi, 5rem);
   margin: auto;
+
   .title-hola {
     font-size: clamp(5rem, -0.2174rem + 26.087vw, 20rem);
     text-wrap: nowrap;

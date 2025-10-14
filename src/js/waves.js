@@ -9,17 +9,22 @@ export class Waves {
     this.parameters = {
       factor: 0.045,
       variation: 0.0004,
-      amplitude: 700, // será sobrescrito dinámicamente luego
+      amplitude: 700,
       lines: 10,
-      waveColor: { r: 255, g: 6, b: 87 },
-      shadowColor: { r: 255, g: 6, b: 76, a: 1 },
-      shadowBlur: 2,
+      hueBase: 330, // tono base (rosa/fucsia)
+      hueRange: 20, // cuánto varía el tono entre líneas
+      shadowColor: { r: 255, g: 6, b: 76, a: 0.6 },
+      shadowBlur: 3,
       lineStroke: 3,
-      speed: 0.00058,
+      speed: 0.002,
+      revealSpeed: 10,
     };
 
-    this.setupCanvas();
+    this.progress = 0;
+    this.time = 0;
+
     this.setSizes();
+    this.setupCanvas();
     this.setupRandomness();
     this.render();
     this.setupResize();
@@ -31,7 +36,8 @@ export class Waves {
       console.error('❌ No se pudo obtener el contexto 2D del canvas.');
       return;
     }
-    this.pixelRatio = Math.min(window.devicePixelRatio, 1.5); // Ajustar para pantallas de alta densidad
+
+    this.pixelRatio = Math.min(window.devicePixelRatio, 1.5);
     this.container.width = this.width * this.pixelRatio;
     this.container.height = this.height * this.pixelRatio;
     this.context.scale(this.pixelRatio, this.pixelRatio);
@@ -42,8 +48,6 @@ export class Waves {
     this.height = window.innerHeight;
     this.container.width = this.width;
     this.container.height = this.height;
-
-    // Ajustar la amplitud para que no se desborde
     this.parameters.amplitude = Math.min(this.height / 2.5, 700);
   }
 
@@ -60,29 +64,39 @@ export class Waves {
     ctx.shadowBlur = this.parameters.shadowBlur;
     ctx.lineWidth = this.parameters.lineStroke;
 
-    for (let i = 0; i <= this.parameters.lines; i++) {
-      ctx.beginPath();
-      ctx.moveTo(0, this.height / 2);
+    const drawWidth = Math.min(this.progress, this.width);
 
-      let randomY = 0;
-      for (let x = 0; x <= this.width; x++) {
-        randomY = this.perlin(
+    for (let i = 0; i < this.parameters.lines; i++) {
+      ctx.beginPath();
+
+      // 🌈 tono y brillo dinámicos
+      const hue =
+        this.parameters.hueBase + i * (this.parameters.hueRange / this.parameters.lines);
+      const lightness = 60 + Math.sin(this.time * 2 + i) * 10; // leve variación
+      const alpha = 0.25 + i * 0.02; // profundidad: más transparente al fondo
+
+      for (let x = 0; x <= drawWidth; x += 2) {
+        const noiseValue = this.perlin(
           x * this.parameters.variation + this.randomness[i],
           x * this.parameters.variation,
-          1
+          this.time
         );
 
-        const y = this.height / 2 + this.parameters.amplitude * randomY;
-        ctx.lineTo(x, y);
+        const y = this.height / 2 + this.parameters.amplitude * noiseValue;
+
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
       }
 
-      const alpha = Math.min(Math.abs(randomY) * 2 + 0.002, 0.3);
-      ctx.strokeStyle = `rgba(${this.parameters.waveColor.r}, ${this.parameters.waveColor.g}, ${this.parameters.waveColor.b}, ${alpha})`;
+      ctx.strokeStyle = `hsla(${hue}, 80%, ${lightness}%, ${alpha})`;
       ctx.stroke();
       ctx.closePath();
 
-      this.randomness[i] += this.parameters.speed;
+      this.randomness[i] += this.parameters.speed * 0.02;
     }
+
+    if (this.progress < this.width) this.progress += this.parameters.revealSpeed;
+    this.time += this.parameters.speed;
   }
 
   setupResize() {
@@ -90,7 +104,6 @@ export class Waves {
   }
 
   resize() {
-    // Reset context transform antes de redimensionar
     this.context.setTransform(1, 0, 0, 1, 0, 0);
     this.setSizes();
     this.setupCanvas();
@@ -100,10 +113,11 @@ export class Waves {
   render() {
     this.context.clearRect(0, 0, this.width, this.height);
     this.drawPaths();
-    requestAnimationFrame(this.render.bind(this));
+    this.animationId = requestAnimationFrame(this.render.bind(this));
   }
 }
 
+// Inicialización
 new Waves({
   dom: document.getElementById('webgl'),
 });
