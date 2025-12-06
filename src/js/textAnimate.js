@@ -1,8 +1,13 @@
 import gsap from 'gsap';
 import SplitText from 'gsap/SplitText';
 import ScrollTrigger from 'gsap/ScrollTrigger';
+import { Waves } from './waves';
 
 gsap.registerPlugin(SplitText, ScrollTrigger);
+
+const waves = new Waves({
+  dom: document.getElementById('webgl'),
+});
 
 export const pageLoad = () => {
   // 🔒 Bloquear scroll al inicio
@@ -18,6 +23,7 @@ export const pageLoad = () => {
     delay: 1,
     onComplete: () => {
       // 🔓 Desbloquear scroll cuando termina la animación
+
       document.body.classList.remove('no-scroll');
     },
   });
@@ -34,6 +40,9 @@ export const pageLoad = () => {
         clipPath: 'polygon(0% 0%, 100% 0%, 100% 0%, 0% 0%)',
         duration: 1,
         ease: 'power3.inOut',
+        onComplete: () => {
+          waves.start();
+        },
       },
       '<+=1.8'
     )

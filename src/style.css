@@ -271,6 +271,7 @@ li:hover {
     font-size: clamp(5rem, -0.2174rem + 26.087vw, 20rem);
     text-wrap: nowrap;
     font-weight: bold;
+    letter-spacing: -8px;
   }
 }
 
