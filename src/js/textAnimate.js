@@ -13,11 +13,11 @@ export const pageLoad = () => {
   // 🔒 Bloquear scroll al inicio
   document.body.classList.add('no-scroll');
 
-  const $titleChars = document.querySelectorAll('.char');
-  const $logo = document.querySelector('.demi-logo');
-  const $hamb = document.querySelectorAll('.hamb');
-  const $menu_full_page = document.querySelectorAll('.prueba');
-  const $containerblue = document.querySelector('.container-initial-animation');
+  const $titleChars = document.querySelectorAll('.preloader__char');
+  const $logo = document.querySelector('.header__logo-img');
+  const $hamb = document.querySelectorAll('.header__container-hamb');
+  const $menu_full_page = document.querySelectorAll('.header__nav-link');
+  const $containerblue = document.querySelector('.preloader');
 
   const tl = gsap.timeline({
     delay: 1,
@@ -54,51 +54,18 @@ export const pageLoad = () => {
         duration: 1.5,
       },
       '<'
-    )
-    .from(
-      '.gsap-words',
-      {
-        yPercent: -90,
-        stagger: 0.2,
-        ease: 'back.out',
-        duration: 1.4,
-      },
-      '<+=.20'
     );
 };
 
 export const animateSectionText = () => {
-  SplitText.create('.section-title__about', {
-    type: 'words, chars',
-    mask: 'chars',
-    autoSplit: true,
-    onSplit(self) {
-      // runs every time it splits
-      gsap.from(self.chars, {
-        duration: 0.5,
-        y: 200,
-        autoAlpha: 0,
-        stagger: {
-          from: 'start',
-          amount: 0.2,
-        },
-
-        scrollTrigger: {
-          trigger: '.section-title__about',
-          start: 'top 86%',
-        },
-      });
-    },
-  });
-
-  SplitText.create('.title-hola', {
+  SplitText.create('.main__title', {
     type: 'chars',
     mask: 'chars',
     autoSplit: true,
     onSplit(self) {
       // runs every time it splits
       gsap.from(self.chars, {
-        duration: 0.46,
+        duration: 0.245,
         y: 150,
         autoAlpha: 0,
         stagger: {
@@ -107,7 +74,7 @@ export const animateSectionText = () => {
         },
 
         scrollTrigger: {
-          trigger: '.title-hola',
+          trigger: '.main__title',
           start: 'top 73%',
           toggleActions: 'play none none reverse',
         },
@@ -115,7 +82,7 @@ export const animateSectionText = () => {
     },
   });
 
-  SplitText.create('.about-title', {
+  SplitText.create('.main__about-text', {
     type: 'words',
     autoSplit: true,
     onSplit(self) {
@@ -132,12 +99,12 @@ export const animateSectionText = () => {
           from: 'start',
         },
         scrollTrigger: {
-          trigger: '.about-title',
+          trigger: '.main__about-text',
           start: 'top 87%',
         },
       });
 
-      gsap.from('.emoji', {
+      gsap.from('.main__emoji', {
         duration: 0.8,
         yPercent: 'random([-80, 80])',
         rotation: 'random([-20, 30])',
@@ -149,7 +116,7 @@ export const animateSectionText = () => {
           from: 'start',
         },
         scrollTrigger: {
-          trigger: '.emoji',
+          trigger: '.main__emoji',
           start: 'top 87%',
         },
       });
