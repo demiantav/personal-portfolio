@@ -28,7 +28,23 @@ body {
   background-color: var(--bg-color);
   color: white;
   font-family: 'Baumans', system-ui;
+  font-size: var(--step-0);
   position: relative;
+}
+
+h2 {
+  font-size: var(--step-6);
+  letter-spacing: -10px;
+}
+
+h4 {
+  font-size: var(--step--1);
+}
+
+/* Utility Classes */
+
+.padding--inline {
+  padding-inline: var(--fluid-16-120);
 }
 
 body.no-scroll {
@@ -98,10 +114,28 @@ body.no-scroll {
 }
 /* End Loading Screen */
 
+/* Hero Section */
+
+.main__hero-section {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  min-height: 100dvh;
+}
+
+.main__container-titles {
+  text-wrap: wrap;
+  text-align: end;
+  min-height: 35dvh;
+  color: var(--primary-color);
+}
+
 /*Header*/
 
 header {
   z-index: 1;
+  padding-block: 2.5rem;
+  width: 100%;
   position: sticky;
   top: 0;
 }
@@ -152,27 +186,41 @@ header {
 .header__nav-menu {
   z-index: 99;
   list-style: none;
-  top: -1000px;
+  letter-spacing: -7px;
   transition: top 0.6s;
-  position: absolute;
+  position: fixed;
+  top: -4000px;
   left: 0;
   right: 0;
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 0.5rem;
   align-items: flex-start;
-  font-size: 42px;
+  font-size: 93px;
   font-weight: bolder;
   background-color: black;
   color: white;
   padding-inline: 1rem;
-  overflow: clip;
 }
 
 .header__nav-link {
   position: relative;
+  padding: 0.6rem;
+}
+
+.active::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 0.9rem;
+  z-index: -1;
+  background-color: var(--primary-color);
+}
+
+.header__nav-link:where(.active) {
+  color: black;
 }
 
 li:hover {
@@ -194,13 +242,18 @@ li:hover {
   width: 100%;
 }
 
+.header__logo-img {
+  width: 71px;
+  height: 30px;
+}
+
 /*End Header*/
 
 /*Main*/
 
 canvas {
   width: 100%;
-  height: 100vh;
+  height: 50dvh;
   left: -2px;
   outline: none;
   pointer-events: none;
@@ -292,17 +345,25 @@ canvas {
 /* Media Queries */
 
 @media (width >= 600px) {
+  h2 {
+    text-wrap: nowrap;
+  }
+
   .header__hamb {
     display: none;
   }
   .header__nav-menu {
     flex-direction: row;
-    font-size: 16px;
     min-height: auto;
     position: relative;
     background-color: transparent;
     gap: 3rem;
     top: 0;
+    font-size: 16px;
+
+    > li {
+      letter-spacing: 0px;
+    }
   }
 
   .flex--row {
