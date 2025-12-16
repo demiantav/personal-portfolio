@@ -1,12 +1,38 @@
+let $links;
+
 export const animateMenu = () => {
   const d = document;
-  const $hamb = d.querySelector('.hamb'),
-    $menu = d.querySelector('.container-items-menu');
+  const $hamb = d.querySelectorAll('.header__hamb'),
+    $menu = d.querySelectorAll('.header__nav-menu');
 
-  $hamb.addEventListener('click', () => {
-    console.log('click');
+  $links = d.querySelectorAll('.header__nav-link');
 
-    $menu.classList.toggle('open');
-    d.querySelector('.linea').classList.toggle('linea-open');
-  });
+  $hamb.forEach((e) =>
+    e.addEventListener('click', () => {
+      console.log('click');
+
+      // Iterate over each menu element
+      $menu.forEach((menuItem) => {
+        menuItem.classList.toggle('open');
+      });
+    })
+  );
+
+  // $links.forEach((link) =>
+  //   link.addEventListener('mouseenter', (event) => {
+  //     if (!d.startViewTransition) {
+  //       activeLink(event.target);
+  //       return;
+  //     }
+
+  //     d.startViewTransition(() => {
+  //       activeLink(event.target);
+  //     });
+  //   })
+  // );
+};
+
+const activeLink = (link) => {
+  $links.forEach((l) => l.classList.remove('active'));
+  link.classList.add('active');
 };

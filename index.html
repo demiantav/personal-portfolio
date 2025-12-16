@@ -16,96 +16,241 @@
       rel="stylesheet"
     />
 
-    <title>Portfolio</title>
+    <title>Portfolio @Demian Tavolaro</title>
   </head>
 
   <body>
-    <div class="container-page">
-      <nav class="header-menu">
-        <div class="container-flex-menu flex-row">
-          <div class="container-logo">
-            <img src="./src/images/demi..svg" class="demi-logo" alt="logo-portfolio" />
+    <main>
+      <canvas id="webgl"></canvas>
+
+      <div class="main__container-titles padding--inline">
+        <h4>+5 years of experience</h4>
+        <h4>Available worldwide</h4>
+        <h2>Frontend Developer</h2>
+      </div>
+
+      <header>
+        <div class="header__container flex--row padding--inline">
+          <div class="header__container-logo">
+            <img src="./src/images/demi..svg" class="header__logo-img" alt="logo-portfolio" />
           </div>
 
-          <ul class="container-items-menu flex-row">
-            <li class="prueba"><span>Acerca de mi</span></li>
-            <li class="prueba"><span>Proyectos</span></li>
-            <li class="prueba"><span>Experiencia</span></li>
-            <li class="prueba"><span>Contacto</span></li>
-            <div class="container-social-links">
-              <img src="./src/images/github-mark.svg" alt="logo github" />
-              <img src="./src/images/LinkedIn_icon.svg" alt="logo linkedin" />
+          <nav class="header__nav-menu padding--inline">
+            <div class="header__container-logo">
+              <img src="./src/images/demi..svg" class="header__logo-img" alt="logo-portfolio" />
+              <button class="header__hamb">
+                <div class="header__container-hamb">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    height="24px"
+                    viewBox="0 -960 960 960"
+                    width="24px"
+                    fill="#ff0642"
+                  >
+                    <path
+                      d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"
+                    />
+                  </svg>
+                </div>
+              </button>
             </div>
-          </ul>
-          <div class="gsap-hamb">
-            <div class="hamb">
-              <span class="linea"></span>
-              <span class="linea2"></span>
+
+            <ul>
+              <li class="header__nav-link active">
+                <a href="#proyect"><span class="header__span">About me</span></a>
+              </li>
+              <li class="header__nav-link">
+                <a href="#proyect"><span class="header__span">Proyects</span></a>
+              </li>
+              <li class="header__nav-link">
+                <a href="#proyect"><span class="header__span">Skills</span></a>
+              </li>
+              <li class="header__nav-link">
+                <a href=""><span class="header__span">Contact</span></a>
+              </li>
+            </ul>
+
+            <div class="header__say-hello-action">
+              <p>
+                SAY HELLO
+                <span
+                  ><svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    height="24px"
+                    viewBox="0 -960 960 960"
+                    width="20px"
+                    fill="#F3505F"
+                  >
+                    <path
+                      d="M444-768v438L243-531l-51 51 288 288 288-288-51-51-201 201v-438h-72Z"
+                    />
+                  </svg>
+                </span>
+              </p>
+              <a href="mailto:tavolarodemian06@gmail.com">tavolarodemian06@gmail.com</a>
             </div>
-          </div>
+
+            <footer class="header__container-social-links">
+              <a href="https://github.com/demiantav" target="_blank"
+                ><img src="./src/images/github-mark.svg" alt="logo github"
+              /></a>
+              <a href="https://www.linkedin.com/in/demian-tavolaro/" target="_blank"
+                ><img src="./src/images/LinkedIn_icon.svg" alt="logo linkedin"
+              /></a>
+            </footer>
+          </nav>
+
+          <button class="header__hamb">
+            <div class="header__container-hamb">
+              <span class="header__hamb-line1"></span>
+              <span class="header__hamb-line2"></span>
+            </div>
+          </button>
         </div>
-      </nav>
+      </header>
 
-      <main class="main-content-container">
-        <canvas id="webgl"></canvas>
+      <section class="main__about-me-section padding--inline">
+        <!-- <div class="section-title">
+          <span class="section-title__line section-title__line--left"></span>
+          <h2 class="section-title__about">Acerca de Mi</h2>
+          <span class="section-title__line section-title__line--right"></span>
+        </div> -->
 
-        <section class="hero-title">
-          <div class="container-gsap-words"><span class="gsap-words">Desarrollando</span></div>
-          <div class="container-gsap-words"><span class="gsap-words">Experiencias</span></div>
-          <div class="container-gsap-words"><span class="gsap-words">Digitales</span></div>
-        </section>
-        <section class="section-2">
-          <div class="section-title">
-            <span class="section-title__line section-title__line--left"></span>
-            <h2 class="section-title__about">Acerca de Mi</h2>
-            <span class="section-title__line section-title__line--right"></span>
-          </div>
+        <div class="main__title-container">
+          <h2 class="main__title">HOLA!</h2>
+          <img src="./src/images/me.jpg" alt="imagen mia" class="main__img-about" />
+        </div>
+        <span class="main__about-text"
+          >Soy Demián Tavolaro
+          <picture>
+            <source
+              srcset="https://fonts.gstatic.com/s/e/notoemoji/latest/1f60e/512.webp"
+              type="image/webp"
+            />
+            <img
+              class="main__emoji"
+              src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f60e/512.gif"
+              alt="😎"
+              width="32"
+              height="32"
+            />
+          </picture>
+          Frontend Developer y fan del buen diseño 🖤. Me gusta cuando las cosas se ven bien,
+          cargan rápido y llegan a todos. Siempre enfocado en:
+          <picture>
+            <source
+              srcset="https://fonts.gstatic.com/s/e/notoemoji/latest/26a1/512.webp"
+              type="image/webp"
+            />
+            <img
+              class="main__emoji"
+              src="https://fonts.gstatic.com/s/e/notoemoji/latest/26a1/512.gif"
+              alt="⚡"
+              width="32"
+              height="32"
+            />
+          </picture>
+          Performance, ♿ Accesibilidad y 🎨 Diseño.</span
+        >
+      </section>
 
-          <div class="image-container">
-            <p class="title-hola">HOLA!</p>
-            <img src="./src/images/me.jpg" alt="imagen mia" class="imagen_mia" />
-          </div>
-          <span class="about-title"
-            >Soy Demián Tavolaro
-            <picture>
-              <source
-                srcset="https://fonts.gstatic.com/s/e/notoemoji/latest/1f60e/512.webp"
-                type="image/webp"
-              />
-              <img
-                class="emoji"
-                src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f60e/512.gif"
-                alt="😎"
-                width="32"
-                height="32"
-              />
-            </picture>
-            Frontend Developer y fan del buen diseño 🖤. Me gusta cuando las cosas se ven bien,
-            cargan rápido y llegan a todos. Siempre enfocado en:
-            <picture>
-              <source
-                srcset="https://fonts.gstatic.com/s/e/notoemoji/latest/26a1/512.webp"
-                type="image/webp"
-              />
-              <img
-                class="emoji"
-                src="https://fonts.gstatic.com/s/e/notoemoji/latest/26a1/512.gif"
-                alt="⚡"
-                width="32"
-                height="32"
-              />
-            </picture>
-            Performance, ♿ Accesibilidad y 🎨 Diseño.</span
-          >
-        </section>
-      </main>
+      <section class="main__about-me-section">
+        <!-- <div class="section-title">
+          <span class="section-title__line section-title__line--left"></span>
+          <h2 class="section-title__about">Acerca de Mi</h2>
+          <span class="section-title__line section-title__line--right"></span>
+        </div> -->
 
-      <div class="container-initial-animation">
-        <div class="container-demi-title">
-          <div>
-            <span class="char">d</span><span class="char">e</span><span class="char">m</span
-            ><span class="char">i</span><span class="dot char">.</span>
-          </div>
+        <div class="main__title-container">
+          <h2 class="main__title">HOLA!</h2>
+          <img src="./src/images/me.jpg" alt="imagen mia" class="main__img-about" />
+        </div>
+        <span class="main__about-text"
+          >Soy Demián Tavolaro
+          <picture>
+            <source
+              srcset="https://fonts.gstatic.com/s/e/notoemoji/latest/1f60e/512.webp"
+              type="image/webp"
+            />
+            <img
+              class="main__emoji"
+              src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f60e/512.gif"
+              alt="😎"
+              width="32"
+              height="32"
+            />
+          </picture>
+          Frontend Developer y fan del buen diseño 🖤. Me gusta cuando las cosas se ven bien,
+          cargan rápido y llegan a todos. Siempre enfocado en:
+          <picture>
+            <source
+              srcset="https://fonts.gstatic.com/s/e/notoemoji/latest/26a1/512.webp"
+              type="image/webp"
+            />
+            <img
+              class="main__emoji"
+              src="https://fonts.gstatic.com/s/e/notoemoji/latest/26a1/512.gif"
+              alt="⚡"
+              width="32"
+              height="32"
+            />
+          </picture>
+          Performance, ♿ Accesibilidad y 🎨 Diseño.</span
+        >
+      </section>
+
+      <section class="main__about-me-section">
+        <!-- <div class="section-title">
+          <span class="section-title__line section-title__line--left"></span>
+          <h2 class="section-title__about">Acerca de Mi</h2>
+          <span class="section-title__line section-title__line--right"></span>
+        </div> -->
+
+        <div class="main__title-container" id="proyect">
+          <h2 class="main__title">HOLA!</h2>
+          <img src="./src/images/me.jpg" alt="imagen mia" class="main__img-about" />
+        </div>
+        <span class="main__about-text"
+          >Soy Demián Tavolaro
+          <picture>
+            <source
+              srcset="https://fonts.gstatic.com/s/e/notoemoji/latest/1f60e/512.webp"
+              type="image/webp"
+            />
+            <img
+              class="main__emoji"
+              src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f60e/512.gif"
+              alt="😎"
+              width="32"
+              height="32"
+            />
+          </picture>
+          Frontend Developer y fan del buen diseño 🖤. Me gusta cuando las cosas se ven bien,
+          cargan rápido y llegan a todos. Siempre enfocado en:
+          <picture>
+            <source
+              srcset="https://fonts.gstatic.com/s/e/notoemoji/latest/26a1/512.webp"
+              type="image/webp"
+            />
+            <img
+              class="main__emoji"
+              src="https://fonts.gstatic.com/s/e/notoemoji/latest/26a1/512.gif"
+              alt="⚡"
+              width="32"
+              height="32"
+            />
+          </picture>
+          Performance, ♿ Accesibilidad y 🎨 Diseño.</span
+        >
+      </section>
+    </main>
+
+    <div class="preloader">
+      <div class="preloader__title">
+        <div>
+          <span class="preloader__char">d</span><span class="preloader__char">e</span
+          ><span class="preloader__char">m</span><span class="preloader__char">i</span
+          ><span class="preloader__char">.</span>
         </div>
       </div>
     </div>
