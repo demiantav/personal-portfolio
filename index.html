@@ -35,26 +35,81 @@
             <img src="./src/images/demi..svg" class="header__logo-img" alt="logo-portfolio" />
           </div>
 
-          <ul class="header__nav-menu padding--inline flex--row">
-            <li class="header__nav-link active"><span>About me</span></li>
-            <li class="header__nav-link"><span>Proyects</span></li>
-            <li class="header__nav-link"><span>Skills</span></li>
-            <li class="header__nav-link"><span>Contact</span></li>
-            <div class="header__container-social-links">
-              <img src="./src/images/github-mark.svg" alt="logo github" />
-              <img src="./src/images/LinkedIn_icon.svg" alt="logo linkedin" />
+          <nav class="header__nav-menu padding--inline">
+            <div class="header__container-logo">
+              <img src="./src/images/demi..svg" class="header__logo-img" alt="logo-portfolio" />
+              <button class="header__hamb">
+                <div class="header__container-hamb">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    height="24px"
+                    viewBox="0 -960 960 960"
+                    width="24px"
+                    fill="#ff0642"
+                  >
+                    <path
+                      d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"
+                    />
+                  </svg>
+                </div>
+              </button>
             </div>
-          </ul>
-          <div class="header__hamb">
+
+            <ul>
+              <li class="header__nav-link active">
+                <a href="#proyect"><span class="header__span">About me</span></a>
+              </li>
+              <li class="header__nav-link">
+                <a href="#proyect"><span class="header__span">Proyects</span></a>
+              </li>
+              <li class="header__nav-link">
+                <a href="#proyect"><span class="header__span">Skills</span></a>
+              </li>
+              <li class="header__nav-link">
+                <a href=""><span class="header__span">Contact</span></a>
+              </li>
+            </ul>
+
+            <div class="header__say-hello-action">
+              <p>
+                SAY HELLO
+                <span
+                  ><svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    height="24px"
+                    viewBox="0 -960 960 960"
+                    width="20px"
+                    fill="#F3505F"
+                  >
+                    <path
+                      d="M444-768v438L243-531l-51 51 288 288 288-288-51-51-201 201v-438h-72Z"
+                    />
+                  </svg>
+                </span>
+              </p>
+              <a href="mailto:tavolarodemian06@gmail.com">tavolarodemian06@gmail.com</a>
+            </div>
+
+            <footer class="header__container-social-links">
+              <a href="https://github.com/demiantav" target="_blank"
+                ><img src="./src/images/github-mark.svg" alt="logo github"
+              /></a>
+              <a href="https://www.linkedin.com/in/demian-tavolaro/" target="_blank"
+                ><img src="./src/images/LinkedIn_icon.svg" alt="logo linkedin"
+              /></a>
+            </footer>
+          </nav>
+
+          <button class="header__hamb">
             <div class="header__container-hamb">
               <span class="header__hamb-line1"></span>
               <span class="header__hamb-line2"></span>
             </div>
-          </div>
+          </button>
         </div>
       </header>
 
-      <section class="main__about-me-section">
+      <section class="main__about-me-section padding--inline">
         <!-- <div class="section-title">
           <span class="section-title__line section-title__line--left"></span>
           <h2 class="section-title__about">Acerca de Mi</h2>
@@ -151,7 +206,7 @@
           <span class="section-title__line section-title__line--right"></span>
         </div> -->
 
-        <div class="main__title-container">
+        <div class="main__title-container" id="proyect">
           <h2 class="main__title">HOLA!</h2>
           <img src="./src/images/me.jpg" alt="imagen mia" class="main__img-about" />
         </div>
