@@ -41,6 +41,11 @@ h2 {
   letter-spacing: -10px;
 }
 
+h3 {
+  font-size: var(--step-3);
+  font-weight: normal;
+}
+
 h4 {
   font-size: var(--step--1);
 }
@@ -292,12 +297,11 @@ canvas {
 }
 
 .main__about-me-section {
-  text-align: center;
   background-color: var(--primary-color);
   color: black;
   text-wrap: balance;
   display: grid;
-  gap: 3rem;
+  gap: 7rem;
   padding-block-end: 3rem;
   line-height: 1.6;
 
@@ -329,6 +333,41 @@ canvas {
   } */
 }
 
+.main__line {
+  width: clamp(17.5rem, 4.1522rem + 66.7391vw, 55.875rem);
+  height: 1px;
+  background-color: black;
+}
+
+.main__line--secondary,
+h3 {
+  place-self: flex-end;
+}
+
+.main__about-me-secundary {
+  max-width: 45ch;
+  margin-inline-start: clamp(1.5625rem, 0.4538rem + 5.5435vw, 4.75rem);
+}
+
+.main__gallery {
+  display: grid;
+  place-items: center;
+  gap: 4rem;
+  grid-template-columns: 1fr;
+
+  img {
+    width: 280px;
+  }
+
+  /* img:nth-child(2) {
+    grid-column: 4 / 7;
+  }
+
+  img:nth-child(3) {
+    grid-column: 1 / 2;
+  } */
+}
+
 @keyframes test {
   to {
     width: 10%;
@@ -339,7 +378,7 @@ canvas {
 .main__title-container {
   display: flex;
   align-items: center;
-  margin: auto;
+  justify-content: space-between;
 
   .main__title {
     font-size: clamp(5rem, -0.2174rem + 26.087vw, 20rem);
@@ -404,6 +443,23 @@ canvas {
   .header__container-social-links,
   .header__say-hello-action {
     display: none;
+  }
+
+  .main__gallery {
+    grid-template-columns: repeat(2, 1fr);
+
+    img:nth-child(1) {
+      width: 588px;
+      grid-column: 1/5;
+    }
+
+    img:nth-child(2) {
+      width: 350px;
+    }
+
+    img:nth-child(3) {
+      width: 512px;
+    }
   }
 }
 
