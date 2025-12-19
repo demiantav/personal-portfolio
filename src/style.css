@@ -364,7 +364,7 @@ h3 {
 .main__gallery {
   display: grid;
   place-items: center;
-  gap: 4rem;
+  gap: var(--space-l);
   grid-template-columns: 1fr;
 
   img {
@@ -476,7 +476,7 @@ h3 {
     }
 
     img:nth-child(3) {
-      width: 512px;
+      width: 412px;
     }
   }
 
