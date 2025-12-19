@@ -76,6 +76,11 @@ a {
   color: inherit;
 }
 
+p {
+  max-width: 50ch;
+  text-wrap: pretty;
+}
+
 /* Utility Classes */
 
 .padding--inline {
@@ -380,6 +385,19 @@ h3 {
   } */
 }
 
+.main__project-card {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.main__label {
+  > span {
+    background-color: var(--bg-color);
+    color: var(--primary-color);
+    padding: 0.5rem;
+  }
+}
+
 @keyframes test {
   to {
     width: 10%;
@@ -413,6 +431,16 @@ h3 {
   width: 100%;
   font-size: var(--step-2);
 }
+
+.main__projects {
+  display: grid;
+  gap: var(--space-2xl);
+
+  .main__project-card:nth-child(2) {
+    justify-self: end;
+  }
+}
+
 .main__project-card {
   > img {
     width: var(--fluid-300-714);
