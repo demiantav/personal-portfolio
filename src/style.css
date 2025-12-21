@@ -35,6 +35,7 @@
   --space-3xl: clamp(6rem, 5.2174rem + 3.913vw, 8.25rem);
 
   --primary-color: #f3505f;
+  --red-color: #ff0642;
   --secondary-color: #ffdbb7;
   --bg-color: #080707;
 }
@@ -265,7 +266,7 @@ header {
 
 .line-open {
   transform: rotate(-30deg);
-  transform-origin: right;
+  transform-origin: center center;
 }
 
 .header__nav-link {
@@ -447,30 +448,30 @@ h3 {
   min-height: 100dvh;
   background-color: var(--secondary-color);
   color: var(--bg-color);
+}
 
-  .section-title {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    padding-inline: 3rem;
-    text-wrap: nowrap;
+.section-title {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding-inline: 1rem;
+  text-wrap: nowrap;
 
-    h2 {
-      letter-spacing: 0px;
-      font-size: var(--step-3);
-    }
+  h2 {
+    letter-spacing: 0px;
+    font-size: var(--step-3);
+  }
 
-    .section-title__line {
-      width: 0%;
-      opacity: 0;
-      height: 2px;
-      background-color: var(--bg-color);
-      animation: test forwards;
-      animation-timeline: view();
-      animation-range: entry 0% cover 45%;
-    }
+  .section-title__line {
+    width: 0%;
+    opacity: 0;
+    height: 2px;
+    background-color: var(--bg-color);
+    animation: test forwards;
+    animation-timeline: view();
+    animation-range: entry 0% cover 45%;
   }
 }
 
@@ -520,6 +521,74 @@ h3 {
     max-width: 1000px;
     font-size: var(--step-7);
   }
+}
+
+/* Skills end/
+
+/*** Progress section ***/
+
+.main__progress-section {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  min-height: 100dvh;
+
+  .section-title__about {
+    color: var(--red-color);
+    text-wrap: pretty;
+    text-align: center;
+    font-size: var(--step-1);
+    letter-spacing: 0;
+  }
+
+  .section-title__line {
+    background-color: var(--red-color);
+  }
+}
+
+.progress__card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  color: var(--bg-color);
+  border-radius: 0.5rem;
+  background-color: var(--primary-color);
+  width: 240px;
+  height: 380px;
+  rotate: -12deg;
+
+  .card-title {
+    font-size: var(--step-4);
+    letter-spacing: -6px;
+  }
+
+  p {
+    font-weight: lighter;
+  }
+
+  div:first-of-type {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    width: 50%;
+  }
+}
+
+.progress__card-footer {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+
+  p:last-of-type {
+    transform: translateX(50px);
+  }
+}
+
+.progress-section_cards-container {
+  display: flex;
+  gap: 2rem;
 }
 
 /* Media Queries */
