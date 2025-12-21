@@ -443,8 +443,9 @@ h3 {
 /* Skills Section */
 
 .main__skills-section {
-  justify-content: space-around;
+  display: grid;
   min-height: 100dvh;
+  padding-block: 4rem;
   background-color: var(--secondary-color);
   color: var(--bg-color);
 
@@ -475,6 +476,7 @@ h3 {
 }
 
 .main__skills-container {
+  margin-block-start: 2rem;
   display: flex;
   flex-direction: column;
 
@@ -482,6 +484,8 @@ h3 {
     width: 100%;
     border-bottom: 1px solid var(--bg-color);
     padding: 2rem;
+    position: relative;
+    transition: transform 0.5s ease;
 
     ::marker {
       content: '';
@@ -489,6 +493,9 @@ h3 {
 
     :not(p)::after {
       content: '▸';
+      position: absolute;
+      transition: all 0.2s;
+      transform-origin: 50%;
       margin-inline-start: 2rem;
       color: var(--primary-color);
       font-size: var(--step-7);
@@ -497,7 +504,7 @@ h3 {
 
   ::details-content {
     align-self: center;
-    transition: all 0.5s ease, content-visibility 0.5s allow-discrete;
+    transition: all 0.3s ease, content-visibility 0.3s allow-discrete;
     height: 0;
     overflow: clip;
   }
@@ -505,6 +512,10 @@ h3 {
   [open]::details-content {
     height: auto;
     padding: 0.5em 1em;
+  }
+
+  details[open] summary::after {
+    transform: rotate(90deg);
   }
 
   summary {
