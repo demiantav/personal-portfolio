@@ -23,6 +23,7 @@
   --fluid-16-120: clamp(1rem, -1.2609rem + 11.3043vw, 7.5rem);
   --fluid-150-250: clamp(9.375rem, 7.2011rem + 10.8696vw, 15.625rem);
   --fluid-300-714: clamp(18.75rem, 9.75rem + 45vw, 44.625rem);
+  --fluid-250-400: clamp(15.625rem, 12.3641rem + 16.3043vw, 25rem);
 
   --space-3xs: clamp(0.25rem, 0.2065rem + 0.2174vw, 0.375rem);
   --space-2xs: clamp(0.5rem, 0.4348rem + 0.3261vw, 0.6875rem);
@@ -35,6 +36,7 @@
   --space-3xl: clamp(6rem, 5.2174rem + 3.913vw, 8.25rem);
 
   --primary-color: #f3505f;
+  --red-color: #ff0642;
   --secondary-color: #ffdbb7;
   --bg-color: #080707;
 }
@@ -265,7 +267,7 @@ header {
 
 .line-open {
   transform: rotate(-30deg);
-  transform-origin: right;
+  transform-origin: center center;
 }
 
 .header__nav-link {
@@ -447,30 +449,30 @@ h3 {
   min-height: 100dvh;
   background-color: var(--secondary-color);
   color: var(--bg-color);
+}
 
-  .section-title {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    padding-inline: 3rem;
-    text-wrap: nowrap;
+.section-title {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding-inline: 1rem;
+  text-wrap: nowrap;
 
-    h2 {
-      letter-spacing: 0px;
-      font-size: var(--step-3);
-    }
+  h2 {
+    letter-spacing: 0px;
+    font-size: var(--step-3);
+  }
 
-    .section-title__line {
-      width: 0%;
-      opacity: 0;
-      height: 2px;
-      background-color: var(--bg-color);
-      animation: test forwards;
-      animation-timeline: view();
-      animation-range: entry 0% cover 45%;
-    }
+  .section-title__line {
+    width: 0%;
+    opacity: 0;
+    height: 2px;
+    background-color: var(--bg-color);
+    animation: test forwards;
+    animation-timeline: view();
+    animation-range: entry 0% cover 45%;
   }
 }
 
@@ -520,6 +522,83 @@ h3 {
     max-width: 1000px;
     font-size: var(--step-7);
   }
+}
+
+/* Skills end/
+
+/*** Progress section ***/
+
+.main__progress-section {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  min-height: 100dvh;
+
+  .section-title__about {
+    color: var(--red-color);
+    text-wrap: pretty;
+    text-align: center;
+    font-size: var(--step-1);
+    letter-spacing: 0;
+  }
+
+  .section-title__line {
+    background-color: var(--red-color);
+  }
+}
+
+.progress__card {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  justify-content: space-around;
+  align-items: center;
+  color: var(--bg-color);
+  border-radius: 0.5rem;
+  background-color: var(--primary-color);
+  width: var(--fluid-250-400);
+  height: 430px;
+  rotate: -12deg;
+
+  img {
+    width: 100px;
+  }
+
+  .card-title {
+    font-size: var(--step-3);
+    letter-spacing: -6px;
+  }
+
+  p {
+    font-weight: lighter;
+  }
+
+  div:first-of-type {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    width: 50%;
+  }
+}
+
+.progress__card:nth-child(even) {
+  rotate: 12deg;
+}
+
+.progress__card-footer {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+
+  p:last-of-type {
+    transform: translateX(50px);
+  }
+}
+
+.progress-section_cards-container {
+  display: flex;
+  gap: 10rem;
 }
 
 /* Media Queries */
@@ -578,6 +657,10 @@ h3 {
 
   .section-title {
     padding-block: 8rem;
+  }
+
+  .progress__card {
+    height: 620px;
   }
 }
 
