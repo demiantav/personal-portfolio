@@ -20,7 +20,7 @@
   </head>
 
   <body>
-    <main>
+    <main id="hero">
       <canvas id="webgl"></canvas>
 
       <div class="main__container-titles padding--inline">
@@ -303,17 +303,28 @@ It enables visit tracking, objective completion, and photo-based documentation t
             <div class="main__footer-nav">
               <div class="contact-section__nav-wrapper">
                 <p class="contact-section__nav-title">Nav menu</p>
-                <ul>
+                <ul class="contact-section__nav-links-wrapper">
+                  <div>
                   <li>About me</li>
                   <li>Projects</li>
                   <li>Skills</li>
                   <li>Contact</li>
+                  </div>
+                  <a href="#hero">
+<button>
+                    <svg width="23" height="26" viewBox="0 0 23 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M12.1066 0.43934C11.5208 -0.146447 10.571 -0.146447 9.98524 0.43934L0.439297 9.98528C-0.14649 10.5711 -0.14649 11.5208 0.439297 12.1066C1.02508 12.6924 1.97483 12.6924 2.56062 12.1066L11.0459 3.62132L19.5312 12.1066C20.117 12.6924 21.0667 12.6924 21.6525 12.1066C22.2383 11.5208 22.2383 10.5711 21.6525 9.98528L12.1066 0.43934ZM11.0459 25.5L12.5459 25.5L12.5459 1.5L11.0459 1.5L9.5459 1.5L9.5459 25.5L11.0459 25.5Z" fill="#F3505F"/>
+</svg>
+                  </button>
+                  </a>
+                  
                 </ul>
-                <button>Boton</button>
+                
               </div>
             </div>
-            <button>Get in Touch!</button>
+            
           </div>
+          <button class="contact-section__btn-contact">Get in Touch!</button>
         </div>
       </section>
     </main>

@@ -53,6 +53,11 @@ body {
   position: relative;
 }
 
+button {
+  font-family: 'Baumans', system-ui;
+  letter-spacing: -3px;
+}
+
 h2 {
   font-size: var(--step-6);
   letter-spacing: -8px;
@@ -633,6 +638,29 @@ canvas {
   p:last-of-type {
     margin-left: auto;
   }
+}
+
+.contact-section__nav-wrapper {
+  button {
+    border: var(--primary-color) solid 1px;
+    border-radius: 5rem;
+    width: 100px;
+    height: 100px;
+  }
+}
+
+.contact-section__nav-links-wrapper {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.contact-section__btn-contact {
+  color: var(--bg-color);
+  background-color: var(--red-color);
+  font-size: var(--step-4);
+  padding: 0.5rem;
+  border-radius: 1rem;
 }
 
 /* Media Queries */
