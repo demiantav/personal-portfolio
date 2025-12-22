@@ -335,8 +335,7 @@ canvas {
   background-color: black;
 }
 
-.main__line--secondary,
-h3 {
+.main__line--secondary {
   place-self: flex-end;
 }
 
@@ -599,6 +598,41 @@ h3 {
 .progress-section_cards-container {
   display: flex;
   gap: 10rem;
+}
+
+/* Progress section end */
+
+/* Footer section*/
+
+.main__contact-section {
+  color: var(--primary-color);
+
+  > p {
+    font-size: var(--step-1);
+  }
+}
+
+.main__contact-section-wrapper {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}
+
+.contact-title {
+  font-size: var(--step-6);
+}
+
+.contact-section__nav-title {
+  font-size: 26px;
+}
+
+.main__contact-header {
+  display: flex;
+
+  p:last-of-type {
+    margin-left: auto;
+  }
 }
 
 /* Media Queries */
