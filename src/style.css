@@ -51,6 +51,7 @@ body {
   font-family: 'Baumans', system-ui;
   font-size: var(--step-0);
   position: relative;
+  overflow-x: hidden;
 }
 
 button {
@@ -612,8 +613,8 @@ canvas {
 .main__contact-section {
   color: var(--primary-color);
 
-  > p {
-    font-size: var(--step-1);
+  p {
+    font-size: var(--step--1);
   }
 }
 
@@ -626,10 +627,12 @@ canvas {
 
 .contact-title {
   font-size: var(--step-6);
+  text-wrap: balance;
 }
 
 .contact-section__nav-title {
-  font-size: 26px;
+  font-size: 22px;
+  margin-block-end: 1rem;
 }
 
 .main__contact-header {
@@ -640,12 +643,29 @@ canvas {
   }
 }
 
+.main__footer-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
 .contact-section__nav-wrapper {
   button {
     border: var(--primary-color) solid 1px;
     border-radius: 5rem;
-    width: 100px;
-    height: 100px;
+    width: 75px;
+    height: 75px;
+  }
+
+  li {
+    font-size: var(--step--1);
+    cursor: pointer;
+  }
+
+  div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
   }
 }
 
@@ -658,9 +678,35 @@ canvas {
 .contact-section__btn-contact {
   color: var(--bg-color);
   background-color: var(--red-color);
-  font-size: var(--step-4);
+  font-size: var(--step-3);
   padding: 0.5rem;
   border-radius: 1rem;
+}
+
+.contact-section_footer-line {
+  position: relative;
+  top: 3vh;
+  width: 100%;
+  height: 1px;
+  background-color: var(--primary-color);
+}
+
+.contact-section__bottom-info {
+  display: flex;
+
+  nav {
+    display: flex;
+    gap: 1rem;
+    margin-left: auto;
+
+    > li {
+      list-style: none;
+    }
+
+    img {
+      width: 25px;
+    }
+  }
 }
 
 /* Media Queries */
@@ -723,6 +769,21 @@ canvas {
 
   .progress__card {
     height: 620px;
+  }
+
+  .main__footer-nav {
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: last baseline;
+    gap: 5rem;
+
+    .contact-section__btn-contact {
+      width: 60%;
+    }
+  }
+
+  .contact-section__nav-wrapper {
+    width: 30%;
   }
 }
 
