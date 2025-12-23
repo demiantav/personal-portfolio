@@ -702,7 +702,9 @@ canvas {
 }
 
 .contact-section__bottom-info {
+  justify-content: space-between;
   display: flex;
+  margin-inline: 3rem;
 
   nav {
     display: flex;
@@ -798,6 +800,14 @@ canvas {
 
   .progress-section_cards-container {
     margin-block: 5rem;
+  }
+
+  .contact-section_footer-line {
+    top: 5vh;
+  }
+
+  .main__footer-nav {
+    margin-block-start: 7rem;
   }
 }
 
