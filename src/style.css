@@ -608,6 +608,7 @@ canvas {
 
 .progress-section_cards-container {
   display: flex;
+  margin-block-end: 10rem;
   gap: 10rem;
 }
 
