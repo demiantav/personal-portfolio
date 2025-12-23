@@ -608,7 +608,7 @@ canvas {
 
 .progress-section_cards-container {
   display: flex;
-  margin-block-end: 10rem;
+
   gap: 10rem;
 }
 
@@ -794,6 +794,10 @@ canvas {
 
   .contact-section__nav-wrapper {
     width: 30%;
+  }
+
+  .progress-section_cards-container {
+    margin-block: 5rem;
   }
 }
 
