@@ -681,6 +681,8 @@ canvas {
 }
 
 .contact-section__btn-contact {
+  text-align: center;
+  letter-spacing: -4px;
   color: var(--bg-color);
   background-color: var(--red-color);
   font-size: var(--step-3);
