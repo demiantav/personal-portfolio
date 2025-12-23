@@ -493,7 +493,7 @@ canvas {
   details {
     width: 100%;
     border-bottom: 1px solid var(--bg-color);
-    cursor: pointer;
+
     position: relative;
     transition: transform 0.5s ease;
 
@@ -527,6 +527,7 @@ canvas {
 
   summary {
     display: flex;
+    cursor: pointer;
     justify-content: space-evenly;
     max-width: 1000px;
     font-size: var(--step-7);
