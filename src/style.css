@@ -435,7 +435,7 @@ canvas {
 }
 
 .main__project-card {
-  > img {
+  > a img {
     width: var(--fluid-300-714);
     height: auto;
     border-radius: 8px;
