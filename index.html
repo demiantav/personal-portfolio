@@ -16,96 +16,330 @@
       rel="stylesheet"
     />
 
-    <title>Portfolio</title>
+    <title>Portfolio @Demian Tavolaro</title>
   </head>
 
   <body>
-    <div class="container-page">
-      <nav class="header-menu">
-        <div class="container-flex-menu flex-row">
-          <div class="container-logo">
-            <img src="./src/images/demi..svg" class="demi-logo" alt="logo-portfolio" />
+    <main id="hero">
+      <canvas id="webgl"></canvas>
+
+      <div class="main__container-titles padding--inline">
+        <h4>+5 years of experience</h4>
+        <h4>Available worldwide</h4>
+        <h2>Frontend Developer</h2>
+      </div>
+
+      <header>
+        <div class="header__container flex--row padding--inline">
+          <div class="header__container-logo">
+            <img src="./src/images/demi..svg" class="header__logo-img" alt="logo-portfolio" />
           </div>
 
-          <ul class="container-items-menu flex-row">
-            <li class="prueba"><span>Acerca de mi</span></li>
-            <li class="prueba"><span>Proyectos</span></li>
-            <li class="prueba"><span>Experiencia</span></li>
-            <li class="prueba"><span>Contacto</span></li>
-            <div class="container-social-links">
-              <img src="./src/images/github-mark.svg" alt="logo github" />
-              <img src="./src/images/LinkedIn_icon.svg" alt="logo linkedin" />
+          <nav class="header__nav-menu padding--inline">
+            <div class="header__container-logo">
+              <img src="./src/images/demi..svg" class="header__logo-img" alt="logo-portfolio" />
+              <button class="header__hamb">
+                <div class="header__container-hamb">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    height="24px"
+                    viewBox="0 -960 960 960"
+                    width="24px"
+                    fill="#ff0642"
+                  >
+                    <path
+                      d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"
+                    />
+                  </svg>
+                </div>
+              </button>
             </div>
-          </ul>
-          <div class="gsap-hamb">
-            <div class="hamb">
-              <span class="linea"></span>
-              <span class="linea2"></span>
+
+            <ul>
+              <li class="header__nav-link active">
+                <a href="#about"><span class="header__span">About me</span></a>
+              </li>
+              <li class="header__nav-link">
+                <a href="#projects"><span class="header__span">Proyects</span></a>
+              </li>
+              <li class="header__nav-link">
+                <a href="#skills"><span class="header__span">Skills</span></a>
+              </li>
+              <li class="header__nav-link">
+                <a href="#contact"><span class="header__span">Contact</span></a>
+              </li>
+            </ul>
+
+            <div class="header__say-hello-action">
+              <p>
+                SAY HELLO
+                <span
+                  ><svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    height="24px"
+                    viewBox="0 -960 960 960"
+                    width="20px"
+                    fill="#F3505F"
+                  >
+                    <path
+                      d="M444-768v438L243-531l-51 51 288 288 288-288-51-51-201 201v-438h-72Z"
+                    />
+                  </svg>
+                </span>
+              </p>
+              <a href="mailto:tavolarodemian06@gmail.com">tavolarodemian06@gmail.com</a>
             </div>
+
+            <footer class="header__container-social-links">
+              <a href="https://github.com/demiantav" target="_blank"
+                ><img src="./src/images/github-mark.svg" alt="logo github"
+              /></a>
+              <a href="https://www.linkedin.com/in/demian-tavolaro/" target="_blank"
+                ><img src="./src/images/LinkedIn_icon.svg" alt="logo linkedin"
+              /></a>
+            </footer>
+          </nav>
+
+          <button class="header__hamb">
+            <div class="header__container-hamb">
+              <span class="header__hamb-line1"></span>
+              <span class="header__hamb-line2"></span>
+            </div>
+          </button>
+        </div>
+      </header>
+
+      <section class="main__about-me-section padding--inline">
+       
+
+        <div class="main__title-container" id="about">
+          <h2 class="main__title">HELLO!</h2>
+          <img src="./src/images/me.jpg" alt="imagen mia" class="main__img-about" />
+        </div>
+        <span class="main__about-text"
+          >I’m Demián Tavolaro
+          <picture>
+            <source
+              srcset="https://fonts.gstatic.com/s/e/notoemoji/latest/1f60e/512.webp"
+              type="image/webp"
+            />
+            <img
+              class="main__emoji"
+              src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f60e/512.gif"
+              alt="😎"
+              width="32"
+              height="32"
+            />
+          </picture>
+          — Frontend Developer and a fan of great design 🖤. I love when things look good, load
+          fast, and are accessible to everyone. Always focused on:
+          <picture>
+            <source
+              srcset="https://fonts.gstatic.com/s/e/notoemoji/latest/26a1/512.webp"
+              type="image/webp"
+            />
+            <img
+              class="main__emoji"
+              src="https://fonts.gstatic.com/s/e/notoemoji/latest/26a1/512.gif"
+              alt="⚡"
+              width="32"
+              height="32"
+            />
+          </picture>
+          Performance, ♿ Accesibility and 🎨 Design.</span
+        >
+
+        <div class="main__line"></div>
+
+        <p class="main__about-me-secundary">
+          With over 5 years of experience in digital product design, I strive to craft clear,
+          functional, and visually engaging experiences. I focus on users and details, balancing
+          aesthetics with usability. I’m curious by nature and enjoy exploring new technologies.
+          Photography is another passion of mine, inspiring my approach to composition and color
+          and bringing a creative perspective to every project.
+        </p>
+
+        <div class="main__gallery">
+          <img src="./src/images/real3.jpg" alt="" />
+          <img src="./src/images/real2.jpg" alt="" />
+          <img src="./src/images/real1.jpg" alt="" />
+        </div>
+
+        <div class="main__line main__line--secondary"></div>
+
+        <h3 id="projects">Projects</h3>
+
+        <div class="main__projects">
+
+          <div class="main__project-card">
+            <a href=""><img src="./src/images/portfolio.png" alt="proyecto 1" /></a>
+            <div class="main__label">
+              <span>Visual Identity</span>
+              <span>Interaction design</span>
+              <span>UI Development</span>
+            </div>
+            <p>Crafted with patience and attention to every detail, using simple yet modern technologies, including the latest CSS techniques and GSAP animations.</p>
+          </div>
+
+         
+          <div class="main__project-card">
+            <a href="https://demiantav.github.io/prode-copa-america/" target="_blank"><img src="./src/images/prode.png" alt="proyecto 3" /></a>
+            <div class="main__label">
+              <span>Game UI</span>
+              <span>Motion design</span>
+              <span>Web Development</span>
+            </div>
+            <p>I built a web game for the Copa América that allowed users to predict match results.
+The platform handled automatic scoring and featured a real-time leaderboard.
+My main focus was delivering a playful, intuitive, and engaging user experience.</p>
+          </div>
+
+          <div class="main__project-card">
+            <a href="https://demiantav.github.io/proyecto-arcor/" target="_blank"><img src="./src/images/arcor.png" alt="proyecto 3" /></a>
+            <div class="main__label">
+              <span>User-Centered Design</span>
+              <span>Operational Flows</span>
+              <span>Development</span>
+            </div>
+            <p>A mobile app designed to support merchandisers in their daily tasks.
+It enables visit tracking, objective completion, and photo-based documentation to showcase before-and-after results.</p>
+          </div>
+      </section>
+
+      <section class="main__skills-section" id="skills">
+        <div class="section-title">
+          <span class="section-title__line section-title__line--left"></span>
+          <h2 class="section-title__about">Skills</h2>
+          <span class="section-title__line section-title__line--right"></span>
+        </div> 
+        <div class="main__skills-container">
+          <details name="skills">
+            <summary>Frontend</summary>
+            <p>JavaScript, React, HTML5, CSS3, CSS Modules, Material UI, GSAP, Redux, React Router, TanStack / React Query, Figma</p>
+          </details>
+           <details name="skills">
+            <summary>Backend</summary>
+            <p>Node.js, Express, JWT, GraphQL, REST API Development, MongoDB, MySQL</p>
+          </details>
+           <details name="skills">
+            <summary>Others</summary>
+            <p>Git, Vite, ESLint, Vitest, React Testing Library, Node Test Runner, Playwright, Postman, REST Client, Unit Testing, Integration Testing, E2E Testing, OOP, TDD, Scrum, Middleware, Screaming Architecture, Style Guides, User Research, User Flows, Wireframes, Prototypes</p>
+          </details>
+        </div>
+      </section>
+
+      <section class="main__progress-section padding--inline" id="process">
+        <div class="section-title">
+          <span class="section-title__line section-title__line--left"></span>
+          <h2 class="section-title__about">From idea to design, from design to reality</h2>
+          <span class="section-title__line section-title__line--right"></span>
+        </div>
+
+        <div class="progress-section_cards-container">
+          
+          <article class="progress__card">
+            <p class="card-title">Discovery</p>
+            <div>
+              <img src="./src/images/eyes2.svg" alt="">
+              <p>Observe, listen, and connect before designing.</p>
+            </div>
+            <div class="progress__card-footer">
+              <p>yrevocsiD</p>
+              <p>1</p>
+            </div>
+          </article>
+
+          <article class="progress__card">
+            <p class="card-title">Clarify</p>
+            <div>
+              <img src="./src/images/luz.svg" alt="">
+              <p>Put order into ideas and define the path.</p>
+            </div>
+            <div class="progress__card-footer">
+              <p>yfiralC</p>
+              <p>2</p>
+            </div>
+          </article>
+
+          <article class="progress__card">
+            <p class="card-title">Design</p>
+            <div>
+              <img src="./src/images/wire.svg" alt="">
+              <p>Coffee, pencil, and paper.</p>
+            </div>
+            <div class="progress__card-footer">
+              <p>ngiseD</p>
+              <p>3</p>
+            </div>
+          </article>
+
+          <article class="progress__card">
+            <p class="card-title">Create</p>
+            <div>
+              <img src="./src/images/create.svg" alt="">
+              <p>From a simple idea, we move to a functional product.</p>
+            </div>
+            <div class="progress__card-footer">
+              <p>etaerC</p>
+              <p>4</p>
+            </div>
+          </article>
+        </div>
+        
+      </section>
+
+      <footer class="main__contact-section padding--inline" id="contact">
+        <div class="main__contact-section-wrapper">
+          <div class="main__contact-header">
+            <p>Torino, Italy</p>
+            <p>9:00 pm</p>
+          </div>
+          <h3 class="contact-title">Lets talk about your idea</h3>
+          <div>
+            <div class="main__footer-nav">
+              <div class="contact-section__nav-wrapper">
+                <h5 class="contact-section__nav-title">Nav menu</h5>
+                <ul class="contact-section__nav-links-wrapper">
+                  <div>
+                  <a href="#about"><li>About me</li></a>
+                  <a href="#projects"><li>Projects</li></a>
+                  <a href="#skills"><li>Skills</li></a>
+                  <a href="#contact"><li>Contact</li></a>
+                  </div>
+                  <a href="#hero">
+<button>
+                    <svg width="23" height="35" viewBox="0 0 23 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M12.1066 0.43934C11.5208 -0.146447 10.571 -0.146447 9.98524 0.43934L0.439297 9.98528C-0.14649 10.5711 -0.14649 11.5208 0.439297 12.1066C1.02508 12.6924 1.97483 12.6924 2.56062 12.1066L11.0459 3.62132L19.5312 12.1066C20.117 12.6924 21.0667 12.6924 21.6525 12.1066C22.2383 11.5208 22.2383 10.5711 21.6525 9.98528L12.1066 0.43934ZM11.0459 25.5L12.5459 25.5L12.5459 1.5L11.0459 1.5L9.5459 1.5L9.5459 25.5L11.0459 25.5Z" fill="#F3505F"/>
+</svg>
+                  </button>
+                  </a>
+                  
+                </ul>
+                
+              </div>
+              <a class="contact-section__btn-contact" href="mailto:tavolarodemian06@gmail.com">Get in Touch!</a>
+            </div>
+            
+          </div>
+          
+          <div class="contact-section_footer-line"></div>
+          <div class="contact-section__bottom-info">
+            <p>@ 2025 Demián Tavolaro</p>
+            <nav>
+              <a href="https://www.linkedin.com/in/demiantavolaro/" target="_blank"><img src="./src/images/LinkedIn_icon.svg" alt="linkedin icon"></a>
+              <a href="https://github.com/demiantav" target="_blank"><img src="./src/images/github-mark.svg" alt="github icon"></a>
+            </nav>
           </div>
         </div>
-      </nav>
+      </footer>
+    </main>
 
-      <main class="main-content-container">
-        <canvas id="webgl"></canvas>
-
-        <section class="hero-title">
-          <div class="container-gsap-words"><span class="gsap-words">Desarrollando</span></div>
-          <div class="container-gsap-words"><span class="gsap-words">Experiencias</span></div>
-          <div class="container-gsap-words"><span class="gsap-words">Digitales</span></div>
-        </section>
-        <section class="section-2">
-          <div class="section-title">
-            <span class="section-title__line section-title__line--left"></span>
-            <h2 class="section-title__about">Acerca de Mi</h2>
-            <span class="section-title__line section-title__line--right"></span>
-          </div>
-
-          <div class="image-container">
-            <p class="title-hola">HOLA!</p>
-            <img src="./src/images/me.jpg" alt="imagen mia" class="imagen_mia" />
-          </div>
-          <span class="about-title"
-            >Soy Demián Tavolaro
-            <picture>
-              <source
-                srcset="https://fonts.gstatic.com/s/e/notoemoji/latest/1f60e/512.webp"
-                type="image/webp"
-              />
-              <img
-                class="emoji"
-                src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f60e/512.gif"
-                alt="😎"
-                width="32"
-                height="32"
-              />
-            </picture>
-            Frontend Developer y fan del buen diseño 🖤. Me gusta cuando las cosas se ven bien,
-            cargan rápido y llegan a todos. Siempre enfocado en:
-            <picture>
-              <source
-                srcset="https://fonts.gstatic.com/s/e/notoemoji/latest/26a1/512.webp"
-                type="image/webp"
-              />
-              <img
-                class="emoji"
-                src="https://fonts.gstatic.com/s/e/notoemoji/latest/26a1/512.gif"
-                alt="⚡"
-                width="32"
-                height="32"
-              />
-            </picture>
-            Performance, ♿ Accesibilidad y 🎨 Diseño.</span
-          >
-        </section>
-      </main>
-
-      <div class="container-initial-animation">
-        <div class="container-demi-title">
-          <div>
-            <span class="char">d</span><span class="char">e</span><span class="char">m</span
-            ><span class="char">i</span><span class="dot char">.</span>
-          </div>
+    <div class="preloader">
+      <div class="preloader__title">
+        <div>
+          <span class="preloader__char">d</span><span class="preloader__char">e</span
+          ><span class="preloader__char">m</span><span class="preloader__char">i</span
+          ><span class="preloader__char">.</span>
         </div>
       </div>
     </div>
