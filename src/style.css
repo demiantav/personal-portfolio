@@ -406,6 +406,10 @@ canvas {
   }
 }
 
+#projects {
+  text-align: end;
+}
+
 .main__img-about {
   scale: 0.5;
   opacity: 0;
@@ -655,6 +659,7 @@ canvas {
     border-radius: 5rem;
     width: 75px;
     height: 75px;
+    cursor: pointer;
   }
 
   li {
@@ -681,6 +686,7 @@ canvas {
   font-size: var(--step-3);
   padding: 0.5rem;
   border-radius: 1rem;
+  cursor: pointer;
 }
 
 .contact-section_footer-line {
