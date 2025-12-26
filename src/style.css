@@ -48,7 +48,7 @@ html {
 body {
   background-color: var(--bg-color);
   color: white;
-  font-family: 'Baumans', system-ui;
+  font-family: 'Baumans', system-ui, -apple-system, sans-serif;
   font-size: var(--step-0);
   position: relative;
   overflow-x: hidden;
