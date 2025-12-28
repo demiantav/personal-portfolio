@@ -4,156 +4,154 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="./src/style.css" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
-    <link 
-  rel="stylesheet" 
-  href="https://fonts.googleapis.com/css2?family=Baumans&family=Amaranth:ital,wght@0,400;0,700;1,400;1,700&display=swap" 
-  media="print" 
-  onload="this.media='all'"
->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Baumans&family=Amaranth:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
 
-<noscript>
-  <link href="https://fonts.googleapis.com/css2?family=Baumans&family=Amaranth:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
-</noscript>
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Baumans&family=Amaranth:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
 
-<style>
-  * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
+      html {
+        scroll-behavior: smooth;
+      }
 
+      body {
+        background-color: var(--bg-color);
+        color: white;
+        font-family: 'Baumans', system-ui, -apple-system, sans-serif;
+        font-size: var(--step-0);
+        position: relative;
+        overflow-x: hidden;
+      }
 
-html {
-  scroll-behavior: smooth;
-}
+      button {
+        font-family: 'Baumans', system-ui;
+        letter-spacing: -3px;
+      }
 
-body {
-  background-color: var(--bg-color);
-  color: white;
-  font-family: 'Baumans', system-ui, -apple-system, sans-serif;
-  font-size: var(--step-0);
-  position: relative;
-  overflow-x: hidden;
-}
+      h2 {
+        font-size: var(--step-6);
+        letter-spacing: -8px;
+      }
 
-button {
-  font-family: 'Baumans', system-ui;
-  letter-spacing: -3px;
-}
+      h3 {
+        font-size: var(--step-3);
+        font-weight: normal;
+        letter-spacing: -5px;
+      }
 
-h2 {
-  font-size: var(--step-6);
-  letter-spacing: -8px;
-}
+      h4 {
+        font-size: var(--step--1);
+      }
 
-h3 {
-  font-size: var(--step-3);
-  font-weight: normal;
-  letter-spacing: -5px;
-}
+      button {
+        background-color: transparent;
+        border: none;
+      }
 
-h4 {
-  font-size: var(--step--1);
-}
+      ul {
+        list-style: none;
+      }
 
-button {
-  background-color: transparent;
-  border: none;
-}
+      a {
+        text-decoration: none;
+        color: inherit;
+      }
 
-ul {
-  list-style: none;
-}
+      p {
+        max-width: 40ch;
+        text-wrap: pretty;
+      }
 
-a {
-  text-decoration: none;
-  color: inherit;
-}
+      /* Utility Classes */
 
-p {
-  max-width: 40ch;
-  text-wrap: pretty;
-}
+      .padding--inline {
+        padding-inline: var(--fluid-16-120);
+      }
 
-/* Utility Classes */
+      body.no-scroll {
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+      }
 
-.padding--inline {
-  padding-inline: var(--fluid-16-120);
-}
+      .flex--row {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
 
-body.no-scroll {
-  overflow: hidden;
-  position: fixed;
-  width: 100%;
-  height: 100%;
-  touch-action: none;
-}
+      /* Loading Screen */
 
-.flex--row {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-}
+      .preloader {
+        background-color: rgb(21, 20, 20);
+        position: fixed;
+        z-index: 111111;
+        top: 0;
+        width: 100vw;
+        height: 100vh;
+        display: grid;
+        place-items: center;
+        pointer-events: none;
+        clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+        bottom: 0;
+      }
 
-/* Loading Screen */
+      .preloader__title {
+        color: white;
+        overflow: hidden;
+        width: 50vw;
+        display: grid;
+        place-items: center;
+      }
 
-.preloader {
-  background-color: rgb(21, 20, 20);
-  position: fixed;
-  z-index: 111111;
-  top: 0;
-  width: 100vw;
-  height: 100vh;
-  display: grid;
-  place-items: center;
-  pointer-events: none;
-  clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
-  bottom: 0;
-}
+      .preloader__char {
+        font-family: 'Baumans', system-ui;
+        font-weight: 400;
+        font-style: normal;
+        font-size: 50px;
+        letter-spacing: -6px;
+        line-height: 1.5;
+        position: relative;
+        display: inline-block;
+      }
 
-.preloader__title {
-  color: white;
-  overflow: hidden;
-  width: 50vw;
-  display: grid;
-  place-items: center;
-}
+      .preloader__char:nth-child(4) {
+        font-family: 'Amaranth', sans-serif;
+        font-weight: 400;
+        font-style: normal;
+        letter-spacing: 2px;
+      }
 
-.preloader__char {
-  font-family: 'Baumans', system-ui;
-  font-weight: 400;
-  font-style: normal;
-  font-size: 50px;
-  letter-spacing: -6px;
-  line-height: 1.5;
-  position: relative;
-  display: inline-block;
-}
-
-.preloader__char:nth-child(4) {
-  font-family: 'Amaranth', sans-serif;
-  font-weight: 400;
-  font-style: normal;
-  letter-spacing: 2px;
-}
-
-.preloader__char:last-child {
-  color: #ff0642;
-  font-weight: bold;
-  font-size: 67px;
-  display: inline-block;
-  position: relative;
-  transform: translate(0px, 0px);
-}
-</style>
-
-
-   
+      .preloader__char:last-child {
+        color: #ff0642;
+        font-weight: bold;
+        font-size: 67px;
+        display: inline-block;
+        position: relative;
+        transform: translate(0px, 0px);
+      }
+    </style>
 
     <title>Portfolio @Demian Tavolaro</title>
   </head>
@@ -171,7 +169,7 @@ body.no-scroll {
       <header>
         <div class="header__container flex--row padding--inline">
           <div class="header__container-logo">
-            <img src="./src/images/demi..svg" class="header__logo-img" alt="logo-portfolio"/>
+            <img src="./src/images/demi..svg" class="header__logo-img" alt="logo-portfolio" />
           </div>
 
           <nav class="header__nav-menu padding--inline">
@@ -249,18 +247,35 @@ body.no-scroll {
       </header>
 
       <section class="main__about-me-section padding--inline">
-       
-
         <div class="main__title-container" id="about">
           <h2 class="main__title">HELLO!</h2>
-          <img src="./src/images/me.avif" alt="imagen mia" class="main__img-about" loading="lazy" />
+          <img
+            src="./src/images/me.avif"
+            alt="imagen mia"
+            class="main__img-about"
+            loading="lazy"
+          />
         </div>
         <span class="main__about-text"
           >I’m Demián Tavolaro
-          <img src="./src/images/sunglass-emoji.webp" alt="" class="main__emoji" width="32" height="32" loading="lazy">
+          <img
+            src="./src/images/sunglass-emoji.webp"
+            alt=""
+            class="main__emoji"
+            width="32"
+            height="32"
+            loading="lazy"
+          />
           — Frontend Developer and a fan of great design 🖤. I love when things look good, load
           fast, and are accessible to everyone. Always focused on:
-          <img src="./src/images/thunder-emoji.webp" alt="" class="main__emoji" width="32" height="32" loading="lazy">
+          <img
+            src="./src/images/thunder-emoji.webp"
+            alt=""
+            class="main__emoji"
+            width="32"
+            height="32"
+            loading="lazy"
+          />
           Performance, ♿ Accesibility and 🎨 Design.</span
         >
 
@@ -275,9 +290,9 @@ body.no-scroll {
         </p>
 
         <div class="main__gallery">
-          <img src="./src/images/real3.avif" alt="" loading="lazy"/>
-          <img src="./src/images/real2.avif" alt="" loading="lazy"/>
-          <img src="./src/images/real1.avif" alt="" loading="lazy"/>
+          <img src="./src/images/real3.avif" alt="" loading="lazy" />
+          <img src="./src/images/real2.avif" alt="" loading="lazy" />
+          <img src="./src/images/real1.avif" alt="" loading="lazy" />
         </div>
 
         <div class="main__line main__line--secondary"></div>
@@ -285,40 +300,53 @@ body.no-scroll {
         <h3 id="projects">Projects</h3>
 
         <div class="main__projects">
-
           <div class="main__project-card">
-            <a href=""><img src="./src/images/portfolio.avif" alt="proyecto 1" loading="lazy"/></a>
+            <a href=""
+              ><img src="./src/images/portfolio.avif" alt="proyecto 1" loading="lazy"
+            /></a>
             <div class="main__label">
               <span>Visual Identity</span>
               <span>Interaction design</span>
               <span>UI Development</span>
             </div>
-            <p>Crafted with patience and attention to every detail, using simple yet modern technologies, including the latest CSS techniques and GSAP animations.</p>
+            <p>
+              Crafted with patience and attention to every detail, using simple yet modern
+              technologies, including the latest CSS techniques and GSAP animations.
+            </p>
           </div>
 
-         
           <div class="main__project-card">
-            <a href="https://demiantav.github.io/prode-copa-america/" target="_blank"><img src="./src/images/prode.avif" alt="proyecto 3" loading="lazy"/></a>
+            <a href="https://demiantav.github.io/prode-copa-america/" target="_blank"
+              ><img src="./src/images/prode.avif" alt="proyecto 3" loading="lazy"
+            /></a>
             <div class="main__label">
               <span>Game UI</span>
               <span>Motion design</span>
               <span>Web Development</span>
             </div>
-            <p>I built a web game for the Copa América that allowed users to predict match results.
-             The platform handled automatic scoring and featured a real-time leaderboard.
-               My main focus was delivering a playful, intuitive, and engaging user experience.</p>
+            <p>
+              I built a web game for the Copa América that allowed users to predict match results.
+              The platform handled automatic scoring and featured a real-time leaderboard. My main
+              focus was delivering a playful, intuitive, and engaging user experience.
+            </p>
           </div>
 
           <div class="main__project-card">
-            <a href="https://demiantav.github.io/proyecto-arcor/" target="_blank"><img src="./src/images/arcor.avif" alt="proyecto 3" loading="lazy"/></a>
+            <a href="https://demiantav.github.io/proyecto-arcor/" target="_blank"
+              ><img src="./src/images/arcor.avif" alt="proyecto 3" loading="lazy"
+            /></a>
             <div class="main__label">
               <span>User-Centered Design</span>
               <span>Operational Flows</span>
               <span>Development</span>
             </div>
-            <p>A mobile app designed to support merchandisers in their daily tasks.
-                 It enables visit tracking, objective completion, and photo-based documentation to showcase before-and-after results.</p>
+            <p>
+              A mobile app designed to support merchandisers in their daily tasks. It enables
+              visit tracking, objective completion, and photo-based documentation to showcase
+              before-and-after results.
+            </p>
           </div>
+        </div>
       </section>
 
       <section class="main__skills-section" id="skills">
@@ -326,19 +354,27 @@ body.no-scroll {
           <span class="section-title__line section-title__line--left"></span>
           <h2 class="section-title__about">Skills</h2>
           <span class="section-title__line section-title__line--right"></span>
-        </div> 
+        </div>
         <div class="main__skills-container">
           <details name="skills">
             <summary>Frontend</summary>
-            <p>JavaScript, React, HTML5, CSS3, CSS Modules, Material UI, GSAP, Redux, React Router, TanStack / React Query, Figma</p>
+            <p>
+              JavaScript, React, HTML5, CSS3, CSS Modules, Material UI, GSAP, Redux, React Router,
+              TanStack / React Query, Figma
+            </p>
           </details>
-           <details name="skills">
+          <details name="skills">
             <summary>Backend</summary>
             <p>Node.js, Express, JWT, GraphQL, REST API Development, MongoDB, MySQL</p>
           </details>
-           <details name="skills">
+          <details name="skills">
             <summary>Others</summary>
-            <p>Git, Vite, ESLint, Vitest, React Testing Library, Node Test Runner, Playwright, Postman, REST Client, Unit Testing, Integration Testing, E2E Testing, OOP, TDD, Scrum, Middleware, Screaming Architecture, Style Guides, User Research, User Flows, Wireframes, Prototypes</p>
+            <p>
+              Git, Vite, ESLint, Vitest, React Testing Library, Node Test Runner, Playwright,
+              Postman, REST Client, Unit Testing, Integration Testing, E2E Testing, OOP, TDD,
+              Scrum, Middleware, Screaming Architecture, Style Guides, User Research, User Flows,
+              Wireframes, Prototypes
+            </p>
           </details>
         </div>
       </section>
@@ -416,33 +452,45 @@ body.no-scroll {
                 <h5 class="contact-section__nav-title">Nav menu</h5>
                 <ul class="contact-section__nav-links-wrapper">
                   <div>
-                  <a href="#about"><li>About me</li></a>
-                  <a href="#projects"><li>Projects</li></a>
-                  <a href="#skills"><li>Skills</li></a>
-                  <a href="#contact"><li>Contact</li></a>
+                    <a href="#about"><li>About me</li></a>
+                    <a href="#projects"><li>Projects</li></a>
+                    <a href="#skills"><li>Skills</li></a>
+                    <a href="#contact"><li>Contact</li></a>
                   </div>
                   <a href="#hero">
-<button>
-                    <svg width="23" height="35" viewBox="0 0 23 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M12.1066 0.43934C11.5208 -0.146447 10.571 -0.146447 9.98524 0.43934L0.439297 9.98528C-0.14649 10.5711 -0.14649 11.5208 0.439297 12.1066C1.02508 12.6924 1.97483 12.6924 2.56062 12.1066L11.0459 3.62132L19.5312 12.1066C20.117 12.6924 21.0667 12.6924 21.6525 12.1066C22.2383 11.5208 22.2383 10.5711 21.6525 9.98528L12.1066 0.43934ZM11.0459 25.5L12.5459 25.5L12.5459 1.5L11.0459 1.5L9.5459 1.5L9.5459 25.5L11.0459 25.5Z" fill="#F3505F"/>
-</svg>
-                  </button>
+                    <button>
+                      <svg
+                        width="23"
+                        height="35"
+                        viewBox="0 0 23 26"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M12.1066 0.43934C11.5208 -0.146447 10.571 -0.146447 9.98524 0.43934L0.439297 9.98528C-0.14649 10.5711 -0.14649 11.5208 0.439297 12.1066C1.02508 12.6924 1.97483 12.6924 2.56062 12.1066L11.0459 3.62132L19.5312 12.1066C20.117 12.6924 21.0667 12.6924 21.6525 12.1066C22.2383 11.5208 22.2383 10.5711 21.6525 9.98528L12.1066 0.43934ZM11.0459 25.5L12.5459 25.5L12.5459 1.5L11.0459 1.5L9.5459 1.5L9.5459 25.5L11.0459 25.5Z"
+                          fill="#F3505F"
+                        />
+                      </svg>
+                    </button>
                   </a>
-                  
                 </ul>
-                
               </div>
-              <a class="contact-section__btn-contact" href="mailto:tavolarodemian06@gmail.com">Get in Touch!</a>
+              <a class="contact-section__btn-contact" href="mailto:tavolarodemian06@gmail.com"
+                >Get in Touch!</a
+              >
             </div>
-            
           </div>
-          
+
           <div class="contact-section_footer-line"></div>
           <div class="contact-section__bottom-info">
             <p>@ 2025 Demián Tavolaro</p>
             <nav>
-              <a href="https://www.linkedin.com/in/demiantavolaro/" target="_blank"><img src="./src/images/LinkedIn_icon.svg" alt="linkedin icon"></a>
-              <a href="https://github.com/demiantav" target="_blank"><img src="./src/images/github-mark.svg" alt="github icon"></a>
+              <a href="https://www.linkedin.com/in/demiantavolaro/" target="_blank"
+                ><img src="./src/images/LinkedIn_icon.svg" alt="linkedin icon"
+              /></a>
+              <a href="https://github.com/demiantav" target="_blank"
+                ><img src="./src/images/github-mark.svg" alt="github icon"
+              /></a>
             </nav>
           </div>
         </div>
