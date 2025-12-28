@@ -4,15 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="./src/style.css" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
-    <link 
-  rel="stylesheet" 
-  href="https://fonts.googleapis.com/css2?family=Baumans&family=Amaranth:ital,wght@0,400;0,700;1,400;1,700&display=swap" 
-  media="print" 
-  onload="this.media='all'"
->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Baumans&family=Amaranth:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
 
 <noscript>
   <link href="https://fonts.googleapis.com/css2?family=Baumans&family=Amaranth:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
@@ -171,13 +171,13 @@ body.no-scroll {
       <header>
         <div class="header__container flex--row padding--inline">
           <div class="header__container-logo">
-            <img src="./src/images/demi..svg" class="header__logo-img" alt="logo-portfolio"/>
+            <img src="./src/images/demi..svg" class="header__logo-img" alt="logo-portfolio" />
           </div>
 
           <nav class="header__nav-menu padding--inline">
             <div class="header__container-logo">
               <img src="./src/images/demi..svg" class="header__logo-img" alt="logo-portfolio" />
-              <button class="header__hamb">
+              <button class="header__hamb" aria-label="close menu">
                 <div class="header__container-hamb">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -239,7 +239,7 @@ body.no-scroll {
             </footer>
           </nav>
 
-          <button class="header__hamb">
+          <button class="header__hamb" aria-label="open menu">
             <div class="header__container-hamb">
               <span class="header__hamb-line1"></span>
               <span class="header__hamb-line2"></span>
@@ -249,11 +249,14 @@ body.no-scroll {
       </header>
 
       <section class="main__about-me-section padding--inline">
-       
-
         <div class="main__title-container" id="about">
           <h2 class="main__title">HELLO!</h2>
-          <img src="./src/images/me.avif" alt="imagen mia" class="main__img-about" loading="lazy" />
+          <img
+            src="./src/images/me.avif"
+            alt="imagen mia"
+            class="main__img-about"
+            loading="lazy"
+          />
         </div>
         <span class="main__about-text"
           >I’m Demián Tavolaro
@@ -275,9 +278,9 @@ body.no-scroll {
         </p>
 
         <div class="main__gallery">
-          <img src="./src/images/real3.avif" alt="" loading="lazy"/>
-          <img src="./src/images/real2.avif" alt="" loading="lazy"/>
-          <img src="./src/images/real1.avif" alt="" loading="lazy"/>
+          <img src="./src/images/real3.avif" alt="" loading="lazy" />
+          <img src="./src/images/real2.avif" alt="" loading="lazy" />
+          <img src="./src/images/real1.avif" alt="" loading="lazy" />
         </div>
 
         <div class="main__line main__line--secondary"></div>
@@ -285,40 +288,53 @@ body.no-scroll {
         <h3 id="projects">Projects</h3>
 
         <div class="main__projects">
-
           <div class="main__project-card">
-            <a href=""><img src="./src/images/portfolio.avif" alt="proyecto 1" loading="lazy"/></a>
+            <a href=""
+              ><img src="./src/images/portfolio.avif" alt="proyecto 1" loading="lazy"
+            /></a>
             <div class="main__label">
               <span>Visual Identity</span>
               <span>Interaction design</span>
               <span>UI Development</span>
             </div>
-            <p>Crafted with patience and attention to every detail, using simple yet modern technologies, including the latest CSS techniques and GSAP animations.</p>
+            <p>
+              Crafted with patience and attention to every detail, using simple yet modern
+              technologies, including the latest CSS techniques and GSAP animations.
+            </p>
           </div>
 
-         
           <div class="main__project-card">
-            <a href="https://demiantav.github.io/prode-copa-america/" target="_blank"><img src="./src/images/prode.avif" alt="proyecto 3" loading="lazy"/></a>
+            <a href="https://demiantav.github.io/prode-copa-america/" target="_blank"
+              ><img src="./src/images/prode.avif" alt="proyecto 3" loading="lazy"
+            /></a>
             <div class="main__label">
               <span>Game UI</span>
               <span>Motion design</span>
               <span>Web Development</span>
             </div>
-            <p>I built a web game for the Copa América that allowed users to predict match results.
-             The platform handled automatic scoring and featured a real-time leaderboard.
-               My main focus was delivering a playful, intuitive, and engaging user experience.</p>
+            <p>
+              I built a web game for the Copa América that allowed users to predict match results.
+              The platform handled automatic scoring and featured a real-time leaderboard. My main
+              focus was delivering a playful, intuitive, and engaging user experience.
+            </p>
           </div>
 
           <div class="main__project-card">
-            <a href="https://demiantav.github.io/proyecto-arcor/" target="_blank"><img src="./src/images/arcor.avif" alt="proyecto 3" loading="lazy"/></a>
+            <a href="https://demiantav.github.io/proyecto-arcor/" target="_blank"
+              ><img src="./src/images/arcor.avif" alt="proyecto 3" loading="lazy"
+            /></a>
             <div class="main__label">
               <span>User-Centered Design</span>
               <span>Operational Flows</span>
               <span>Development</span>
             </div>
-            <p>A mobile app designed to support merchandisers in their daily tasks.
-                 It enables visit tracking, objective completion, and photo-based documentation to showcase before-and-after results.</p>
+            <p>
+              A mobile app designed to support merchandisers in their daily tasks. It enables
+              visit tracking, objective completion, and photo-based documentation to showcase
+              before-and-after results.
+            </p>
           </div>
+        </div>
       </section>
 
       <section class="main__skills-section" id="skills">
@@ -326,19 +342,27 @@ body.no-scroll {
           <span class="section-title__line section-title__line--left"></span>
           <h2 class="section-title__about">Skills</h2>
           <span class="section-title__line section-title__line--right"></span>
-        </div> 
+        </div>
         <div class="main__skills-container">
           <details name="skills">
             <summary>Frontend</summary>
-            <p>JavaScript, React, HTML5, CSS3, CSS Modules, Material UI, GSAP, Redux, React Router, TanStack / React Query, Figma</p>
+            <p>
+              JavaScript, React, HTML5, CSS3, CSS Modules, Material UI, GSAP, Redux, React Router,
+              TanStack / React Query, Figma
+            </p>
           </details>
-           <details name="skills">
+          <details name="skills">
             <summary>Backend</summary>
             <p>Node.js, Express, JWT, GraphQL, REST API Development, MongoDB, MySQL</p>
           </details>
-           <details name="skills">
+          <details name="skills">
             <summary>Others</summary>
-            <p>Git, Vite, ESLint, Vitest, React Testing Library, Node Test Runner, Playwright, Postman, REST Client, Unit Testing, Integration Testing, E2E Testing, OOP, TDD, Scrum, Middleware, Screaming Architecture, Style Guides, User Research, User Flows, Wireframes, Prototypes</p>
+            <p>
+              Git, Vite, ESLint, Vitest, React Testing Library, Node Test Runner, Playwright,
+              Postman, REST Client, Unit Testing, Integration Testing, E2E Testing, OOP, TDD,
+              Scrum, Middleware, Screaming Architecture, Style Guides, User Research, User Flows,
+              Wireframes, Prototypes
+            </p>
           </details>
         </div>
       </section>
@@ -414,35 +438,45 @@ body.no-scroll {
             <div class="main__footer-nav">
               <div class="contact-section__nav-wrapper">
                 <h5 class="contact-section__nav-title">Nav menu</h5>
-                <ul class="contact-section__nav-links-wrapper">
-                  <div>
-                  <a href="#about"><li>About me</li></a>
-                  <a href="#projects"><li>Projects</li></a>
-                  <a href="#skills"><li>Skills</li></a>
-                  <a href="#contact"><li>Contact</li></a>
-                  </div>
-                  <a href="#hero">
-<button>
-                    <svg width="23" height="35" viewBox="0 0 23 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M12.1066 0.43934C11.5208 -0.146447 10.571 -0.146447 9.98524 0.43934L0.439297 9.98528C-0.14649 10.5711 -0.14649 11.5208 0.439297 12.1066C1.02508 12.6924 1.97483 12.6924 2.56062 12.1066L11.0459 3.62132L19.5312 12.1066C20.117 12.6924 21.0667 12.6924 21.6525 12.1066C22.2383 11.5208 22.2383 10.5711 21.6525 9.98528L12.1066 0.43934ZM11.0459 25.5L12.5459 25.5L12.5459 1.5L11.0459 1.5L9.5459 1.5L9.5459 25.5L11.0459 25.5Z" fill="#F3505F"/>
-</svg>
-                  </button>
+                <nav class="contact-section__nav-links-wrapper">
+                  <ul>
+                    <li><a href="#about">About me</a></li>
+                    <li><a href="#projects">Projects</a></li>
+                    <li><a href="#skills">Skills</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                  </ul>
+                  <a href="#hero" aria-label="back to top" class="back-to-top">
+                    <svg
+                      width="23"
+                      height="35"
+                      viewBox="0 0 23 26"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M12.1066 0.43934C11.5208 -0.146447 10.571 -0.146447 9.98524 0.43934L0.439297 9.98528C-0.14649 10.5711 -0.14649 11.5208 0.439297 12.1066C1.02508 12.6924 1.97483 12.6924 2.56062 12.1066L11.0459 3.62132L19.5312 12.1066C20.117 12.6924 21.0667 12.6924 21.6525 12.1066C22.2383 11.5208 22.2383 10.5711 21.6525 9.98528L12.1066 0.43934ZM11.0459 25.5L12.5459 25.5L12.5459 1.5L11.0459 1.5L9.5459 1.5L9.5459 25.5L11.0459 25.5Z"
+                        fill="#F3505F"
+                      />
+                    </svg>
                   </a>
-                  
-                </ul>
-                
+                </nav>
               </div>
-              <a class="contact-section__btn-contact" href="mailto:tavolarodemian06@gmail.com">Get in Touch!</a>
+              <a class="contact-section__btn-contact" href="mailto:tavolarodemian06@gmail.com"
+                >Get in Touch!</a
+              >
             </div>
-            
           </div>
-          
+
           <div class="contact-section_footer-line"></div>
           <div class="contact-section__bottom-info">
             <p>@ 2025 Demián Tavolaro</p>
             <nav>
-              <a href="https://www.linkedin.com/in/demiantavolaro/" target="_blank"><img src="./src/images/LinkedIn_icon.svg" alt="linkedin icon"></a>
-              <a href="https://github.com/demiantav" target="_blank"><img src="./src/images/github-mark.svg" alt="github icon"></a>
+              <a href="https://www.linkedin.com/in/demiantavolaro/" target="_blank"
+                ><img src="./src/images/LinkedIn_icon.svg" alt="linkedin icon"
+              /></a>
+              <a href="https://github.com/demiantav" target="_blank"
+                ><img src="./src/images/github-mark.svg" alt="github icon"
+              /></a>
             </nav>
           </div>
         </div>
