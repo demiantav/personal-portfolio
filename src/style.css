@@ -524,12 +524,14 @@ canvas {
 }
 
 .contact-section__nav-wrapper {
-  button {
+  .back-to-top {
     border: var(--primary-color) solid 1px;
     border-radius: 5rem;
     width: 75px;
     height: 75px;
     cursor: pointer;
+    display: grid;
+    place-items: center;
   }
 
   li {
