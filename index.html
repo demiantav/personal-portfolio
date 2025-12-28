@@ -14,144 +14,146 @@
       onload="this.media='all'"
     />
 
-    <noscript>
-      <link
-        href="https://fonts.googleapis.com/css2?family=Baumans&family=Amaranth:ital,wght@0,400;0,700;1,400;1,700&display=swap"
-        rel="stylesheet"
-      />
-    </noscript>
+<noscript>
+  <link href="https://fonts.googleapis.com/css2?family=Baumans&family=Amaranth:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+</noscript>
 
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
+<style>
+  * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-      html {
-        scroll-behavior: smooth;
-      }
 
-      body {
-        background-color: var(--bg-color);
-        color: white;
-        font-family: 'Baumans', system-ui, -apple-system, sans-serif;
-        font-size: var(--step-0);
-        position: relative;
-        overflow-x: hidden;
-      }
 
-      button {
-        font-family: 'Baumans', system-ui;
-        letter-spacing: -3px;
-      }
+html {
+  scroll-behavior: smooth;
+}
 
-      h2 {
-        font-size: var(--step-6);
-        letter-spacing: -8px;
-      }
+body {
+  background-color: var(--bg-color);
+  color: white;
+  font-family: 'Baumans', system-ui, -apple-system, sans-serif;
+  font-size: var(--step-0);
+  position: relative;
+  overflow-x: hidden;
+}
 
-      h3 {
-        font-size: var(--step-3);
-        font-weight: normal;
-        letter-spacing: -5px;
-      }
+button {
+  font-family: 'Baumans', system-ui;
+  letter-spacing: -3px;
+}
 
-      h4 {
-        font-size: var(--step--1);
-      }
+h2 {
+  font-size: var(--step-6);
+  letter-spacing: -8px;
+}
 
-      button {
-        background-color: transparent;
-        border: none;
-      }
+h3 {
+  font-size: var(--step-3);
+  font-weight: normal;
+  letter-spacing: -5px;
+}
 
-      ul {
-        list-style: none;
-      }
+h4 {
+  font-size: var(--step--1);
+}
 
-      a {
-        text-decoration: none;
-        color: inherit;
-      }
+button {
+  background-color: transparent;
+  border: none;
+}
 
-      p {
-        max-width: 40ch;
-        text-wrap: pretty;
-      }
+ul {
+  list-style: none;
+}
 
-      /* Utility Classes */
+a {
+  text-decoration: none;
+  color: inherit;
+}
 
-      .padding--inline {
-        padding-inline: var(--fluid-16-120);
-      }
+p {
+  max-width: 40ch;
+  text-wrap: pretty;
+}
 
-      body.no-scroll {
-        overflow: hidden;
-        position: fixed;
-        width: 100%;
-        height: 100%;
-        touch-action: none;
-      }
+/* Utility Classes */
 
-      .flex--row {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-      }
+.padding--inline {
+  padding-inline: var(--fluid-16-120);
+}
 
-      /* Loading Screen */
+body.no-scroll {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
 
-      .preloader {
-        background-color: rgb(21, 20, 20);
-        position: fixed;
-        z-index: 111111;
-        top: 0;
-        width: 100vw;
-        height: 100vh;
-        display: grid;
-        place-items: center;
-        pointer-events: none;
-        clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
-        bottom: 0;
-      }
+.flex--row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
 
-      .preloader__title {
-        color: white;
-        overflow: hidden;
-        width: 50vw;
-        display: grid;
-        place-items: center;
-      }
+/* Loading Screen */
 
-      .preloader__char {
-        font-family: 'Baumans', system-ui;
-        font-weight: 400;
-        font-style: normal;
-        font-size: 50px;
-        letter-spacing: -6px;
-        line-height: 1.5;
-        position: relative;
-        display: inline-block;
-      }
+.preloader {
+  background-color: rgb(21, 20, 20);
+  position: fixed;
+  z-index: 111111;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+  bottom: 0;
+}
 
-      .preloader__char:nth-child(4) {
-        font-family: 'Amaranth', sans-serif;
-        font-weight: 400;
-        font-style: normal;
-        letter-spacing: 2px;
-      }
+.preloader__title {
+  color: white;
+  overflow: hidden;
+  width: 50vw;
+  display: grid;
+  place-items: center;
+}
 
-      .preloader__char:last-child {
-        color: #ff0642;
-        font-weight: bold;
-        font-size: 67px;
-        display: inline-block;
-        position: relative;
-        transform: translate(0px, 0px);
-      }
-    </style>
+.preloader__char {
+  font-family: 'Baumans', system-ui;
+  font-weight: 400;
+  font-style: normal;
+  font-size: 50px;
+  letter-spacing: -6px;
+  line-height: 1.5;
+  position: relative;
+  display: inline-block;
+}
+
+.preloader__char:nth-child(4) {
+  font-family: 'Amaranth', sans-serif;
+  font-weight: 400;
+  font-style: normal;
+  letter-spacing: 2px;
+}
+
+.preloader__char:last-child {
+  color: #ff0642;
+  font-weight: bold;
+  font-size: 67px;
+  display: inline-block;
+  position: relative;
+  transform: translate(0px, 0px);
+}
+</style>
+
+
+   
 
     <title>Portfolio @Demian Tavolaro</title>
   </head>
@@ -258,24 +260,10 @@
         </div>
         <span class="main__about-text"
           >I’m Demián Tavolaro
-          <img
-            src="./src/images/sunglass-emoji.webp"
-            alt=""
-            class="main__emoji"
-            width="32"
-            height="32"
-            loading="lazy"
-          />
+          <img src="./src/images/sunglass-emoji.webp" alt="" class="main__emoji" width="32" height="32" loading="lazy">
           — Frontend Developer and a fan of great design 🖤. I love when things look good, load
           fast, and are accessible to everyone. Always focused on:
-          <img
-            src="./src/images/thunder-emoji.webp"
-            alt=""
-            class="main__emoji"
-            width="32"
-            height="32"
-            loading="lazy"
-          />
+          <img src="./src/images/thunder-emoji.webp" alt="" class="main__emoji" width="32" height="32" loading="lazy">
           Performance, ♿ Accesibility and 🎨 Design.</span
         >
 
