@@ -87,7 +87,6 @@ export const animateSectionText = () => {
         scrollTrigger: {
           trigger: '.main__title',
           start: 'top 73%',
-          toggleActions: 'play none none reverse',
         },
       });
     },
@@ -111,7 +110,7 @@ export const animateSectionText = () => {
         },
         scrollTrigger: {
           trigger: '.main__about-text',
-          start: 'top 87%',
+          start: 'top 76%',
         },
       });
 
@@ -128,7 +127,7 @@ export const animateSectionText = () => {
         },
         scrollTrigger: {
           trigger: '.main__emoji',
-          start: 'top 87%',
+          start: 'top 76%',
         },
       });
     },
