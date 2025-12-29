@@ -58,11 +58,13 @@ export const pageLoad = () => {
       '<+=0.5'
     )
     .from(
-      [$hamb, $logo, $menu_full_page],
+      [$hamb, $logo, $menu_full_page, '.main__container-titles h4'],
       {
-        yPercent: 200,
+        opacity: 0,
+        yPercent: 350,
+        stagger: 0.1,
         ease: 'power3.inOut',
-        duration: 1.5,
+        duration: 1.1,
       },
       '<'
     );
