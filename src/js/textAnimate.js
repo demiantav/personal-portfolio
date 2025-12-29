@@ -28,12 +28,23 @@ export const pageLoad = () => {
     },
   });
 
-  tl.from($titleChars, {
-    yPercent: 260,
-    stagger: 0.05,
-    ease: 'back.out',
-    duration: 0.65,
-  })
+  tl.from(
+    $titleChars,
+    {
+      yPercent: 260,
+      scale: -2.2,
+      stagger: 0.05,
+      ease: 'back.out',
+      duration: 0.65,
+    },
+    '<'
+  )
+    .to('.preloader__title', {
+      scale: 0.8,
+      duration: 0.4,
+      ease: 'power3.inOut',
+      delay: 0.5,
+    })
     .to(
       $containerblue,
       {
@@ -44,7 +55,7 @@ export const pageLoad = () => {
           waves.start();
         },
       },
-      '<+=1.8'
+      '<+=0.5'
     )
     .from(
       [$hamb, $logo, $menu_full_page],
