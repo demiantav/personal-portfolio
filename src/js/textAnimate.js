@@ -58,11 +58,13 @@ export const pageLoad = () => {
       '<+=0.5'
     )
     .from(
-      [$hamb, $logo, $menu_full_page],
+      [$hamb, $logo, $menu_full_page, '.main__container-titles h4'],
       {
-        yPercent: 200,
+        opacity: 0,
+        yPercent: 350,
+        stagger: 0.1,
         ease: 'power3.inOut',
-        duration: 1.5,
+        duration: 1.1,
       },
       '<'
     );
@@ -87,7 +89,6 @@ export const animateSectionText = () => {
         scrollTrigger: {
           trigger: '.main__title',
           start: 'top 73%',
-          toggleActions: 'play none none reverse',
         },
       });
     },
@@ -111,7 +112,7 @@ export const animateSectionText = () => {
         },
         scrollTrigger: {
           trigger: '.main__about-text',
-          start: 'top 87%',
+          start: 'top 76%',
         },
       });
 
@@ -128,7 +129,7 @@ export const animateSectionText = () => {
         },
         scrollTrigger: {
           trigger: '.main__emoji',
-          start: 'top 87%',
+          start: 'top 76%',
         },
       });
     },
