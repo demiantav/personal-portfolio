@@ -3,7 +3,7 @@ let $links;
 export const animateMenu = () => {
   const d = document;
   const $hamb = d.querySelectorAll('.header__hamb'),
-    $menu = d.querySelectorAll('.header__nav-menu');
+    $menu = d.querySelector('.header__nav-menu');
 
   $links = d.querySelectorAll('.header__nav-link');
 
@@ -11,10 +11,13 @@ export const animateMenu = () => {
     e.addEventListener('click', () => {
       console.log('click');
 
-      // Iterate over each menu element
-      $menu.forEach((menuItem) => {
-        menuItem.classList.toggle('open');
-      });
+      $menu.classList.toggle('open');
+    })
+  );
+
+  $links.forEach((link) =>
+    link.addEventListener('click', () => {
+      $menu.classList.remove('open');
     })
   );
 
