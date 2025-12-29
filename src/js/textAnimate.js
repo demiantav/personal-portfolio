@@ -78,17 +78,17 @@ export const animateSectionText = () => {
     onSplit(self) {
       // runs every time it splits
       gsap.from(self.chars, {
-        duration: 0.245,
+        duration: 0.48,
         y: 150,
         autoAlpha: 0,
         stagger: {
           from: 'start',
-          amount: 0.8,
+          amount: 0.5,
         },
 
         scrollTrigger: {
           trigger: '.main__title',
-          start: 'top 73%',
+          start: 'top 60%',
         },
       });
     },
@@ -112,7 +112,7 @@ export const animateSectionText = () => {
         },
         scrollTrigger: {
           trigger: '.main__about-text',
-          start: 'top 76%',
+          start: 'top 30%',
         },
       });
 
@@ -129,7 +129,7 @@ export const animateSectionText = () => {
         },
         scrollTrigger: {
           trigger: '.main__emoji',
-          start: 'top 76%',
+          start: 'top 30%',
         },
       });
     },
