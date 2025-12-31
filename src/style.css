@@ -173,6 +173,16 @@ header {
   }
 }
 
+.active::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 0.9rem;
+  z-index: -1;
+  background-color: var(--primary-color);
+  border: 1px solid black;
+}
+
 .header__nav-link.active {
   view-transition-name: --header-link-active;
 }
@@ -207,34 +217,8 @@ header {
   animation-duration: 400ms;
 }
 
-/* ::view-transition-group(--header-link-1) {
-  z-index: 1;
-}
-
-::view-transition-group(--header-link-2) {
-  z-index: 1;
-}
-
-::view-transition-group(--header-link-3) {
-  z-index: 1;
-}
-
-::view-transition-group(--header-link-4) {
-  z-index: 1;
-} */
-
 ::view-transition-group(.header-links) {
   z-index: 1;
-}
-
-.active::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 0.9rem;
-  z-index: -1;
-  background-color: var(--primary-color);
-  border: 1px solid black;
 }
 
 .header__nav-link:where(.active) {
