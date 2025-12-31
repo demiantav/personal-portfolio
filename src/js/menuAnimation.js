@@ -21,18 +21,18 @@ export const animateMenu = () => {
     })
   );
 
-  // $links.forEach((link) =>
-  //   link.addEventListener('mouseenter', (event) => {
-  //     if (!d.startViewTransition) {
-  //       activeLink(event.target);
-  //       return;
-  //     }
+  $links.forEach((link) =>
+    link.addEventListener('click', (event) => {
+      if (!d.startViewTransition) {
+        activeLink(link);
+        return;
+      }
 
-  //     d.startViewTransition(() => {
-  //       activeLink(event.target);
-  //     });
-  //   })
-  // );
+      d.startViewTransition(() => {
+        activeLink(link);
+      });
+    })
+  );
 };
 
 const activeLink = (link) => {

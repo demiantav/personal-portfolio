@@ -33,6 +33,24 @@
   --red-color: #ff0642;
   --secondary-color: #ffdbb7;
   --bg-color: #080707;
+
+  --bounce: linear(
+    0,
+    0.012 0.9%,
+    0.05 2%,
+    0.411 9.2%,
+    0.517 11.8%,
+    0.611 14.6%,
+    0.694 17.7%,
+    0.765 21.1%,
+    0.824 24.8%,
+    0.872 28.9%,
+    0.91 33.4%,
+    0.939 38.4%,
+    0.977 50.9%,
+    0.994 68.4%,
+    1
+  );
 }
 /* Hero Section */
 
@@ -148,6 +166,11 @@ header {
 
 .header__nav-link {
   padding: 0.6rem;
+  view-transition-class: header-links;
+
+  a {
+    padding: 0.5rem 0;
+  }
 }
 
 .active::before {
@@ -158,6 +181,44 @@ header {
   z-index: -1;
   background-color: var(--primary-color);
   border: 1px solid black;
+}
+
+.header__nav-link.active {
+  view-transition-name: --header-link-active;
+}
+
+.header__nav-link.active::before {
+  view-transition-name: --header-link-active-before;
+}
+
+.header__nav-link:nth-child(1) {
+  view-transition-name: --header-link-1;
+}
+
+.header__nav-link:nth-child(2) {
+  view-transition-name: --header-link-2;
+}
+
+.header__nav-link:nth-child(3) {
+  view-transition-name: --header-link-3;
+}
+
+.header__nav-link:nth-child(4) {
+  view-transition-name: --header-link-4;
+}
+
+::view-transition-old(.header__link-active),
+::view-transition-new(.header__link-active) {
+  height: 100%;
+}
+
+::view-transition-group(--header-link-active-before) {
+  animation-timing-function: var(--bounce);
+  animation-duration: 400ms;
+}
+
+::view-transition-group(.header-links) {
+  z-index: 1;
 }
 
 .header__nav-link:where(.active) {
