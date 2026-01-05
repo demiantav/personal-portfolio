@@ -6,7 +6,6 @@ const setClock = () => {
 
   const updateTime = () => {
     const now = new Date();
-    console.log(now.getHours());
     const options = { hour: '2-digit', minute: '2-digit', hour12: false };
     const timeString = now.toLocaleTimeString('it-IT', options);
 
@@ -17,7 +16,7 @@ const setClock = () => {
   };
 
   updateTime();
-  setInterval(updateTime, 60000);
+  setInterval(updateTime, 1000);
 };
 
 export default setClock;
