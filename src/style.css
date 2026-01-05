@@ -655,6 +655,21 @@ canvas {
   }
 }
 
+@keyframes colon-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.colon {
+  animation: colon-blink 1.3s infinite;
+  font-size: 1.1rem;
+}
+
 /* Media Queries */
 
 @media (width >= 970px) {
