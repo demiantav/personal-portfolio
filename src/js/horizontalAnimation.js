@@ -27,8 +27,8 @@ const horizontalAnimation = () => {
         start: 'center center',
         end: () => `+=${pinWrapWidth}`,
         invalidateOnRefresh: true,
-        markers: true,
       },
+
       x: () => -horizontalScrollLength,
       ease: 'none',
     });

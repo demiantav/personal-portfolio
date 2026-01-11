@@ -399,6 +399,7 @@ canvas {
   gap: 1rem;
   padding-inline: 1rem;
   text-wrap: nowrap;
+  padding-block: 4rem;
 
   h2 {
     letter-spacing: 0px;
@@ -469,6 +470,24 @@ canvas {
 
 /*** Progress section ***/
 
+.progress-title-section {
+  min-height: 60dvh;
+  display: grid;
+  place-items: center;
+
+  .section-title__about {
+    color: var(--red-color);
+    text-wrap: pretty;
+    text-align: center;
+    font-size: var(--step-2);
+    letter-spacing: 0;
+  }
+
+  .section-title__line {
+    background-color: var(--red-color);
+  }
+}
+
 .main__progress-section {
   display: flex;
   flex-direction: column;
@@ -476,18 +495,6 @@ canvas {
   overflow-x: hidden;
   width: 100%;
   min-height: 100dvh;
-
-  .section-title__about {
-    color: var(--red-color);
-    text-wrap: pretty;
-    text-align: center;
-    font-size: var(--step-1);
-    letter-spacing: 0;
-  }
-
-  .section-title__line {
-    background-color: var(--red-color);
-  }
 }
 
 .progress__card {
