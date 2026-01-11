@@ -392,14 +392,11 @@ canvas {
 }
 
 .section-title {
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
-  padding-inline: 1rem;
-  text-wrap: nowrap;
-  padding-block: 4rem;
+  gap: 2rem;
+  width: 80%;
 
   h2 {
     letter-spacing: 0px;
@@ -475,11 +472,11 @@ canvas {
   display: grid;
   place-items: center;
 
-  .section-title__about {
+  .section-title__progress {
     color: var(--red-color);
     text-wrap: pretty;
     text-align: center;
-    font-size: var(--step-2);
+    font-size: var(--step-3);
     letter-spacing: 0;
   }
 
