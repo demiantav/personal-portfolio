@@ -473,6 +473,8 @@ canvas {
   display: flex;
   flex-direction: column;
   justify-content: space-around;
+  overflow-x: hidden;
+  width: 100%;
   min-height: 100dvh;
 
   .section-title__about {
@@ -538,8 +540,14 @@ canvas {
 }
 
 .progress-section_cards-container {
-  display: flex;
+  width: 100%;
+}
 
+.progress-section_wrapper {
+  display: flex;
+  flex-wrap: nowrap;
+  will-change: transform;
+  position: relative;
   gap: 10rem;
 }
 
@@ -724,12 +732,8 @@ canvas {
     max-width: 50ch;
   }
 
-  .section-title {
-    padding-block: 8rem;
-  }
-
   .progress__card {
-    height: 620px;
+    height: 560px;
   }
 
   .main__footer-nav {
@@ -745,10 +749,6 @@ canvas {
 
   .contact-section__nav-wrapper {
     width: 30%;
-  }
-
-  .progress-section_cards-container {
-    margin-block: 5rem;
   }
 
   .contact-section_footer-line {
