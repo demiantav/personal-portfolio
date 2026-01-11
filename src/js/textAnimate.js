@@ -153,7 +153,7 @@ export const animateSectionText = () => {
 
         scrollTrigger: {
           trigger: '.section-title__progress',
-          start: 'top 57%',
+          start: 'top 80%',
         },
       });
     },
