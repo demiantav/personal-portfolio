@@ -8,6 +8,7 @@ const horizontalAnimation = () => {
 
   horizontalSections.forEach(function (sec, i) {
     const pinWrap = sec.querySelector('.progress-section_cards-container');
+    const cards = sec.querySelectorAll('.progress__card');
 
     let pinWrapWidth;
     let horizontalScrollLength;
@@ -31,6 +32,19 @@ const horizontalAnimation = () => {
 
       x: () => -horizontalScrollLength,
       ease: 'none',
+    });
+
+    cards.forEach((card) => {
+      gsap.to(card, {
+        scrollTrigger: {
+          trigger: card,
+          scrub: true,
+          start: 'center center',
+          end: () => `+=${pinWrapWidth}`,
+        },
+        rotate: 0.5,
+        ease: 'none',
+      });
     });
 
     ScrollTrigger.addEventListener('refreshInit', refresh);
