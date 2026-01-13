@@ -392,13 +392,11 @@ canvas {
 }
 
 .section-title {
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
-  padding-inline: 1rem;
-  text-wrap: nowrap;
+  gap: 2rem;
+  padding-block: 4rem;
 
   h2 {
     letter-spacing: 0px;
@@ -424,7 +422,6 @@ canvas {
   details {
     width: 100%;
     border-bottom: 1px solid var(--bg-color);
-
     position: relative;
     transition: transform 0.5s ease;
 
@@ -469,23 +466,32 @@ canvas {
 
 /*** Progress section ***/
 
-.main__progress-section {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-  min-height: 100dvh;
+.progress-title-section {
+  min-height: 60dvh;
+  display: grid;
+  place-items: center;
+  padding-inline: 3rem;
 
-  .section-title__about {
+  .section-title__progress {
     color: var(--red-color);
-    text-wrap: pretty;
+    text-wrap: balance;
     text-align: center;
-    font-size: var(--step-1);
+    font-size: var(--step-3);
     letter-spacing: 0;
   }
 
   .section-title__line {
     background-color: var(--red-color);
   }
+}
+
+.main__progress-section {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  overflow-x: hidden;
+  width: 100%;
+  min-height: 100dvh;
 }
 
 .progress__card {
@@ -538,8 +544,14 @@ canvas {
 }
 
 .progress-section_cards-container {
-  display: flex;
+  width: 100%;
+}
 
+.progress-section_wrapper {
+  display: flex;
+  flex-wrap: nowrap;
+  will-change: transform;
+  position: relative;
   gap: 10rem;
 }
 
@@ -724,12 +736,8 @@ canvas {
     max-width: 50ch;
   }
 
-  .section-title {
-    padding-block: 8rem;
-  }
-
   .progress__card {
-    height: 620px;
+    height: 560px;
   }
 
   .main__footer-nav {
@@ -747,16 +755,16 @@ canvas {
     width: 30%;
   }
 
-  .progress-section_cards-container {
-    margin-block: 5rem;
-  }
-
   .contact-section_footer-line {
     top: 5vh;
   }
 
   .main__footer-nav {
     margin-block-start: 7rem;
+  }
+
+  .section-title {
+    padding-block: 6rem;
   }
 }
 

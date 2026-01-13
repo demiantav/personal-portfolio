@@ -104,7 +104,6 @@ export const animateSectionText = () => {
         yPercent: 'random([-80, 80])',
         rotation: 'random([-20, 30])',
         ease: 'back.out',
-        color: '#ef2e48',
         autoAlpha: 0,
         stagger: {
           amount: 0.9,
@@ -130,6 +129,30 @@ export const animateSectionText = () => {
         scrollTrigger: {
           trigger: '.main__emoji',
           start: 'top 30%',
+        },
+      });
+    },
+  });
+
+  SplitText.create('.section-title__progress', {
+    type: 'chars',
+    mask: 'chars',
+    autoSplit: true,
+    smartWrap: true,
+    onSplit(self) {
+      gsap.from(self.chars, {
+        duration: 0.48,
+        yPercent: 'random([-100, 100])',
+        ease: 'back.out',
+        yoyo: true,
+        stagger: {
+          from: 'random',
+          amount: 0.8,
+        },
+
+        scrollTrigger: {
+          trigger: '.section-title__progress',
+          start: 'top 80%',
         },
       });
     },

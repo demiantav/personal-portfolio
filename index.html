@@ -38,8 +38,6 @@
         color: white;
         font-family: 'Baumans', system-ui, -apple-system, sans-serif;
         font-size: var(--step-0);
-        position: relative;
-        overflow-x: hidden;
       }
 
       button {
@@ -256,12 +254,7 @@
       <section class="main__about-me-section padding--inline">
         <div class="main__title-container" id="about">
           <h2 class="main__title">HELLO!</h2>
-          <img
-            src="./src/images/me.avif"
-            alt="imagen mia"
-            class="main__img-about"
-            loading="lazy"
-          />
+          <img src="./src/images/me.avif" alt="imagen mia" class="main__img-about" />
         </div>
         <span class="main__about-text"
           >I’m Demián Tavolaro
@@ -271,7 +264,6 @@
             class="main__emoji"
             width="32"
             height="32"
-            loading="lazy"
           />
           — Frontend Developer and a fan of great design 🖤. I love when things look good, load
           fast, and are accessible to everyone. Always focused on:
@@ -281,7 +273,6 @@
             class="main__emoji"
             width="32"
             height="32"
-            loading="lazy"
           />
           Performance, ♿ Accesibility and 🎨 Design.</span
         >
@@ -297,9 +288,9 @@
         </p>
 
         <div class="main__gallery">
-          <img src="./src/images/real3.avif" alt="" loading="lazy" />
-          <img src="./src/images/real2.avif" alt="" loading="lazy" />
-          <img src="./src/images/real1.avif" alt="" loading="lazy" />
+          <img src="./src/images/real3.avif" alt="" />
+          <img src="./src/images/real2.avif" alt="" />
+          <img src="./src/images/real1.avif" alt="" />
         </div>
 
         <div class="main__line main__line--secondary"></div>
@@ -308,9 +299,7 @@
 
         <div class="main__projects">
           <div class="main__project-card">
-            <a href=""
-              ><img src="./src/images/portfolio.avif" alt="proyecto 1" loading="lazy"
-            /></a>
+            <a href=""><img src="./src/images/portfolio.avif" alt="proyecto 1" /></a>
             <div class="main__label">
               <span>Visual Identity</span>
               <span>Interaction design</span>
@@ -324,7 +313,7 @@
 
           <div class="main__project-card">
             <a href="https://demiantav.github.io/prode-copa-america/" target="_blank"
-              ><img src="./src/images/prode.avif" alt="proyecto 3" loading="lazy"
+              ><img src="./src/images/prode.avif" alt="proyecto 3"
             /></a>
             <div class="main__label">
               <span>Game UI</span>
@@ -340,7 +329,7 @@
 
           <div class="main__project-card">
             <a href="https://demiantav.github.io/proyecto-arcor/" target="_blank"
-              ><img src="./src/images/arcor.avif" alt="proyecto 3" loading="lazy"
+              ><img src="./src/images/arcor.avif" alt="proyecto 3"
             /></a>
             <div class="main__label">
               <span>User-Centered Design</span>
@@ -386,65 +375,67 @@
         </div>
       </section>
 
-      <!-- <section class="main__progress-section padding--inline" id="process">
+      <section class="progress-title-section">
         <div class="section-title">
           <span class="section-title__line section-title__line--left"></span>
-          <h2 class="section-title__about">From idea to design, from design to reality</h2>
+          <h2 class="section-title__progress">From idea to design, from design to reality</h2>
           <span class="section-title__line section-title__line--right"></span>
         </div>
+      </section>
 
+      <section class="main__progress-section padding--inline" id="process">
         <div class="progress-section_cards-container">
-          
-          <article class="progress__card">
-            <p class="card-title">Discovery</p>
-            <div>
-              <img src="./src/images/eyes2.svg" alt="">
-              <p>Observe, listen, and connect before designing.</p>
-            </div>
-            <div class="progress__card-footer">
-              <p>yrevocsiD</p>
-              <p>1</p>
-            </div>
-          </article>
+          <div class="progress-section_wrapper">
+            <article class="progress__card">
+              <p class="card-title">Discovery</p>
+              <div>
+                <img src="./src/images/eyes2.svg" alt="" />
+                <p>Observe, listen, and connect before designing.</p>
+              </div>
+              <div class="progress__card-footer">
+                <p>yrevocsiD</p>
+                <p>1</p>
+              </div>
+            </article>
 
-          <article class="progress__card">
-            <p class="card-title">Clarify</p>
-            <div>
-              <img src="./src/images/luz.svg" alt="">
-              <p>Put order into ideas and define the path.</p>
-            </div>
-            <div class="progress__card-footer">
-              <p>yfiralC</p>
-              <p>2</p>
-            </div>
-          </article>
+            <article class="progress__card">
+              <p class="card-title">Clarify</p>
+              <div>
+                <img src="./src/images/luz.svg" alt="" />
+                <p>Put order into ideas and define the path.</p>
+              </div>
+              <div class="progress__card-footer">
+                <p>yfiralC</p>
+                <p>2</p>
+              </div>
+            </article>
 
-          <article class="progress__card">
-            <p class="card-title">Design</p>
-            <div>
-              <img src="./src/images/wire.svg" alt="">
-              <p>Coffee, pencil, and paper.</p>
-            </div>
-            <div class="progress__card-footer">
-              <p>ngiseD</p>
-              <p>3</p>
-            </div>
-          </article>
+            <article class="progress__card">
+              <p class="card-title">Design</p>
+              <div>
+                <img src="./src/images/wire.svg" alt="" />
+                <p>Coffee, pencil, and paper.</p>
+              </div>
+              <div class="progress__card-footer">
+                <p>ngiseD</p>
+                <p>3</p>
+              </div>
+            </article>
 
-          <article class="progress__card">
-            <p class="card-title">Create</p>
-            <div>
-              <img src="./src/images/create.svg" alt="">
-              <p>From a simple idea, we move to a functional product.</p>
-            </div>
-            <div class="progress__card-footer">
-              <p>etaerC</p>
-              <p>4</p>
-            </div>
-          </article>
+            <article class="progress__card">
+              <p class="card-title">Create</p>
+              <div>
+                <img src="./src/images/create.svg" alt="" />
+                <p>From a simple idea, we move to a functional product.</p>
+              </div>
+              <div class="progress__card-footer">
+                <p>etaerC</p>
+                <p>4</p>
+              </div>
+            </article>
+          </div>
         </div>
-        
-      </section> -->
+      </section>
 
       <footer class="main__contact-section padding--inline" id="contact">
         <div class="main__contact-section-wrapper">
