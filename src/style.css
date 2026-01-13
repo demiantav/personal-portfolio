@@ -396,6 +396,7 @@ canvas {
   align-items: center;
   justify-content: center;
   gap: 2rem;
+  padding-block: 4rem;
 
   h2 {
     letter-spacing: 0px;
@@ -473,7 +474,7 @@ canvas {
 
   .section-title__progress {
     color: var(--red-color);
-    text-wrap: pretty;
+    text-wrap: balance;
     text-align: center;
     font-size: var(--step-3);
     letter-spacing: 0;
@@ -760,6 +761,10 @@ canvas {
 
   .main__footer-nav {
     margin-block-start: 7rem;
+  }
+
+  .section-title {
+    padding-block: 6rem;
   }
 }
 

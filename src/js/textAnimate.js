@@ -140,7 +140,6 @@ export const animateSectionText = () => {
     autoSplit: true,
     smartWrap: true,
     onSplit(self) {
-      // runs every time it splits
       gsap.from(self.chars, {
         duration: 0.48,
         yPercent: 'random([-100, 100])',
