@@ -55,9 +55,6 @@
 /* Hero Section */
 
 .main__hero-section {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
   min-height: 100dvh;
 }
 
