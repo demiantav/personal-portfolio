@@ -37,7 +37,7 @@ export const pageLoad = () => {
       ease: 'back.out',
       duration: 0.65,
     },
-    '<'
+    '<',
   )
     .to('.preloader__title', {
       scale: 0.8,
@@ -55,7 +55,7 @@ export const pageLoad = () => {
           waves.start();
         },
       },
-      '<+=0.5'
+      '<+=0.5',
     )
     .from(
       [$hamb, $logo, $menu_full_page, '.main__container-titles h4'],
@@ -66,7 +66,7 @@ export const pageLoad = () => {
         ease: 'power3.inOut',
         duration: 1.1,
       },
-      '<'
+      '<',
     );
 };
 
@@ -111,7 +111,7 @@ export const animateSectionText = () => {
         },
         scrollTrigger: {
           trigger: '.main__about-text',
-          start: 'top 30%',
+          start: 'top 80%',
         },
       });
 
@@ -128,7 +128,7 @@ export const animateSectionText = () => {
         },
         scrollTrigger: {
           trigger: '.main__emoji',
-          start: 'top 30%',
+          start: 'top 80%',
         },
       });
     },
