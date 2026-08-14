@@ -157,4 +157,28 @@ export const animateSectionText = () => {
       });
     },
   });
+
+  SplitText.create('.main__about-me-secundary', {
+    type: 'words',
+    mask: 'words',
+    autoSplit: true,
+    smartWrap: true,
+    onSplit(self) {
+      gsap.from(self.words, {
+        duration: 0.89,
+        yPercent: '100, -100',
+        ease: 'back.out',
+        yoyo: true,
+        stagger: {
+          amount: 0.9,
+          from: 'start',
+        },
+
+        scrollTrigger: {
+          trigger: '.main__about-me-secundary',
+          start: 'top 76%',
+        },
+      });
+    },
+  });
 };
