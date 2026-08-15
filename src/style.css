@@ -308,6 +308,23 @@ canvas {
   } */
 }
 
+.reveal-frame {
+  overflow: hidden;
+  display: block;
+  width: fit-content;
+  justify-self: center;
+}
+
+.reveal-frame img {
+  display: block;
+  height: auto;
+}
+
+.parallax-layer {
+  display: block;
+  will-change: transform;
+}
+
 .main__project-card {
   display: grid;
   gap: var(--space-xs);
@@ -728,17 +745,21 @@ canvas {
   .main__gallery {
     grid-template-columns: repeat(2, 1fr);
 
-    img:nth-child(1) {
-      width: 588px;
+    .reveal-frame img {
+      width: 100%;
+    }
+
+    .reveal-frame:nth-child(1) {
+      width: 700px;
       grid-column: 1/5;
     }
 
-    img:nth-child(2) {
-      width: 350px;
+    .reveal-frame:nth-child(2) {
+      width: 320px;
     }
 
-    img:nth-child(3) {
-      width: 412px;
+    .reveal-frame:nth-child(3) {
+      width: 500px;
     }
   }
 
