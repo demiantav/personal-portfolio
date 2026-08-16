@@ -56,6 +56,7 @@
 
 .main__hero-section {
   min-height: 100dvh;
+  background-color: var(--bg-color);
 }
 
 .main__container-titles {
@@ -63,6 +64,14 @@
   text-align: end;
   min-height: 35dvh;
   color: var(--primary-color);
+  mix-blend-mode: screen;
+}
+
+.zoom-effect {
+  font-size: clamp(2rem, 1rem + 7vw, 7.7141rem);
+  letter-spacing: clamp(-4px, -0.6vw, -15px);
+  word-spacing: 0.87em;
+  white-space: nowrap; /* mantené una sola línea para que el anclaje a la D siga siendo predecible */
 }
 
 /*Header*/
@@ -292,7 +301,6 @@ canvas {
 .main__gallery {
   display: grid;
   place-items: center;
-  gap: var(--space-l);
   grid-template-columns: 1fr;
 
   img {
