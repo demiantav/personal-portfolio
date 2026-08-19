@@ -64,7 +64,6 @@
   text-align: end;
   min-height: 35dvh;
   color: var(--primary-color);
-  mix-blend-mode: screen;
 }
 
 .zoom-effect {
