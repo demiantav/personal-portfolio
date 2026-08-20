@@ -8,32 +8,22 @@ function getDeveloperDOrigin() {
   const dEl = document.querySelector('.d-anchor');
   if (!heroEl || !dEl) return '50% 50%';
 
-  // offsetLeft/offsetTop son relativos al offsetParent y se calculan
-  // a partir del layout (box model), IGNORANDO cualquier transform CSS
-  // que ya esté aplicado. Por eso no importa en qué punto del scroll
-  // (o del scale) se dispare el recálculo: siempre da el mismo resultado.
   const heroWidth = heroEl.offsetWidth;
   const heroHeight = heroEl.offsetHeight;
 
-  // Queremos el TRAZO VERTICAL de la D, no el centro del glifo completo
-  // (que incluye la panza redonda). El trazo vertical está pegado al
-  // borde izquierdo del span.
-  const strokeX = dEl.offsetLeft + dEl.offsetWidth * 0.15; // ajustable
+  const strokeX = dEl.offsetLeft + dEl.offsetWidth * 0.15;
   const strokeY = dEl.offsetTop + dEl.offsetHeight / 2;
 
-  const xPercent = (strokeX / heroWidth) * 100;
-  const yPercent = (strokeY / heroHeight) * 100;
-
-  return `${xPercent}% ${yPercent}%`;
+  return `${(strokeX / heroWidth) * 100}% ${(strokeY / heroHeight) * 100}%`;
 }
 
 export function initHeroZoomTransition() {
   gsap.to('.zoom-effect', {
-    scale: 450,
+    scale: 500,
     transformOrigin: getDeveloperDOrigin,
     force3D: true,
     scrollTrigger: {
-      trigger: '.main__hero-section',
+      trigger: '.hero-pin', // antes: '.main__hero-section', ya no existe
       scrub: 1,
       pin: true,
       start: 'top top',

@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
   pageLoad();
   animateMenu();
   animateSectionText();
-  //initHeroZoomTransition();
+  initHeroZoomTransition();
   setClock();
   horizontalAnimation();
   animateReveals();
