@@ -54,7 +54,8 @@
 }
 
 #hero {
-  overflow: hidden;
+  background-color: var(--bg-color);
+  overflow: clip;
 }
 /* Hero Section */
 
@@ -82,12 +83,10 @@ header {
 
   @container scroll-state(scrolled: bottom) {
     opacity: 0;
-    translate: 0 -20%;
   }
 
   @container scroll-state(scrolled: top) {
     opacity: 1;
-    translate: 0 0;
   }
 }
 

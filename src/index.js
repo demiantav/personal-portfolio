@@ -8,11 +8,11 @@ import { parallaxAnimations } from './js/parallax-animations.js';
 import { initHeroZoomTransition } from './js/hero-zoom-transition.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-  fixHeroBug();
+  //fixHeroBug();
   pageLoad();
   animateMenu();
   animateSectionText();
-  initHeroZoomTransition();
+  //initHeroZoomTransition();
   setClock();
   horizontalAnimation();
   animateReveals();

@@ -29,7 +29,7 @@ function getDeveloperDOrigin() {
 
 export function initHeroZoomTransition() {
   gsap.to('.zoom-effect', {
-    scale: 600,
+    scale: 450,
     transformOrigin: getDeveloperDOrigin,
     force3D: true,
     scrollTrigger: {
@@ -37,7 +37,7 @@ export function initHeroZoomTransition() {
       scrub: 1,
       pin: true,
       start: 'top top',
-      end: '+=5000',
+      end: '+=1000',
       ease: 'none',
       invalidateOnRefresh: true,
     },
