@@ -55,7 +55,7 @@
 
 #hero {
   background-color: var(--bg-color);
-  overflow: clip;
+  display: grid; /* nuevo */
 }
 /* Hero Section */
 
@@ -71,9 +71,17 @@
   color: var(--primary-color);
 }
 
+.hero-pin {
+  grid-area: 1 / 1;
+  min-height: 100dvh;
+  background-color: var(--bg-color);
+}
+
 /*Header*/
 
 header {
+  grid-area: 1 / 1;
+  align-self: end;
   z-index: 1;
   padding-block: 2.5rem;
   width: 100%;
