@@ -5,7 +5,7 @@ import { Waves } from './waves';
 
 gsap.registerPlugin(SplitText, ScrollTrigger);
 
-const waves = new Waves({
+export const waves = new Waves({
   dom: document.getElementById('webgl'),
 });
 
@@ -53,6 +53,9 @@ export const pageLoad = () => {
         ease: 'power3.inOut',
         onComplete: () => {
           waves.start();
+          document.body.classList.remove('no-scroll');
+          window.scrollTo(0, 0);
+          ScrollTrigger.refresh(); // recalcula todos los triggers con scroll en 0
         },
       },
       '<+=0.5',
@@ -88,7 +91,7 @@ export const animateSectionText = () => {
 
         scrollTrigger: {
           trigger: '.main__title',
-          start: 'top 60%',
+          start: 'top 90%',
         },
       });
     },
@@ -111,7 +114,7 @@ export const animateSectionText = () => {
         },
         scrollTrigger: {
           trigger: '.main__about-text',
-          start: 'top 80%',
+          start: 'top 90%',
         },
       });
 
@@ -128,7 +131,7 @@ export const animateSectionText = () => {
         },
         scrollTrigger: {
           trigger: '.main__emoji',
-          start: 'top 80%',
+          start: 'top 90%',
         },
       });
     },
@@ -176,7 +179,7 @@ export const animateSectionText = () => {
 
         scrollTrigger: {
           trigger: '.main__about-me-secundary',
-          start: 'top 76%',
+          start: 'top 90%',
         },
       });
     },

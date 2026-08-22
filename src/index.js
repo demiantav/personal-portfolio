@@ -6,6 +6,9 @@ import { animateReveals } from './js/reveal-animations.js';
 import { parallaxAnimations } from './js/parallax-animations.js';
 import { initHeroZoomTransition } from './js/hero-zoom-transition.js';
 
+history.scrollRestoration = 'manual';
+window.scrollTo(0, 0);
+
 document.addEventListener('DOMContentLoaded', () => {
   pageLoad();
   animateMenu();
