@@ -82,13 +82,15 @@
 /*Header*/
 
 header {
-  grid-area: 1 / 1;
-  align-self: end;
+  /* fijo al fondo del viewport: la celda de grilla crece con el pin-spacer
+     del hero (2700px) y cualquier alineación dentro de ella deja el header
+     fuera de pantalla; las scroll-state queries controlan su opacidad */
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
   z-index: 1;
   padding-block: 2.5rem;
   width: 100%;
-  position: sticky;
-  top: 0;
   transition: all 0.3s;
 
   @container scroll-state(scrolled: bottom) {
