@@ -72,6 +72,14 @@
   color: var(--primary-color);
 }
 
+.zoom-effect {
+  /* una línea siempre: la coreografía del zoom hacia la D exige la misma
+     composición en todos los breakpoints; escala calibrada al ancho */
+  white-space: nowrap;
+  font-size: clamp(2.25rem, 10.5vw, 7.7141rem);
+  letter-spacing: -0.08em;
+}
+
 .hero-pin {
   grid-area: 1 / 1;
   min-height: 100dvh;
