@@ -387,6 +387,17 @@ canvas {
 
 #projects {
   text-align: end;
+  /* proporcional en vez de -5px fijos: con máscaras por letra, el tracking
+     agresivo afeitaba los bordes de los glifos redondeados */
+  letter-spacing: -0.08em;
+
+  /* aire de recorte para las máscaras de SplitText: padding simétrico
+     agranda la ventana visible del glifo y el margen negativo compensa
+     el layout (descensores como la j y curvas dejan de cortarse) */
+  div:has(> div) {
+    padding: 0.14em 0.05em;
+    margin: -0.14em -0.05em;
+  }
 }
 
 .main__img-about {
