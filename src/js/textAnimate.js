@@ -9,7 +9,7 @@ export const waves = new Waves({
   dom: document.getElementById('webgl'),
 });
 
-export const pageLoad = () => {
+export const pageLoad = ({ onReady } = {}) => {
   // 🔒 Bloquear scroll al inicio
   document.body.classList.add('no-scroll');
 
@@ -55,7 +55,13 @@ export const pageLoad = () => {
           waves.start();
           document.body.classList.remove('no-scroll');
           window.scrollTo(0, 0);
-          ScrollTrigger.refresh(); // recalcula todos los triggers con scroll en 0
+          onReady?.(); // triggers con layout real, nunca contra el doc colapsado
+          // Refresh individual escalonado: el global mide con el pin revertido
+          // y corrompe starts; el individual mide contra el layout real.
+          const refreshAll = () => ScrollTrigger.getAll().forEach((t) => t.refresh());
+          refreshAll();
+          requestAnimationFrame(refreshAll); // imágenes que cargan justo tras el unlock
+          setTimeout(refreshAll, 300);
         },
       },
       '<+=0.5',
@@ -80,7 +86,7 @@ export const animateSectionText = () => {
     autoSplit: true,
     onSplit(self) {
       // runs every time it splits
-      gsap.from(self.chars, {
+      const tween = gsap.from(self.chars, {
         duration: 0.48,
         y: 150,
         autoAlpha: 0,
@@ -94,6 +100,11 @@ export const animateSectionText = () => {
           start: 'top 90%',
         },
       });
+      // al re-splittear, matar tween Y su ScrollTrigger (evita huérfanos)
+      return () => {
+        tween.scrollTrigger?.kill();
+        tween.kill();
+      };
     },
   });
 
@@ -102,7 +113,7 @@ export const animateSectionText = () => {
     autoSplit: true,
     onSplit(self) {
       // runs every time it splits
-      gsap.from(self.words, {
+      const wordsTween = gsap.from(self.words, {
         duration: 0.8,
         yPercent: 'random([-80, 80])',
         rotation: 'random([-20, 30])',
@@ -118,7 +129,7 @@ export const animateSectionText = () => {
         },
       });
 
-      gsap.from('.main__emoji', {
+      const emojiTween = gsap.from('.main__emoji', {
         duration: 0.8,
         yPercent: 'random([-80, 80])',
         rotation: 'random([-20, 30])',
@@ -134,6 +145,15 @@ export const animateSectionText = () => {
           start: 'top 90%',
         },
       });
+
+      const killWithTrigger = (tween) => {
+        tween.scrollTrigger?.kill();
+        tween.kill();
+      };
+      return () => {
+        killWithTrigger(wordsTween);
+        killWithTrigger(emojiTween);
+      };
     },
   });
 
@@ -143,7 +163,7 @@ export const animateSectionText = () => {
     autoSplit: true,
     smartWrap: true,
     onSplit(self) {
-      gsap.from(self.chars, {
+      const tween = gsap.from(self.chars, {
         duration: 0.48,
         yPercent: 'random([-100, 100])',
         ease: 'back.out',
@@ -158,6 +178,10 @@ export const animateSectionText = () => {
           start: 'top 80%',
         },
       });
+      return () => {
+        tween.scrollTrigger?.kill();
+        tween.kill();
+      };
     },
   });
 
@@ -167,7 +191,7 @@ export const animateSectionText = () => {
     autoSplit: true,
     smartWrap: true,
     onSplit(self) {
-      gsap.from(self.words, {
+      const tween = gsap.from(self.words, {
         duration: 0.89,
         yPercent: '100, -100',
         ease: 'back.out',
@@ -182,6 +206,10 @@ export const animateSectionText = () => {
           start: 'top 90%',
         },
       });
+      return () => {
+        tween.scrollTrigger?.kill();
+        tween.kill();
+      };
     },
   });
 };
