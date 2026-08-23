@@ -115,6 +115,37 @@ export const pageLoad = ({ onReady } = {}) => {
   tl.call(() => waves.start(), [], titleFly.startTime() + 1.25);
 };
 
+// ADN compartido de títulos de sección: ráfaga caótica de letras con máscara.
+// opts: { duration, stagger } para variantes de ritmo por sección
+const animateSectionHeader = (trigger, opts = {}) => {
+  SplitText.create(trigger, {
+    type: 'chars',
+    mask: 'chars',
+    autoSplit: true,
+    smartWrap: true,
+    onSplit(self) {
+      const tween = gsap.from(self.chars, {
+        duration: opts.duration ?? 0.48,
+        yPercent: 'random([-100, 100])',
+        ease: 'back.out',
+        stagger: {
+          from: 'random',
+          amount: opts.stagger ?? 0.8,
+        },
+        scrollTrigger: {
+          trigger,
+          start: 'top 80%',
+          toggleActions: 'play none none none', // una sola vez
+        },
+      });
+      return () => {
+        tween.scrollTrigger?.kill();
+        tween.kill();
+      };
+    },
+  });
+};
+
 export const animateSectionText = () => {
   SplitText.create('.main__title', {
     type: 'chars',
@@ -193,33 +224,11 @@ export const animateSectionText = () => {
     },
   });
 
-  SplitText.create('.section-title__progress', {
-    type: 'chars',
-    mask: 'chars',
-    autoSplit: true,
-    smartWrap: true,
-    onSplit(self) {
-      const tween = gsap.from(self.chars, {
-        duration: 0.48,
-        yPercent: 'random([-100, 100])',
-        ease: 'back.out',
-        yoyo: true,
-        stagger: {
-          from: 'random',
-          amount: 0.8,
-        },
-
-        scrollTrigger: {
-          trigger: '.section-title__progress',
-          start: 'top 80%',
-        },
-      });
-      return () => {
-        tween.scrollTrigger?.kill();
-        tween.kill();
-      };
-    },
-  });
+  // títulos de sección comparten el mismo ADN; Projects y Skills con
+  // variante ágil (progress conserva su dispersión teatral)
+  animateSectionHeader('.section-title__progress');
+  animateSectionHeader('#projects', { duration: 0.35, stagger: 0.45 });
+  animateSectionHeader('.section-title__about', { duration: 0.35, stagger: 0.45 });
 
   SplitText.create('.main__about-me-secundary', {
     type: 'words',
