@@ -18,12 +18,14 @@ export const pageLoad = ({ onReady } = {}) => {
   const $hamb = document.querySelectorAll('.header__container-hamb');
   const $menu_full_page = document.querySelectorAll('.header__nav-link');
   const $containerblue = document.querySelector('.preloader');
+  // titular spliteado para su entrada por letras (sin autoSplit: la intro es
+  // pura transform/opacity, y así eliminamos cualquier re-split a mitad de ella)
+  const titleSplit = SplitText.create('.zoom-effect', { type: 'chars' });
 
   const tl = gsap.timeline({
     delay: 1,
     onComplete: () => {
-      // 🔓 Desbloquear scroll cuando termina la animación
-
+      // 🔓 Desbloquear scroll recién AL TERMINAR toda la secuencia
       document.body.classList.remove('no-scroll');
     },
   });
@@ -52,8 +54,6 @@ export const pageLoad = ({ onReady } = {}) => {
         duration: 1,
         ease: 'power3.inOut',
         onComplete: () => {
-          waves.start();
-          document.body.classList.remove('no-scroll');
           window.scrollTo(0, 0);
           onReady?.(); // triggers con layout real, nunca contra el doc colapsado
           // Refresh individual escalonado: el global mide con el pin revertido
@@ -67,16 +67,52 @@ export const pageLoad = ({ onReady } = {}) => {
       '<+=0.5',
     )
     .from(
-      [$hamb, $logo, $menu_full_page, '.main__container-titles h4'],
+      titleSplit.chars,
       {
-        opacity: 0,
-        yPercent: 350,
-        stagger: 0.1,
-        ease: 'power3.inOut',
-        duration: 1.1,
+        // 1️⃣ TITULAR: vuela a su lugar desde la derecha, en orden aleatorio
+        // (espejo de su salida durante el zoom)
+        xPercent: 'random(80, 180)',
+        yPercent: 'random(-60, 60)',
+        rotation: 'random(-30, 30)',
+        autoAlpha: 0,
+        force3D: true,
+        stagger: { each: 0.025, from: 'random' },
+        ease: 'power2.out',
+        duration: 0.85,
       },
       '<',
     );
+
+  // anclamos la secuencia al final de la cascada del titular
+  const titleFly = tl.recent();
+  tl.from(
+    '.main__container-titles h4',
+    {
+      // 1️⃣ H4S: eco del titular, entran dentro de su mismo beat
+      opacity: 0,
+      yPercent: 100,
+      stagger: 0.08,
+      ease: 'power3.inOut',
+      duration: 0.65,
+    },
+    titleFly.startTime() + 0.25,
+  );
+
+  tl.from(
+    [$hamb, $logo, $menu_full_page],
+    {
+      // 2️⃣ MENÚ: la interfaz entra cuando el texto ya está en pantalla
+      opacity: 0,
+      yPercent: 350,
+      stagger: 0.05,
+      ease: 'power3.inOut',
+      duration: 0.68,
+    },
+    titleFly.startTime() + 0.95,
+  );
+
+  // 3️⃣ WAVES: el entorno se materializa al final, llenando la escena
+  tl.call(() => waves.start(), [], titleFly.startTime() + 1.25);
 };
 
 export const animateSectionText = () => {

@@ -19,8 +19,8 @@ export class Waves {
       shadowBlur: 3,
       lineStroke: 3,
       speed: 0.002,
-      revealSpeed: 0.02, // 🔥 más rápido que antes
-      waveDelay: 0.05, // 🔥 delay entre cada línea
+      revealSpeed: 0.03,
+      waveDelay: 0.03,
       exitStagger: 0.07, // 🔥 solapamiento entre líneas al salir
       exitArcY: 40, // 🔥 deriva vertical en arco durante la salida
       exitFadeStart: 0.8, // 🔥 último 20% del recorrido con fade
@@ -115,7 +115,7 @@ export class Waves {
         const noiseValue = this.perlin(
           x * this.parameters.variation + this.randomness[i],
           x * this.parameters.variation,
-          this.time
+          this.time,
         );
         const y = this.height / 2 + this.parameters.amplitude * noiseValue;
 
