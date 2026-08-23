@@ -746,7 +746,7 @@ canvas {
     min-height: auto;
     position: relative;
     top: 0;
-    font-size: 16px;
+    font-size: 12px;
     background-color: transparent;
 
     > ul {
