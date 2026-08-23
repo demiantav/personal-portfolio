@@ -5,6 +5,31 @@ gsap.registerPlugin(ScrollTrigger);
 
 export const animateReveals = () => {
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Líneas divisorias de about-me: se dibujan desde el borde de su alineación
+  // (la secundaria vive a la derecha → espejo)
+  if (!reduceMotion) {
+    gsap.utils.toArray('.main__about-me-section .main__line').forEach((line) => {
+      const fromRight = line.classList.contains('main__line--secondary');
+      gsap.set(line, {
+        scaleX: 0,
+        transformOrigin: fromRight ? 'right center' : 'left center',
+      });
+      gsap.to(line, {
+        scaleX: 1,
+        duration: 1.1,
+        ease: 'power3.out',
+        scrollTrigger: {
+          trigger: line,
+          start: 'top 60%',
+          // una sola vez: dibujadas, quedan dibujadas
+          toggleActions: 'play none none none',
+          invalidateOnRefresh: true,
+        },
+      });
+    });
+  }
+
   const images = gsap.utils.toArray('.main__gallery img');
   if (images.length === 0) return;
 
