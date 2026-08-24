@@ -52,18 +52,18 @@ export function initHeroZoomTransition() {
         duration: 0.16,
         ease: 'power3.in',
       },
-      0.02
+      0.02,
     );
 
   // Fase 2 (28% → 100%): zoom cinematográfico sobre la "D"
   tl.to(
     '.zoom-effect',
     {
-      scale: 420,
+      scale: 500,
       transformOrigin: getDeveloperDOrigin,
       force3D: true,
       duration: 0.72,
     },
-    0.28
+    0.28,
   );
 }
