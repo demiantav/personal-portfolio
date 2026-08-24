@@ -425,6 +425,12 @@ canvas {
 }
 
 .main__project-card {
+  > a {
+    display: block;
+    overflow: hidden;
+    border-radius: 8px;
+  }
+
   > a img {
     width: var(--fluid-300-714);
     height: auto;
