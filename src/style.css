@@ -96,7 +96,9 @@ header {
   position: fixed;
   inset-inline: 0;
   bottom: 0;
-  z-index: 1;
+  /* por encima de las capas de las transiciones overlap (proceso z2,
+     footer z1): el nav fijo nunca queda tapado durante los revelados */
+  z-index: 10;
   padding-block: 2.5rem;
   width: 100%;
   transition: all 0.3s;
@@ -582,6 +584,11 @@ canvas {
   overflow-x: hidden;
   width: 100%;
   min-height: 100dvh;
+  /* capa frontal del footer reveal: el fondo opaco es lo que oculta al pie
+     fijo hasta que esta sección empieza a salir del viewport */
+  position: relative;
+  z-index: 2;
+  background-color: var(--bg-color);
 }
 
 .progress__card {
@@ -651,10 +658,35 @@ canvas {
 
 .main__contact-section {
   color: var(--primary-color);
+  background-color: var(--bg-color);
 
   p {
     font-size: var(--step--1);
   }
+}
+
+/* Footer reveal: fijo en posición final desde el primer frame, detrás del
+   contenido (z1 vs z2 del proceso). Sin la clase (sin JS / reduced motion)
+   el pie vive en su flujo normal */
+body.footer-reveal-active .main__contact-section {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 1;
+}
+
+/* El pie fijo vive TODA la sesión en z1: cada sección previa debe quedar
+   como capa opaca en z2 o asomaría a través de ellas en cualquier punto
+   del scroll. Solo con la clase activa para no tocar el flujo base */
+body.footer-reveal-active
+  :is(.hero-pin, .main__about-me-section, .main__skills-section, .progress-title-section) {
+  position: relative;
+  z-index: 2;
+}
+
+/* Las dos únicas sin fondo propio: lienzo blanco idéntico al body */
+body.footer-reveal-active .progress-title-section {
+  background-color: var(--bg-color);
 }
 
 .main__contact-section-wrapper {
