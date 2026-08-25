@@ -4,6 +4,7 @@ import setClock from './js/time.js';
 import horizontalAnimation from './js/horizontalAnimation.js';
 import { animateReveals } from './js/reveal-animations.js';
 import { parallaxAnimations } from './js/parallax-animations.js';
+import { sectionOverlap } from './js/section-overlap.js';
 import { initHeroZoomTransition } from './js/hero-zoom-transition.js';
 import ScrollTrigger from 'gsap/ScrollTrigger';
 
@@ -41,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
       horizontalAnimation();
       animateReveals();
       parallaxAnimations();
+      sectionOverlap();
     },
   });
   animateMenu();

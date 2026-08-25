@@ -292,10 +292,30 @@ canvas {
   background-color: var(--primary-color);
   color: black;
   text-wrap: balance;
-  display: grid;
-  gap: var(--space-2xl);
   padding-block-end: 3rem;
   line-height: 1.6;
+  position: relative; /* ancla del velo .overlap-dim */
+}
+
+/* Sin overlap (sin JS / reduced motion) la grilla vive en la sección;
+   con overlap, pasa al wrapper interno que escala */
+.main__about-me-section:not(:has(> .overlap-inner)) {
+  display: grid;
+  gap: var(--space-2xl);
+}
+
+.overlap-inner {
+  display: grid;
+  gap: var(--space-2xl);
+  will-change: transform;
+}
+
+.overlap-dim {
+  position: absolute;
+  inset: 0;
+  background-color: var(--bg-color);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .main__line {
@@ -454,6 +474,9 @@ canvas {
   min-height: 100dvh;
   background-color: var(--secondary-color);
   color: var(--bg-color);
+  /* posicionado con z-auto: pinta por encima del About pineado (orden DOM)
+     pero por debajo del header fijo (z-index 1) */
+  position: relative;
 }
 
 .section-title {
