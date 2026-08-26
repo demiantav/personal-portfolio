@@ -1,45 +1,69 @@
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import SplitText from 'gsap/SplitText';
+import { waves } from './textAnimate.js';
 
-gsap.registerPlugin(ScrollTrigger);
+gsap.registerPlugin(ScrollTrigger, SplitText);
 
 function getDeveloperDOrigin() {
   const heroEl = document.querySelector('.zoom-effect');
   const dEl = document.querySelector('.d-anchor');
   if (!heroEl || !dEl) return '50% 50%';
 
-  // offsetLeft/offsetTop son relativos al offsetParent y se calculan
-  // a partir del layout (box model), IGNORANDO cualquier transform CSS
-  // que ya esté aplicado. Por eso no importa en qué punto del scroll
-  // (o del scale) se dispare el recálculo: siempre da el mismo resultado.
   const heroWidth = heroEl.offsetWidth;
   const heroHeight = heroEl.offsetHeight;
 
-  // Queremos el TRAZO VERTICAL de la D, no el centro del glifo completo
-  // (que incluye la panza redonda). El trazo vertical está pegado al
-  // borde izquierdo del span.
-  const strokeX = dEl.offsetLeft + dEl.offsetWidth * 0.15; // ajustable
+  const strokeX = dEl.offsetLeft + dEl.offsetWidth * 0.15;
   const strokeY = dEl.offsetTop + dEl.offsetHeight / 2;
 
-  const xPercent = (strokeX / heroWidth) * 100;
-  const yPercent = (strokeY / heroHeight) * 100;
-
-  return `${xPercent}% ${yPercent}%`;
+  return `${(strokeX / heroWidth) * 100}% ${(strokeY / heroHeight) * 100}%`;
 }
 
 export function initHeroZoomTransition() {
-  gsap.to('.zoom-effect', {
-    scale: 450,
-    transformOrigin: getDeveloperDOrigin,
-    force3D: true,
+  // Split por letra de los h4 para la salida cinematográfica
+  const h4Chars = new SplitText('.main__container-titles h4', {
+    type: 'chars',
+  }).chars;
+
+  const tl = gsap.timeline({
+    defaults: { ease: 'none' },
     scrollTrigger: {
-      trigger: '.main__hero-section',
+      trigger: '.hero-pin',
       scrub: 1,
       pin: true,
       start: 'top top',
-      end: '+=1000',
-      ease: 'none',
+      end: '+=200%',
       invalidateOnRefresh: true,
     },
   });
+
+  // Fase 1 (0% → 28%): las waves se cortan una por una hacia la derecha
+  tl.to(waves, { exitProgress: 1, duration: 0.28 }, 0)
+    // Cada letra sale en cascada: whip hacia la derecha con deriva y giro aleatorio
+    .to(
+      h4Chars,
+      {
+        xPercent: 'random(80, 180)',
+        yPercent: 'random(-60, 60)',
+        rotation: 'random(-30, 30)',
+        autoAlpha: 0,
+        force3D: true,
+        stagger: { each: 0.0022, from: 'start' },
+        duration: 0.16,
+        ease: 'power3.in',
+      },
+      0.02,
+    );
+
+  // Fase 2 (28% → 100%): zoom cinematográfico sobre la "D"
+  tl.to(
+    '.zoom-effect',
+    {
+      scale: 500,
+      transformOrigin: getDeveloperDOrigin,
+      force3D: true,
+      duration: 0.72,
+    },
+    0.28,
+  );
 }
