@@ -96,7 +96,7 @@ export const animateReveals = () => {
         },
         defaults: { ease: 'power3.out' },
       })
-      .to(link, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.3 }, 0)
+      .to(link, { clipPath: 'inset(0% 0% 0% 0%)', duration: 2.0 }, 0)
       .to(img, { scale: 1, duration: 3, ease: 'power2.out' }, 0);
 
     // ── 2) Tags: clip-path reveal from top + SplitText chars chaotic burst ──
