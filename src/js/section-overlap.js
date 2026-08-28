@@ -24,19 +24,20 @@ export const sectionOverlap = () => {
   dim.className = 'overlap-dim';
   about.appendChild(dim);
 
-  gsap.timeline({
-    scrollTrigger: {
-      trigger: skills,
-      start: 'top bottom',
-      end: 'top top',
-      scrub: true,
-      pin: about,
-      pinSpacing: false,
-      anticipatePin: 1,
-      invalidateOnRefresh: true,
-    },
-    defaults: { ease: 'none', duration: 1 },
-  })
+  gsap
+    .timeline({
+      scrollTrigger: {
+        trigger: skills,
+        start: 'top bottom',
+        end: 'top top',
+        scrub: true,
+        pin: about,
+        pinSpacing: false,
+        anticipatePin: 1,
+        invalidateOnRefresh: true,
+      },
+      defaults: { ease: 'none', duration: 1 },
+    })
     .to(dim, { opacity: 0.45 }, 0)
     .to(inner, { scale: 0.94, transformOrigin: 'center top' }, 0);
 };
