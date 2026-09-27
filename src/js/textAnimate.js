@@ -18,9 +18,94 @@ export const pageLoad = ({ onReady } = {}) => {
   const $hamb = document.querySelectorAll('.header__container-hamb');
   const $menu_full_page = document.querySelectorAll('.header__nav-link');
   const $containerblue = document.querySelector('.preloader');
+  const $thread = document.querySelector('.item__name__line');
+  const $rail = document.querySelector('.thread__rail');
+  const $dot = document.querySelector('.thread__dot');
+  const $pct = document.querySelector('.item__name__porcentage');
+  const $burble = document.querySelector('.item__burble');
+  const $phrases = gsap.utils.toArray('.thread-phrase');
   // titular spliteado para su entrada por letras (sin autoSplit: la intro es
   // pura transform/opacity, y así eliminamos cualquier re-split a mitad de ella)
   const titleSplit = SplitText.create('.zoom-effect', { type: 'chars' });
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const COUNT_DURATION = 2.6;
+  // Longitud de hilo ya recorrida al 0% (respiro respecto del %)
+  const THREAD_BASE = 0.25;
+  const atPercent = (percent) => (percent / 100) * COUNT_DURATION;
+  const progress = { v: 0 };
+
+  // Cada palabra se divide en letras con máscara: los caracteres se recortan y
+  // emergen desde el borde cercano al hilo ("desde adentro hacia afuera")
+  const phrases = $phrases.map((root) => {
+    const left = root.querySelector('.thread-phrase__left');
+    const right = root.querySelector('.thread-phrase__right');
+    const leftSplit = SplitText.create(left, { type: 'chars', mask: 'words' });
+    const rightSplit = SplitText.create(right, { type: 'chars', mask: 'words' });
+    gsap.set([left, right], { autoAlpha: 1 }); // la visibilidad la gobiernan las letras
+    return { root, left: leftSplit.chars, right: rightSplit.chars };
+  });
+
+  // offset hacia el hilo: la izquierda entra desde la derecha y viceversa
+  const OUT = { left: 120, right: -120 };
+
+  const activate = (index, { instant = false, delay = 0 } = {}) => {
+    const phrase = phrases[index];
+    if (!phrase) return;
+    if (instant) {
+      gsap.set([...phrase.left, ...phrase.right], { xPercent: 0, autoAlpha: 1 });
+      return;
+    }
+    gsap.fromTo(
+      phrase.left,
+      { xPercent: OUT.left, autoAlpha: 0 },
+      {
+        xPercent: 0,
+        autoAlpha: 1,
+        duration: 0.6,
+        delay,
+        ease: 'power3.out',
+        stagger: { each: 0.045 },
+      },
+    );
+    gsap.fromTo(
+      phrase.right,
+      { xPercent: OUT.right, autoAlpha: 0 },
+      {
+        xPercent: 0,
+        autoAlpha: 1,
+        duration: 0.6,
+        delay,
+        ease: 'power3.out',
+        stagger: { each: 0.045 },
+      },
+    );
+  };
+
+  const deactivate = (index) => {
+    const phrase = phrases[index];
+    if (!phrase) return;
+    gsap.to(phrase.left, {
+      xPercent: OUT.left,
+      autoAlpha: 0,
+      duration: 0.28,
+      ease: 'power3.in',
+      stagger: { each: 0.02, from: 'end' },
+    });
+    gsap.to(phrase.right, {
+      xPercent: OUT.right,
+      autoAlpha: 0,
+      duration: 0.28,
+      ease: 'power3.in',
+      stagger: { each: 0.02, from: 'end' },
+    });
+  };
+
+  // todas las letras arrancan ocultas, corridas hacia el hilo
+  phrases.forEach(({ left, right }) => {
+    gsap.set(left, { xPercent: OUT.left, autoAlpha: 0 });
+    gsap.set(right, { xPercent: OUT.right, autoAlpha: 0 });
+  });
 
   const tl = gsap.timeline({
     delay: 1,
@@ -30,42 +115,83 @@ export const pageLoad = ({ onReady } = {}) => {
     },
   });
 
-  tl.from(
-    $titleChars,
-    {
-      yPercent: 260,
-      scale: -2.2,
-      stagger: 0.05,
-      ease: 'back.out',
-      duration: 0.65,
-    },
-    '<',
-  )
-    .to('.preloader__title', {
-      scale: 0.8,
-      duration: 0.4,
-      ease: 'power3.inOut',
-      delay: 0.5,
-    })
-    .to(
-      $containerblue,
-      {
-        clipPath: 'polygon(0% 0%, 100% 0%, 100% 0%, 0% 0%)',
-        duration: 1,
-        ease: 'power3.inOut',
-        onComplete: () => {
-          window.scrollTo(0, 0);
-          onReady?.(); // triggers con layout real, nunca contra el doc colapsado
-          // Refresh individual escalonado: el global mide con el pin revertido
-          // y corrompe starts; el individual mide contra el layout real.
-          const refreshAll = () => ScrollTrigger.getAll().forEach((t) => t.refresh());
-          refreshAll();
-          requestAnimationFrame(refreshAll); // imágenes que cargan justo tras el unlock
-          setTimeout(refreshAll, 300);
-        },
+  if (reduceMotion) {
+    // 🚫 Sin caída: estado final directo (solo la frase final), luego el wipe
+    $thread.style.setProperty('--p', 100);
+    $pct.textContent = '100';
+    gsap.set($rail, { autoAlpha: 1 });
+    activate(phrases.length - 1, { instant: true });
+  } else {
+    activate(0, { instant: true });
+    // arranca ya con la longitud base, conectado a la punta (sin flotar)
+    $thread.style.setProperty('--p', THREAD_BASE * 100);
+
+    const markers = $phrases.map((el) => Number(el.dataset.at));
+    let nextSwap = 1;
+
+    // 0️⃣ HILO: un único progress mueve contador, hilo y punto. Lineal y recto.
+    tl.to(progress, {
+      v: 100,
+      duration: COUNT_DURATION,
+      ease: 'none',
+      onUpdate: () => {
+        const v = Math.min(100, progress.v);
+        // geometría desacoplada del % mostrado: el hilo arranca con base
+        const geometry = THREAD_BASE + (v / 100) * (1 - THREAD_BASE);
+        $thread.style.setProperty('--p', geometry * 100);
+        $pct.textContent = Math.round(v);
+
+        // swaps por cruce de porcentaje (data-at)
+        while (nextSwap < markers.length && v >= markers[nextSwap]) {
+          deactivate(nextSwap - 1);
+          activate(nextSwap, { delay: 0.18 });
+          nextSwap += 1;
+        }
       },
-      '<+=0.5',
-    )
+    });
+
+    // ✂️ al 100% el hilo se corta y el punto cae dentro de la burbuja 2026
+    tl.call(
+      () => $thread.classList.add('is-cut'),
+      [],
+      atPercent(100) + 0.75,
+    ).to(
+      $dot,
+      {
+        y: () => {
+          const dotRect = $dot.getBoundingClientRect();
+          const burbleRect = $burble.getBoundingClientRect();
+          return burbleRect.top + burbleRect.height / 2 - (dotRect.top + dotRect.height / 2);
+        },
+        autoAlpha: 0,
+        duration: 0.5,
+        ease: 'power2.in',
+      },
+      atPercent(100) + 0.8,
+    );
+  }
+
+  const wipeStart = reduceMotion ? 0.15 : atPercent(100) + 1.45;
+
+  tl.to(
+    $containerblue,
+    {
+      clipPath: 'polygon(0% 0%, 100% 0%, 100% 0%, 0% 0%)',
+      duration: reduceMotion ? 0.4 : 1,
+      ease: 'power3.inOut',
+      onComplete: () => {
+        window.scrollTo(0, 0);
+        onReady?.(); // triggers con layout real, nunca contra el doc colapsado
+        // Refresh individual escalonado: el global mide con el pin revertido
+        // y corrompe starts; el individual mide contra el layout real.
+        const refreshAll = () => ScrollTrigger.getAll().forEach((t) => t.refresh());
+        refreshAll();
+        requestAnimationFrame(refreshAll); // imágenes que cargan justo tras el unlock
+        setTimeout(refreshAll, 300);
+      },
+    },
+    wipeStart,
+  )
     .from(
       titleSplit.chars,
       {

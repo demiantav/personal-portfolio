@@ -149,7 +149,11 @@
         height: 70%;
       }
 
-      .item__name {
+      .item__name__porcentage {
+        position: absolute;
+        top: 1rem;
+        background-color: var(--primary-color);
+        padding: 0 1rem;
       }
 
       .item__burble {
@@ -202,6 +206,125 @@
         display: inline-block;
         position: relative;
         transform: translate(0px, 0px);
+      }
+
+      /* Thread: hilo que cae + punto + frases al costado */
+
+      @property --p {
+        syntax: '<number>';
+        inherits: true;
+        initial-value: 0;
+      }
+
+      .item__name__line {
+        --p: 0;
+        position: relative;
+        align-self: center;
+        width: 1px;
+        /* deja aire respecto del % y termina a la altura de la fila de labels
+           inferior (85% del alto); el 0.625rem centra el fin sobre el label */
+        height: calc(85% - 3.125rem);
+        margin-top: 2.5rem;
+      }
+
+      .thread__rail {
+        position: absolute;
+        inset: 0;
+        transform-origin: top center;
+        transform: scaleY(calc(var(--p) / 100));
+        background: linear-gradient(
+          to bottom,
+          color-mix(in srgb, var(--bg-color) 38%, transparent),
+          color-mix(in srgb, var(--bg-color) 16%, transparent)
+        );
+      }
+
+      .item__name__line.is-cut .thread__rail {
+        transform: scaleY(0);
+        transform-origin: bottom center;
+        opacity: 0;
+        transition:
+          transform 0.35s cubic-bezier(0.7, 0, 0.84, 0),
+          opacity 0.25s ease-out;
+      }
+
+      .thread__dot {
+        position: absolute;
+        left: 50%;
+        top: calc(var(--p) * 1%);
+        width: 6px;
+        height: 6px;
+        margin: -3px 0 0 -3px;
+        border-radius: 50%;
+        background-color: var(--bg-color);
+      }
+
+      .thread__dot::before {
+        content: '';
+        position: absolute;
+        left: 50%;
+        bottom: 50%;
+        width: 1px;
+        height: 26px;
+        transform: translateX(-50%);
+        background: linear-gradient(
+          to top,
+          color-mix(in srgb, var(--bg-color) 45%, transparent),
+          transparent
+        );
+      }
+
+      .thread__phrases {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .thread-phrase {
+        position: absolute;
+        /* siempre a la altura de la punta del hilo */
+        top: calc(var(--p) * 1%);
+        left: 50%;
+        width: 0;
+      }
+
+      .thread-phrase__left,
+      .thread-phrase__right {
+        position: absolute;
+        font-family: 'Baumans', system-ui;
+        font-style: normal;
+        font-size: var(--step-2);
+        line-height: 1;
+        letter-spacing: -4px;
+        color: color-mix(in srgb, var(--bg-color) 78%, transparent);
+        white-space: nowrap;
+        opacity: 0;
+      }
+
+      .thread-phrase__left {
+        right: 20px;
+        top: -1.55em;
+      }
+
+      .thread-phrase__right {
+        left: 20px;
+        top: -0.55em;
+      }
+
+      @media (max-width: 48rem) {
+        .thread-phrase__left,
+        .thread-phrase__right {
+          font-size: var(--step-1);
+          letter-spacing: -2px;
+        }
+
+        .thread-phrase__left {
+          right: 14px;
+        }
+
+        .thread-phrase__right {
+          left: 14px;
+        }
       }
     </style>
 
@@ -598,7 +721,28 @@
         </div>
         <div class="preloader__internal__box__item">
           <p class="item__name__porcentage">0</p>
-          <div class="item__name__line"></div>
+          <div class="item__name__line">
+            <span class="thread__rail"></span>
+            <div class="thread__phrases">
+              <div class="thread-phrase" data-at="0">
+                <span class="thread-phrase__left">Hey</span>
+                <span class="thread-phrase__right">You</span>
+              </div>
+              <div class="thread-phrase" data-at="20">
+                <span class="thread-phrase__left">Don't</span>
+                <span class="thread-phrase__right">Go</span>
+              </div>
+              <div class="thread-phrase" data-at="62">
+                <span class="thread-phrase__left">One</span>
+                <span class="thread-phrase__right">Second</span>
+              </div>
+              <div class="thread-phrase" data-at="100">
+                <span class="thread-phrase__left">Just</span>
+                <span class="thread-phrase__right">Breathe</span>
+              </div>
+            </div>
+            <span class="thread__dot"></span>
+          </div>
           <div class="item__burble"><span>2026</span></div>
         </div>
         <div class="preloader__internal__box__item">
@@ -608,6 +752,6 @@
       </div>
     </div>
 
-    <!-- <script type="module" src="./src/index.js"></script> -->
+    <script type="module" src="./src/index.js"></script>
   </body>
 </html>
