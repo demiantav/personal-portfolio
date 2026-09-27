@@ -29,7 +29,7 @@ export const pageLoad = ({ onReady } = {}) => {
   const titleSplit = SplitText.create('.zoom-effect', { type: 'chars' });
 
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const COUNT_DURATION = 2.6;
+  const COUNT_DURATION = 3.9;
   // Longitud de hilo ya recorrida al 0% (respiro respecto del %)
   const THREAD_BASE = 0.25;
   const atPercent = (percent) => (percent / 100) * COUNT_DURATION;
@@ -62,10 +62,10 @@ export const pageLoad = ({ onReady } = {}) => {
       {
         xPercent: 0,
         autoAlpha: 1,
-        duration: 0.6,
+        duration: 0.45,
         delay,
         ease: 'power3.out',
-        stagger: { each: 0.045 },
+        stagger: { each: 0.03 },
       },
     );
     gsap.fromTo(
@@ -74,10 +74,10 @@ export const pageLoad = ({ onReady } = {}) => {
       {
         xPercent: 0,
         autoAlpha: 1,
-        duration: 0.6,
+        duration: 0.45,
         delay,
         ease: 'power3.out',
-        stagger: { each: 0.045 },
+        stagger: { each: 0.03 },
       },
     );
   };
@@ -150,12 +150,8 @@ export const pageLoad = ({ onReady } = {}) => {
       },
     });
 
-    // ✂️ al 100% el hilo se corta y el punto cae dentro de la burbuja 2026
-    tl.call(
-      () => $thread.classList.add('is-cut'),
-      [],
-      atPercent(100) + 0.75,
-    ).to(
+    // ✂️ Justo al detenerse el hilo (100%), se corta y cae el punto en el 2026
+    tl.call(() => $thread.classList.add('is-cut'), [], atPercent(100)).to(
       $dot,
       {
         y: () => {
@@ -167,11 +163,11 @@ export const pageLoad = ({ onReady } = {}) => {
         duration: 0.5,
         ease: 'power2.in',
       },
-      atPercent(100) + 0.8,
+      atPercent(100) + 0.02,
     );
   }
 
-  const wipeStart = reduceMotion ? 0.15 : atPercent(100) + 1.45;
+  const wipeStart = reduceMotion ? 0.15 : atPercent(100) + 0.6;
 
   tl.to(
     $containerblue,
@@ -191,23 +187,22 @@ export const pageLoad = ({ onReady } = {}) => {
       },
     },
     wipeStart,
-  )
-    .from(
-      titleSplit.chars,
-      {
-        // 1️⃣ TITULAR: vuela a su lugar desde la derecha, en orden aleatorio
-        // (espejo de su salida durante el zoom)
-        xPercent: 'random(80, 180)',
-        yPercent: 'random(-60, 60)',
-        rotation: 'random(-30, 30)',
-        autoAlpha: 0,
-        force3D: true,
-        stagger: { each: 0.025, from: 'random' },
-        ease: 'power2.out',
-        duration: 0.85,
-      },
-      '<',
-    );
+  ).from(
+    titleSplit.chars,
+    {
+      // 1️⃣ TITULAR: vuela a su lugar desde la derecha, en orden aleatorio
+      // (espejo de su salida durante el zoom)
+      xPercent: 'random(80, 180)',
+      yPercent: 'random(-60, 60)',
+      rotation: 'random(-30, 30)',
+      autoAlpha: 0,
+      force3D: true,
+      stagger: { each: 0.025, from: 'random' },
+      ease: 'power2.out',
+      duration: 0.85,
+    },
+    '<',
+  );
 
   // anclamos la secuencia al final de la cascada del titular
   const titleFly = tl.recent();
