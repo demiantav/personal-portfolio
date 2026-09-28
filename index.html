@@ -181,6 +181,9 @@
 
       .preloader__internal__box__item:is(:first-child, :last-child) {
         height: 70%;
+        /* columnas laterales del mismo ancho => la central queda centrada exacta */
+        flex: 0 0 auto;
+        min-width: 9.5rem;
       }
 
       .item__name__porcentage {
@@ -359,6 +362,11 @@
 
         .thread-phrase__right {
           left: 14px;
+        }
+
+        /* el hilo termina más arriba para no chocar con "Available worldwide" */
+        .item__name__line {
+          height: calc(70% - 0.625rem);
         }
       }
     </style>
