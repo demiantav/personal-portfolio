@@ -13,7 +13,6 @@ export const pageLoad = ({ onReady } = {}) => {
   // 🔒 Bloquear scroll al inicio
   document.body.classList.add('no-scroll');
 
-  const $titleChars = document.querySelectorAll('.preloader__char');
   const $logo = document.querySelector('.header__logo-img');
   const $hamb = document.querySelectorAll('.header__container-hamb');
   const $menu_full_page = document.querySelectorAll('.header__nav-link');
@@ -23,6 +22,9 @@ export const pageLoad = ({ onReady } = {}) => {
   const $dot = document.querySelector('.thread__dot');
   const $pct = document.querySelector('.item__name__porcentage');
   const $burble = document.querySelector('.item__burble');
+  const $burbleSpan = document.querySelector('.item__burble span');
+  const $frame = document.querySelector('.preloader__frame rect');
+  const $cover = document.querySelector('.preloader__cover');
   const $phrases = gsap.utils.toArray('.thread-phrase');
   // titular spliteado para su entrada por letras (sin autoSplit: la intro es
   // pura transform/opacity, y así eliminamos cualquier re-split a mitad de ella)
@@ -32,7 +34,6 @@ export const pageLoad = ({ onReady } = {}) => {
   const COUNT_DURATION = 3.9;
   // Longitud de hilo ya recorrida al 0% (respiro respecto del %)
   const THREAD_BASE = 0.25;
-  const atPercent = (percent) => (percent / 100) * COUNT_DURATION;
   const progress = { v: 0 };
 
   // Cada palabra se divide en letras con máscara: los caracteres se recortan y
@@ -107,30 +108,148 @@ export const pageLoad = ({ onReady } = {}) => {
     gsap.set(right, { xPercent: OUT.right, autoAlpha: 0 });
   });
 
+  const refreshAndReady = () => {
+    window.scrollTo(0, 0);
+    onReady?.(); // triggers con layout real, nunca contra el doc colapsado
+    // Refresh individual escalonado: el global mide con el pin revertido
+    // y corrompe starts; el individual mide contra el layout real.
+    const refreshAll = () => ScrollTrigger.getAll().forEach((t) => t.refresh());
+    refreshAll();
+    requestAnimationFrame(refreshAll); // imágenes que cargan justo tras el unlock
+    setTimeout(refreshAll, 300);
+  };
+
   const tl = gsap.timeline({
-    delay: 1,
     onComplete: () => {
       // 🔓 Desbloquear scroll recién AL TERMINAR toda la secuencia
       document.body.classList.remove('no-scroll');
     },
   });
 
+  // etiquetas con máscara: las de arriba entran desde arriba, las de abajo desde abajo
+  const labels = gsap.utils.toArray('.item__name').map((el, i) => {
+    const split = SplitText.create(el, { type: 'chars', mask: 'lines' });
+    return { chars: split.chars, top: i % 2 === 0 };
+  });
+
+  // revelado del hero (compartido por las dos ramas)
+  const revealHero = (at) => {
+    tl.from(
+      titleSplit.chars,
+      {
+        // 1️⃣ TITULAR: vuela a su lugar desde la derecha, en orden aleatorio
+        xPercent: 'random(80, 180)',
+        yPercent: 'random(-60, 60)',
+        rotation: 'random(-30, 30)',
+        autoAlpha: 0,
+        force3D: true,
+        stagger: { each: 0.025, from: 'random' },
+        ease: 'power2.out',
+        duration: 0.85,
+      },
+      at,
+    );
+    const titleFly = tl.recent();
+    tl.from(
+      '.main__container-titles h4',
+      {
+        opacity: 0,
+        yPercent: 100,
+        stagger: 0.08,
+        ease: 'power3.inOut',
+        duration: 0.65,
+      },
+      titleFly.startTime() + 0.25,
+    );
+    tl.from(
+      [$hamb, $logo, $menu_full_page],
+      {
+        opacity: 0,
+        yPercent: 350,
+        stagger: 0.05,
+        ease: 'power3.inOut',
+        duration: 0.68,
+      },
+      titleFly.startTime() + 0.95,
+    );
+    // 3️⃣ WAVES: el entorno se materializa al final, llenando la escena
+    tl.call(() => waves.start(), [], titleFly.startTime() + 1.25);
+  };
+
   if (reduceMotion) {
-    // 🚫 Sin caída: estado final directo (solo la frase final), luego el wipe
+    // 🚫 Sin coreografía: estado final directo + fade corto
     $thread.style.setProperty('--p', 100);
     $pct.textContent = '100';
-    gsap.set($rail, { autoAlpha: 1 });
     activate(phrases.length - 1, { instant: true });
-  } else {
-    activate(0, { instant: true });
-    // arranca ya con la longitud base, conectado a la punta (sin flotar)
-    $thread.style.setProperty('--p', THREAD_BASE * 100);
+    gsap.set($frame, { attr: { 'stroke-dashoffset': 0 } });
+    gsap.set([$rail, $dot], { autoAlpha: 1 });
+    gsap.set($pct, { autoAlpha: 1 });
+    gsap.set($burble, { autoAlpha: 1 });
+    labels.forEach(({ chars }) => gsap.set(chars, { yPercent: 0, autoAlpha: 1 }));
 
-    const markers = $phrases.map((el) => Number(el.dataset.at));
-    let nextSwap = 1;
+    tl.to($containerblue, { autoAlpha: 0, duration: 0.4, onComplete: refreshAndReady }, 0.3);
+    revealHero(0.5);
+    return;
+  }
 
-    // 0️⃣ HILO: un único progress mueve contador, hilo y punto. Lineal y recto.
-    tl.to(progress, {
+  // ── estado inicial de la entrada ──
+  gsap.set($pct, { scale: 0.6, autoAlpha: 0 });
+  gsap.set($burble, { y: 260, autoAlpha: 0 });
+  gsap.set([$rail, $dot], { autoAlpha: 0 });
+  labels.forEach(({ chars, top }) =>
+    gsap.set(chars, { yPercent: top ? -120 : 120, autoAlpha: 0 }),
+  );
+  $thread.style.setProperty('--p', 0);
+
+  const markers = $phrases.map((el) => Number(el.dataset.at));
+  let nextSwap = 1;
+
+  // ── ENTRADA (0 → 1.45s) ──
+  tl.fromTo(
+    $frame,
+    { attr: { 'stroke-dashoffset': 1 } },
+    { attr: { 'stroke-dashoffset': 0 }, duration: 0.9, ease: 'power2.inOut' },
+    0,
+  );
+  labels.forEach(({ chars }, i) => {
+    tl.to(
+      chars,
+      {
+        yPercent: 0,
+        autoAlpha: 1,
+        duration: 0.6,
+        ease: 'back.out(1.4)',
+        stagger: { each: 0.02 },
+      },
+      0.2 + i * 0.08,
+    );
+  });
+  tl.to($pct, { scale: 1, autoAlpha: 1, duration: 0.4, ease: 'back.out(2)' }, 0.45);
+  tl.to($burble, { y: 0, autoAlpha: 1, duration: 0.6, ease: 'back.out(1.2)' }, 0.6);
+
+  // el hilo y la bola entran en su propio beat (no antes que el resto)
+  tl.to([$rail, $dot], { autoAlpha: 1, duration: 0.2, ease: 'power1.out' }, 0.85);
+
+  const drop = { v: 0 };
+  tl.to(
+    drop,
+    {
+      v: THREAD_BASE * 100,
+      duration: 0.55,
+      ease: 'power3.out',
+      onUpdate: () => $thread.style.setProperty('--p', drop.v),
+    },
+    0.9,
+  );
+  tl.call(() => activate(0), [], 0.98);
+
+  const countStart = 1.45;
+  const countEnd = countStart + COUNT_DURATION;
+
+  // ── CONTADOR ──
+  tl.to(
+    progress,
+    {
       v: 100,
       duration: COUNT_DURATION,
       ease: 'none',
@@ -148,92 +267,80 @@ export const pageLoad = ({ onReady } = {}) => {
           nextSwap += 1;
         }
       },
-    });
+    },
+    countStart,
+  );
 
-    // ✂️ Justo al detenerse el hilo (100%), se corta y cae el punto en el 2026
-    tl.call(() => $thread.classList.add('is-cut'), [], atPercent(100)).to(
-      $dot,
+  // ── SALIDA ──
+  // ✂️ al detenerse el hilo, se corta y el punto cae dentro de la burbuja
+  tl.call(() => $thread.classList.add('is-cut'), [], countEnd).to(
+    $dot,
+    {
+      y: () => {
+        const dotRect = $dot.getBoundingClientRect();
+        const burbleRect = $burble.getBoundingClientRect();
+        return burbleRect.top + burbleRect.height / 2 - (dotRect.top + dotRect.height / 2);
+      },
+      autoAlpha: 0,
+      duration: 0.5,
+      ease: 'power2.in',
+    },
+    countEnd + 0.02,
+  );
+
+  // impacto: la burbuja hace un pulso al recibir el punto
+  tl.to($burble, { scale: 1.06, duration: 0.18, ease: 'power2.out' }, countEnd + 0.45).to(
+    $burble,
+    { scale: 1, duration: 0.5, ease: 'elastic.out(1, 0.4)' },
+    countEnd + 0.63,
+  );
+
+  // el marco se des-dibuja
+  tl.to(
+    $frame,
+    { attr: { 'stroke-dashoffset': 1 }, duration: 0.8, ease: 'power2.inOut' },
+    countEnd + 0.6,
+  );
+
+  // los labels se retiran (arriba hacia arriba, abajo hacia abajo)
+  labels.forEach(({ chars, top }, i) => {
+    tl.to(
+      chars,
       {
-        y: () => {
-          const dotRect = $dot.getBoundingClientRect();
-          const burbleRect = $burble.getBoundingClientRect();
-          return burbleRect.top + burbleRect.height / 2 - (dotRect.top + dotRect.height / 2);
-        },
+        yPercent: top ? -120 : 120,
         autoAlpha: 0,
         duration: 0.5,
-        ease: 'power2.in',
+        ease: 'power3.in',
+        stagger: { each: 0.015 },
       },
-      atPercent(100) + 0.02,
+      countEnd + 0.55 + i * 0.05,
     );
-  }
+  });
 
-  const wipeStart = reduceMotion ? 0.15 : atPercent(100) + 0.6;
+  // el % se achica y se va
+  tl.to($pct, { scale: 0.6, autoAlpha: 0, duration: 0.4, ease: 'power3.in' }, countEnd + 0.6);
 
+  // las frases se retraen hacia el hilo
+  tl.call(() => phrases.forEach((_, i) => deactivate(i)), [], countEnd + 0.65);
+
+  // el disco crece desde la burbuja y se convierte en el sitio
+  const maxR = Math.hypot(window.innerWidth, window.innerHeight) * 1.05;
+  tl.to(
+    $cover,
+    { '--cover-r': `${maxR}px`, duration: 0.9, ease: 'power2.inOut' },
+    countEnd + 0.9,
+  );
+  tl.to($burbleSpan, { autoAlpha: 0, duration: 0.3 }, countEnd + 0.9);
+  tl.to($cover, { backgroundColor: '#080707', duration: 0.4 }, countEnd + 1.5);
+
+  // handoff: el preloader se desvanece revelando el sitio (mismo negro)
   tl.to(
     $containerblue,
-    {
-      clipPath: 'polygon(0% 0%, 100% 0%, 100% 0%, 0% 0%)',
-      duration: reduceMotion ? 0.4 : 1,
-      ease: 'power3.inOut',
-      onComplete: () => {
-        window.scrollTo(0, 0);
-        onReady?.(); // triggers con layout real, nunca contra el doc colapsado
-        // Refresh individual escalonado: el global mide con el pin revertido
-        // y corrompe starts; el individual mide contra el layout real.
-        const refreshAll = () => ScrollTrigger.getAll().forEach((t) => t.refresh());
-        refreshAll();
-        requestAnimationFrame(refreshAll); // imágenes que cargan justo tras el unlock
-        setTimeout(refreshAll, 300);
-      },
-    },
-    wipeStart,
-  ).from(
-    titleSplit.chars,
-    {
-      // 1️⃣ TITULAR: vuela a su lugar desde la derecha, en orden aleatorio
-      // (espejo de su salida durante el zoom)
-      xPercent: 'random(80, 180)',
-      yPercent: 'random(-60, 60)',
-      rotation: 'random(-30, 30)',
-      autoAlpha: 0,
-      force3D: true,
-      stagger: { each: 0.025, from: 'random' },
-      ease: 'power2.out',
-      duration: 0.85,
-    },
-    '<',
+    { autoAlpha: 0, duration: 0.5, onComplete: refreshAndReady },
+    countEnd + 1.8,
   );
 
-  // anclamos la secuencia al final de la cascada del titular
-  const titleFly = tl.recent();
-  tl.from(
-    '.main__container-titles h4',
-    {
-      // 1️⃣ H4S: eco del titular, entran dentro de su mismo beat
-      opacity: 0,
-      yPercent: 100,
-      stagger: 0.08,
-      ease: 'power3.inOut',
-      duration: 0.65,
-    },
-    titleFly.startTime() + 0.25,
-  );
-
-  tl.from(
-    [$hamb, $logo, $menu_full_page],
-    {
-      // 2️⃣ MENÚ: la interfaz entra cuando el texto ya está en pantalla
-      opacity: 0,
-      yPercent: 350,
-      stagger: 0.05,
-      ease: 'power3.inOut',
-      duration: 0.68,
-    },
-    titleFly.startTime() + 0.95,
-  );
-
-  // 3️⃣ WAVES: el entorno se materializa al final, llenando la escena
-  tl.call(() => waves.start(), [], titleFly.startTime() + 1.25);
+  revealHero(countEnd + 2.0);
 };
 
 // ADN compartido de títulos de sección: ráfaga caótica de letras con máscara.

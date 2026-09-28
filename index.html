@@ -129,12 +129,46 @@
         font-size: var(--step--1);
         width: 95%;
         height: 94%;
-        border: 1px solid #1a1717;
         border-radius: 3rem;
         display: flex;
         flex-direction: row;
         justify-content: space-around;
         align-items: center;
+      }
+
+      /* marco que se dibuja / des-dibuja */
+      .preloader__frame {
+        position: absolute;
+        top: 3%;
+        left: 2.5%;
+        width: 95%;
+        height: 94%;
+        overflow: visible;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .preloader__frame rect {
+        fill: none;
+        stroke: #1a1717;
+        stroke-width: 1;
+        stroke-dasharray: 1;
+      }
+
+      /* disco oscuro que crece desde la burbuja y se convierte en el sitio */
+      @property --cover-r {
+        syntax: '<length>';
+        inherits: false;
+        initial-value: 0px;
+      }
+
+      .preloader__cover {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        pointer-events: none;
+        background-color: #201b1b;
+        clip-path: circle(var(--cover-r) at 50% 100%);
       }
 
       .preloader__internal__box__item {
@@ -160,13 +194,12 @@
         background-color: #201b1b;
         color: var(--primary-color);
         position: absolute;
-        bottom: 0;
+        bottom: -5.5rem;
         border-radius: 50%;
         width: 20rem;
         height: 10rem;
         display: grid;
         place-items: center;
-        transform: translate(0%, 55%);
 
         span {
           transform: translate(0%, -2rem);
@@ -232,6 +265,7 @@
         inset: 0;
         transform-origin: top center;
         transform: scaleY(calc(var(--p) / 100));
+        opacity: 0; /* lo revela la entrada */
         background: linear-gradient(
           to bottom,
           color-mix(in srgb, var(--bg-color) 38%, transparent),
@@ -257,6 +291,7 @@
         margin: -3px 0 0 -3px;
         border-radius: 50%;
         background-color: var(--bg-color);
+        opacity: 0; /* lo revela la entrada */
       }
 
       .thread__dot::before {
@@ -706,6 +741,20 @@
     </main>
 
     <div class="preloader">
+      <svg class="preloader__frame" aria-hidden="true">
+        <rect
+          x="0.5"
+          y="0.5"
+          width="100%"
+          height="100%"
+          rx="48"
+          ry="48"
+          pathLength="1"
+          vector-effect="non-scaling-stroke"
+          stroke-dashoffset="1"
+        />
+      </svg>
+
       <!-- <div class="preloader__title">
         <div>
           <span class="preloader__char">d</span><span class="preloader__char">e</span
@@ -750,6 +799,8 @@
           <p class="item__name">Available worldwide</p>
         </div>
       </div>
+
+      <div class="preloader__cover"></div>
     </div>
 
     <script type="module" src="./src/index.js"></script>
