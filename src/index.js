@@ -1,5 +1,5 @@
 import { animateMenu } from './js/menuAnimation.js';
-import { pageLoad, animateSectionText } from './js/textAnimate.js';
+import { pageLoad, animateSectionText, whenIntroDone } from './js/textAnimate.js';
 import setClock from './js/time.js';
 import horizontalAnimation from './js/horizontalAnimation.js';
 import { animateReveals } from './js/reveal-animations.js';
@@ -15,8 +15,19 @@ window.scrollTo(0, 0);
 // El refresh GLOBAL mide los triggers mientras revierte el pin del hero
 // (spacer sin padding) y calcula starts corruptos que no corrige. El refresh
 // INDIVIDUAL de cada trigger mide contra el layout real y sí es correcto.
-const refreshTriggers = () => {
+// Además se encola hasta terminar la intro (whenIntroDone) para no competir
+// con la entrada del titular; se deduplica en un solo refresh por frame.
+let refreshScheduled = false;
+const runRefresh = () => {
+  refreshScheduled = false;
   ScrollTrigger.getAll().forEach((t) => t.refresh());
+};
+const refreshTriggers = () => {
+  whenIntroDone(() => {
+    if (refreshScheduled) return;
+    refreshScheduled = true;
+    requestAnimationFrame(runRefresh);
+  });
 };
 
 // Las <img> sin dimensiones intrínsecas cambian el layout al cargar:

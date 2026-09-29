@@ -9,6 +9,20 @@ export const waves = new Waves({
   dom: document.getElementById('webgl'),
 });
 
+// La intro (preloader + entrada del hero) monopoliza el main thread. Cualquier
+// refresh de ScrollTrigger agendado desde afuera (load, fonts, imágenes) se
+// encola acá y corre recién al terminar, para no trabar el titular.
+let introDone = false;
+const introDoneCallbacks = [];
+export const whenIntroDone = (fn) => {
+  if (introDone) fn();
+  else introDoneCallbacks.push(fn);
+};
+const markIntroDone = () => {
+  introDone = true;
+  while (introDoneCallbacks.length) introDoneCallbacks.shift()();
+};
+
 export const pageLoad = ({ onReady } = {}) => {
   // 🔒 Bloquear scroll al inicio
   document.body.classList.add('no-scroll');
@@ -108,21 +122,31 @@ export const pageLoad = ({ onReady } = {}) => {
     gsap.set(right, { xPercent: OUT.right, autoAlpha: 0 });
   });
 
-  const refreshAndReady = () => {
+  // Refresh individual diferido: el global mide con el pin revertido y
+  // corrompe starts; el individual mide contra el layout real. Se corre fuera
+  // del frame crítico del handoff (120ms) y una sola vez.
+  let refreshTimeout;
+  const debouncedRefresh = () => {
+    clearTimeout(refreshTimeout);
+    refreshTimeout = setTimeout(() => {
+      ScrollTrigger.getAll().forEach((t) => t.refresh());
+    }, 120);
+  };
+
+  // ⚙️ Setup pesado: crear triggers + medir. Se dispara con el cover ya opaco
+  // y las animaciones visibles del preloader terminadas, para que no compita
+  // con la entrada del titular.
+  const runHeavySetup = () => {
     window.scrollTo(0, 0);
     onReady?.(); // triggers con layout real, nunca contra el doc colapsado
-    // Refresh individual escalonado: el global mide con el pin revertido
-    // y corrompe starts; el individual mide contra el layout real.
-    const refreshAll = () => ScrollTrigger.getAll().forEach((t) => t.refresh());
-    refreshAll();
-    requestAnimationFrame(refreshAll); // imágenes que cargan justo tras el unlock
-    setTimeout(refreshAll, 300);
+    debouncedRefresh();
   };
 
   const tl = gsap.timeline({
     onComplete: () => {
       // 🔓 Desbloquear scroll recién AL TERMINAR toda la secuencia
       document.body.classList.remove('no-scroll');
+      markIntroDone(); // libera los refreshes globales encolados
     },
   });
 
@@ -172,8 +196,9 @@ export const pageLoad = ({ onReady } = {}) => {
       },
       titleFly.startTime() + 0.95,
     );
-    // 3️⃣ WAVES: el entorno se materializa al final, llenando la escena
-    tl.call(() => waves.start(), [], titleFly.startTime() + 1.25);
+    // 3️⃣ WAVES: el entorno se materializa al terminar el titular, así el
+    // redibujo full-width del canvas no compite con la última parte del vuelo
+    tl.call(() => waves.start(), [], titleFly.endTime());
   };
 
   if (reduceMotion) {
@@ -187,7 +212,8 @@ export const pageLoad = ({ onReady } = {}) => {
     gsap.set($burble, { autoAlpha: 1 });
     labels.forEach(({ chars }) => gsap.set(chars, { yPercent: 0, autoAlpha: 1 }));
 
-    tl.to($containerblue, { autoAlpha: 0, duration: 0.4, onComplete: refreshAndReady }, 0.3);
+    tl.call(runHeavySetup, [], 0.2);
+    tl.to($containerblue, { autoAlpha: 0, duration: 0.4 }, 0.3);
     revealHero(0.5);
     return;
   }
@@ -333,12 +359,11 @@ export const pageLoad = ({ onReady } = {}) => {
   tl.to($burbleSpan, { autoAlpha: 0, duration: 0.3 }, countEnd + 0.9);
   tl.to($cover, { backgroundColor: '#080707', duration: 0.4 }, countEnd + 1.5);
 
+  // ⚙️ setup + medición con el disco ya cubriendo la escena (invisible)
+  tl.call(runHeavySetup, [], countEnd + 1.6);
+
   // handoff: el preloader se desvanece revelando el sitio (mismo negro)
-  tl.to(
-    $containerblue,
-    { autoAlpha: 0, duration: 0.5, onComplete: refreshAndReady },
-    countEnd + 1.8,
-  );
+  tl.to($containerblue, { autoAlpha: 0, duration: 0.5 }, countEnd + 1.8);
 
   revealHero(countEnd + 2.0);
 };
