@@ -259,6 +259,80 @@ header {
   color: black;
 }
 
+/* Letter roll del menú: cada letra es una máscara con dos capas apiladas.
+   La de arriba sale y la de abajo (coral) entra al hover. Solo transform:
+   no altera el ancho/alto del <li>, así la bubble y los View Transitions
+   quedan intactos. */
+.roll {
+  display: inline;
+}
+
+.roll__word {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.roll__char {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  height: 1em;
+  line-height: 1;
+  vertical-align: bottom;
+}
+
+.roll__base {
+  display: block;
+  overflow: hidden;
+}
+
+.roll__alt {
+  display: none;
+  overflow: hidden;
+}
+
+@media (width >= 970px) and (hover: hover) and (pointer: fine) {
+  .roll__alt {
+    display: block;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    color: var(--primary-color);
+  }
+
+  .roll__base,
+  .roll__alt {
+    transition: transform 0.5s var(--bounce);
+    transition-delay: calc(var(--i, 0) * 35ms);
+  }
+
+  .header__nav-link:hover .roll__base,
+  .header__nav-link:focus-visible .roll__base,
+  .header__nav-link:hover .roll__alt,
+  .header__nav-link:focus-visible .roll__alt {
+    transform: translateY(-100%);
+  }
+
+  /* el activo se lee negro sobre la bubble: la capa alt no puede ser coral */
+  .header__nav-link:where(.active) .roll__alt {
+    color: currentColor;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .roll__base,
+    .roll__alt {
+      transition: none;
+    }
+
+    .header__nav-link:hover .roll__base,
+    .header__nav-link:focus-visible .roll__base,
+    .header__nav-link:hover .roll__alt,
+    .header__nav-link:focus-visible .roll__alt {
+      transform: none;
+    }
+  }
+}
+
 .open {
   top: 0;
 }
