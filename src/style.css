@@ -890,14 +890,54 @@ body.footer-reveal-active .progress-title-section {
 }
 
 .contact-section__btn-contact {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   text-align: center;
   letter-spacing: -4px;
   color: var(--bg-color);
   background-color: var(--red-color);
   font-size: var(--step-3);
   padding: 0.5rem;
+  border: 1px solid var(--primary-color);
   border-radius: 1rem;
   cursor: pointer;
+  transition:
+    color 0.4s ease,
+    transform 0.4s var(--bounce);
+}
+
+/* El negro se abre desde el centro hacia arriba y abajo: queda encima del
+   fondo rojo y debajo del texto por el orden de pintado (z-index -1) */
+.contact-section__btn-contact::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-color: var(--bg-color);
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform 0.55s var(--bounce);
+}
+
+.contact-section__btn-contact:hover {
+  color: var(--primary-color);
+  transform: translateY(-3px);
+}
+
+.contact-section__btn-contact:hover::before {
+  transform: scaleY(1);
+}
+
+.contact-section__btn-contact:active {
+  transform: translateY(-3px) scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contact-section__btn-contact,
+  .contact-section__btn-contact::before {
+    transition-duration: 0.001s;
+  }
 }
 
 .contact-section_footer-line {
