@@ -302,8 +302,11 @@ header {
 
   .roll__base,
   .roll__alt {
-    transition: transform 0.5s var(--bounce);
-    transition-delay: calc(var(--i, 0) * 35ms);
+    transition:
+      transform 0.5s var(--bounce),
+      color 0.3s ease;
+    /* el color no hereda el delay de stagger del transform */
+    transition-delay: calc(var(--i, 0) * 35ms), 0s;
   }
 
   .header__nav-link:hover .roll__base,
@@ -330,6 +333,54 @@ header {
     .header__nav-link:focus-visible .roll__alt {
       transform: none;
     }
+  }
+}
+
+/* Tema del header sobre secciones claras (About / Skills). headerTheme.js
+   togglea .header--on-light según la sección detrás de la barra. */
+@media (width >= 970px) {
+  .header--on-light .header__nav-menu {
+    color: var(--bg-color);
+  }
+
+  .header--on-light .roll__alt {
+    color: currentColor;
+  }
+
+  /* texto activo = color del fondo de la sección (efecto recorte) */
+  .header--on-light {
+    --header-active-text: var(--secondary-color);
+  }
+
+  .header--on-light[data-surface='about'] {
+    --header-active-text: var(--primary-color);
+  }
+
+  .header--on-light[data-surface='skills'] {
+    --header-active-text: var(--secondary-color);
+  }
+
+  .header--on-light .header__nav-link:where(.active) {
+    color: var(--header-active-text);
+  }
+
+  .header--on-light .active::before {
+    background-color: var(--bg-color);
+    border-color: var(--bg-color);
+  }
+
+  .header--on-light .header__logo-img {
+    filter: brightness(0);
+  }
+
+  .header__nav-menu,
+  .header__nav-link,
+  .header__logo-img {
+    transition: color 0.3s ease, filter 0.3s ease;
+  }
+
+  .header__nav-link.active::before {
+    transition: background-color 0.3s ease, border-color 0.3s ease;
   }
 }
 

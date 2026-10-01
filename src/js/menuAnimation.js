@@ -77,14 +77,21 @@ export const animateMenu = () => {
   );
 
   $links.forEach((link) =>
-    link.addEventListener('click', (event) => {
+    link.addEventListener('click', () => {
       if (!d.startViewTransition) {
         activeLink(link);
         return;
       }
 
-      d.startViewTransition(() => {
+      // El overlay de la View Transition tapa el hit-test del header: se marca
+      // vt-active para congelar el tema y se avisa al terminar (headerTheme).
+      d.documentElement.classList.add('vt-active');
+      const vt = d.startViewTransition(() => {
         activeLink(link);
+      });
+      vt.finished.finally(() => {
+        d.documentElement.classList.remove('vt-active');
+        window.dispatchEvent(new Event('vt-done'));
       });
     })
   );
