@@ -199,11 +199,11 @@ header {
 }
 
 .header__nav-link {
-  padding: 0.6rem;
   view-transition-class: header-links;
 
   a {
-    padding: 0.5rem 0;
+    display: block;
+    padding: 0.6rem;
   }
 }
 
@@ -376,11 +376,15 @@ header {
   .header__nav-menu,
   .header__nav-link,
   .header__logo-img {
-    transition: color 0.3s ease, filter 0.3s ease;
+    transition:
+      color 0.3s ease,
+      filter 0.3s ease;
   }
 
   .header__nav-link.active::before {
-    transition: background-color 0.3s ease, border-color 0.3s ease;
+    transition:
+      background-color 0.3s ease,
+      border-color 0.3s ease;
   }
 }
 
