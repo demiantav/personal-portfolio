@@ -53,6 +53,17 @@
   );
 }
 
+/* Scrollbar oculta (look awwwards): se esconde la barra nativa sin tocar el
+   comportamiento del scroll. */
+html {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Edge legacy */
+}
+
+html::-webkit-scrollbar {
+  display: none; /* Chrome / Safari / Edge (Chromium) */
+}
+
 #hero {
   background-color: var(--bg-color);
   display: grid; /* nuevo */
