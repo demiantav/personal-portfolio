@@ -46,6 +46,38 @@ export const initCursor = () => {
   let lastScrollY = window.scrollY;
   const header = d.querySelector('header');
 
+  // El menú del header no persigue al puntero: el aro se ciñe al <li> y lo
+  // envuelve (aire 0, igual que la bubble). Se anima con un tween propio con
+  // overshoot (el "imán") y se mata al salir: si el chase de quickTo quedara
+  // vivo pisándose con este, la posición saltaría.
+  let snapEl = null;
+  let snapTween = null;
+
+  const applySnap = (node) => {
+    if (node === snapEl) return;
+    snapEl = node;
+    if (snapTween) {
+      snapTween.kill();
+      snapTween = null;
+    }
+    if (!node) {
+      ring.style.removeProperty('--cursor-w');
+      ring.style.removeProperty('--cursor-h');
+      toRingX(px);
+      toRingY(py);
+      return;
+    }
+    const r = node.getBoundingClientRect();
+    ring.style.setProperty('--cursor-w', `${Math.round(r.width)}px`);
+    ring.style.setProperty('--cursor-h', `${Math.round(r.height)}px`);
+    snapTween = gsap.to(ring, {
+      x: r.left + r.width / 2,
+      y: r.top + r.height / 2,
+      duration: 0.5,
+      ease: 'back.out(1.4)',
+    });
+  };
+
   const applyState = (next) => {
     if (state) el.classList.remove(`cursor--${state}`);
     state = next;
@@ -76,7 +108,13 @@ export const initCursor = () => {
     let next = 'default';
     if (explicit) next = explicit.dataset.cursor === 'none' ? 'default' : explicit.dataset.cursor || 'default';
     else if (target?.closest(INTERACTIVE)) next = 'link';
+
+    // El snap se evalúa SIEMPRE, aunque el estado no cambie: moverse de un
+    // link del menú a otro re-apunta el aro al nuevo <li>.
+    applySnap(next === 'nav' ? explicit : null);
     if (next !== state) applyState(next);
+    // sobre el link activo el aro se esconde: la bubble ya marca el estado
+    el.classList.toggle('cursor--hide', next === 'nav' && explicit.classList.contains('active'));
 
     // El estado lo decide el elemento de arriba (ahí viven los links del
     // header fijo), pero el COLOR se mide contra la sección real de atrás:
@@ -113,8 +151,11 @@ export const initCursor = () => {
     px = e.clientX;
     py = e.clientY;
     if (!visible) show();
-    toRingX(px);
-    toRingY(py);
+    // mientras el aro está ciñéndose a un <li> no hay que perseguir al puntero
+    if (!snapEl) {
+      toRingX(px);
+      toRingY(py);
+    }
     schedule();
   };
 
@@ -146,8 +187,10 @@ export const initCursor = () => {
     if (hidden === vtHidden) return;
     vtHidden = hidden;
     el.classList.toggle('cursor--vt', hidden);
-    if (hidden) applyState('default');
-    else schedule();
+    if (hidden) {
+      applySnap(null);
+      applyState('default');
+    } else schedule();
   });
   vtObserver.observe(root, { attributes: true, attributeFilter: ['class'] });
 
@@ -156,6 +199,11 @@ export const initCursor = () => {
     el.remove();
     visible = false;
     root.classList.remove('cursor-ready');
+    if (snapTween) {
+      snapTween.kill();
+      snapTween = null;
+    }
+    snapEl = null;
     window.removeEventListener('pointermove', onMove);
     window.removeEventListener('scroll', onScroll);
     vtObserver.disconnect();
@@ -173,7 +221,15 @@ export const initCursor = () => {
 
   window.addEventListener('pointermove', onMove, { passive: true });
   window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('resize', schedule);
+  window.addEventListener('resize', () => {
+    // el <li> cambió de tamaño: volver a medir aunque el elemento sea el mismo
+    if (snapEl) {
+      const node = snapEl;
+      snapEl = null;
+      applySnap(node);
+    }
+    schedule();
+  });
   window.addEventListener('pointerdown', onPress);
   window.addEventListener('pointerup', onRelease);
   window.addEventListener('blur', hide);

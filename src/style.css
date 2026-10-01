@@ -1063,6 +1063,12 @@ body.footer-reveal-active .progress-title-section {
   opacity: 1;
 }
 
+/* sobre el link activo del menú el aro se esconde: la bubble ya indica el
+   estado y el cursor nativo sigue visible */
+.cursor--hide {
+  opacity: 0;
+}
+
 /* tapado por el overlay de la View Transition */
 .cursor--vt {
   opacity: 0 !important;
@@ -1087,6 +1093,7 @@ body.footer-reveal-active .progress-title-section {
   transition:
     width 0.5s var(--bounce),
     height 0.5s var(--bounce),
+    border-radius 0.5s var(--bounce),
     border-color 0.3s ease,
     background-color 0.3s ease,
     color 0.3s ease;
@@ -1167,6 +1174,13 @@ body.footer-reveal-active .progress-title-section {
 .cursor--link {
   --cursor-w: 40px;
   --cursor-h: 40px;
+}
+
+/* Menú del header: el aro se ciñe al <li> y lo envuelve, con el mismo radio
+   que la bubble (0.9rem sobre 33px de alto). El tamaño lo pisa JS con
+   --cursor-w / --cursor-h inline sobre el aro. */
+.cursor--nav .cursor__ring {
+  border-radius: 0.9rem;
 }
 
 .cursor--scroll {
