@@ -125,6 +125,7 @@ export const initCursor = () => {
     const behind = nodes.find((n) => !header?.contains(n));
     const onPhoto = !!behind?.closest('img');
     el.classList.toggle('cursor--invert', !onPhoto && !!behind?.closest(LIGHT_SECTIONS));
+    el.classList.toggle('cursor--on-card', !!behind?.closest('.progress__card'));
   };
 
   const schedule = () => {

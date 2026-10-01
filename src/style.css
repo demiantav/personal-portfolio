@@ -1186,7 +1186,12 @@ body.footer-reveal-active .progress-title-section {
 .cursor--scroll {
   --cursor-w: 96px;
   --cursor-h: 96px;
-  --cursor-color: var(--secondary-color);
+  --cursor-color: var(--primary-color);
+}
+
+/* Sobre una tarjeta coral del proceso el aro se oscurece para contrastar */
+.cursor--scroll.cursor--on-card {
+  --cursor-color: var(--bg-color);
 }
 
 /* Sobre secciones claras (About / Skills) el aro es casi negro.
