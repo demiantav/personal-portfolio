@@ -241,11 +241,6 @@ header {
   view-transition-name: --header-link-4;
 }
 
-::view-transition-old(.header__link-active),
-::view-transition-new(.header__link-active) {
-  height: 100%;
-}
-
 ::view-transition-group(--header-link-active-before) {
   animation-timing-function: var(--bounce);
   animation-duration: 400ms;
@@ -253,6 +248,16 @@ header {
 
 ::view-transition-group(.header-links) {
   z-index: 1;
+}
+
+/* Los labels no se mueven, solo cambian de color: sin cross-fade. El old se
+   tira y el new entra en su estado final, así no hay 400ms de texto doble. */
+::view-transition-old(.header-links) {
+  display: none;
+}
+
+::view-transition-new(.header-links) {
+  animation: none;
 }
 
 .header__nav-link:where(.active) {
@@ -1027,4 +1032,158 @@ body.footer-reveal-active .progress-title-section {
   .header__nav-menu {
     font-size: 70px;
   }
+}
+
+/* ===== Cursor custom (aro mínimo) =====
+   cursor.js lo inyecta SOLO en desktop con hover fino y sin
+   prefers-reduced-motion, y recién al terminar la intro. Los estados son
+   clases sobre .cursor (tamaño/color/lista) y la posición es puro transform.
+   El cursor nativo queda SIEMPRE visible: .cursor-ready solo marca que el
+   aro está activo. Las formas son rectangulares (width/height independientes)
+   para poder volverse una etiqueta; el aro por defecto sigue siendo cuadrado. */
+.cursor {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  width: 0;
+  height: 0;
+  z-index: 100000;
+  pointer-events: none;
+  user-select: none;
+  --cursor-color: var(--primary-color);
+  --cursor-fill: transparent;
+  --cursor-w: 26px;
+  --cursor-h: 26px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.cursor--on {
+  opacity: 1;
+}
+
+/* tapado por el overlay de la View Transition */
+.cursor--vt {
+  opacity: 0 !important;
+  transition-duration: 0.1s;
+}
+
+.cursor__ring {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  will-change: transform;
+  width: var(--cursor-w);
+  height: var(--cursor-h);
+  border: 1px solid var(--cursor-color);
+  border-radius: 999px;
+  overflow: hidden;
+  background-color: var(--cursor-fill);
+  color: var(--cursor-color);
+  transition:
+    width 0.5s var(--bounce),
+    height 0.5s var(--bounce),
+    border-color 0.3s ease,
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
+.cursor__label {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--cursor-color);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.cursor--label .cursor__label {
+  opacity: 1;
+}
+
+/* la flecha es vertical: apunta abajo mientras el usuario baja, arriba si sube */
+.cursor__label::after {
+  content: ' ↓';
+  display: inline-block;
+  transition: transform 0.3s var(--bounce);
+}
+
+.cursor--rev .cursor__label::after {
+  transform: scaleY(-1);
+}
+
+/* Marquesina "See more" de los proyectos: el aro se convierte en una
+   etiqueta horizontal ligeramente inclinada y el texto corre adentro.
+   Todo parado fuera del estado (play-state: paused) para que solo se
+   mueva mientras el puntero está sobre un proyecto. */
+.cursor__marquee {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.3s ease 0.25s;
+}
+
+.cursor--project .cursor__marquee {
+  opacity: 1;
+}
+
+.cursor__marquee-track {
+  display: flex;
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  animation: cursor-marquee 7s linear infinite;
+  animation-play-state: paused;
+}
+
+.cursor--project .cursor__marquee-track {
+  animation-play-state: running;
+}
+
+@keyframes cursor-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+/* Estados */
+.cursor--link {
+  --cursor-w: 40px;
+  --cursor-h: 40px;
+}
+
+.cursor--scroll {
+  --cursor-w: 96px;
+  --cursor-h: 96px;
+  --cursor-color: var(--secondary-color);
+}
+
+/* Sobre secciones claras (About / Skills) el aro es casi negro.
+   Va antes que .cursor--project a propósito: la etiqueta de proyecto
+   siempre manda sus propios colores. */
+.cursor--invert {
+  --cursor-color: var(--bg-color);
+}
+
+.cursor--project {
+  --cursor-w: 150px;
+  --cursor-h: 46px;
+  --cursor-color: var(--primary-color);
+  --cursor-fill: var(--bg-color);
 }
