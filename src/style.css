@@ -868,6 +868,11 @@ body.footer-reveal-active .progress-title-section {
     cursor: pointer;
     display: grid;
     place-items: center;
+    will-change: transform;
+
+    svg {
+      will-change: transform;
+    }
   }
 
   li {

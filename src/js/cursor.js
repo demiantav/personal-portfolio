@@ -113,8 +113,13 @@ export const initCursor = () => {
     // link del menú a otro re-apunta el aro al nuevo <li>.
     applySnap(next === 'nav' ? explicit : null);
     if (next !== state) applyState(next);
-    // sobre el link activo el aro se esconde: la bubble ya marca el estado
-    el.classList.toggle('cursor--hide', next === 'nav' && explicit.classList.contains('active'));
+    // El aro se esconde sobre el link activo (la bubble ya marca el estado) y
+    // sobre el back-to-top (el botón magnético es el protagonista).
+    const onBackToTop = !!target?.closest('.back-to-top');
+    el.classList.toggle(
+      'cursor--hide',
+      onBackToTop || (next === 'nav' && explicit.classList.contains('active')),
+    );
 
     // El estado lo decide el elemento de arriba (ahí viven los links del
     // header fijo), pero el COLOR se mide contra la sección real de atrás:
