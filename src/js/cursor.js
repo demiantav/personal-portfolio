@@ -9,6 +9,7 @@ const REDUCE = '(prefers-reduced-motion: reduce)';
 const LIGHT_SECTIONS = '.main__about-me-section, .main__skills-section';
 const INTERACTIVE = 'a, button, [role="button"], summary, label, [tabindex]:not([tabindex="-1"])';
 const EXPLICIT = '[data-cursor]';
+const HIDE_RING = '.back-to-top, .contact-section__btn-contact';
 const MARQUEE_TEXT = 'See more → ';
 
 export const initCursor = () => {
@@ -113,12 +114,11 @@ export const initCursor = () => {
     // link del menú a otro re-apunta el aro al nuevo <li>.
     applySnap(next === 'nav' ? explicit : null);
     if (next !== state) applyState(next);
-    // El aro se esconde sobre el link activo (la bubble ya marca el estado) y
-    // sobre el back-to-top (el botón magnético es el protagonista).
-    const onBackToTop = !!target?.closest('.back-to-top');
+    // El aro se esconde sobre el link activo (la bubble ya marca el estado), el
+    // back-to-top (botón magnético) y el CTA (su hover es el foco).
     el.classList.toggle(
       'cursor--hide',
-      onBackToTop || (next === 'nav' && explicit.classList.contains('active')),
+      !!target?.closest(HIDE_RING) || (next === 'nav' && explicit.classList.contains('active')),
     );
 
     // El estado lo decide el elemento de arriba (ahí viven los links del
