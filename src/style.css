@@ -583,6 +583,7 @@ canvas {
 .main__project-card {
   > a {
     display: block;
+    justify-self: start;
     overflow: hidden;
     border-radius: 8px;
   }
