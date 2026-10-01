@@ -34,11 +34,6 @@ export const initCursor = () => {
 
   gsap.set(ring, { xPercent: -50, yPercent: -50, x: 0, y: 0, scale: 1, rotation: 0 });
 
-  // El aro persigue al puntero con retardo. Es puro transform (nada de
-  // layout reads por frame).
-  const toRingX = gsap.quickTo(ring, 'x', { duration: 0.35, ease: 'power3.out' });
-  const toRingY = gsap.quickTo(ring, 'y', { duration: 0.35, ease: 'power3.out' });
-
   let px = 0;
   let py = 0;
   let raf = 0;
@@ -48,10 +43,34 @@ export const initCursor = () => {
   let lastScrollY = window.scrollY;
   const header = d.querySelector('header');
 
+  // Física del aro: la deformación se calcula por LAG (cuánto quedó atrás el aro
+  // respecto al puntero), que es lo que se siente fluido: al acelerar se estira
+  // en la dirección del atraso y al alcanzar al puntero se relaja solo. La
+  // rotación/escala viven en proxies animados por GSAP (así no pisan el tilt de
+  // project ni el scale del click) y un único render por frame compone el
+  // transform final.
+  const tilt = { v: 0 };
+  const press = { v: 1 };
+  let angle = 0;
+
+  // El aro persigue al puntero con un resorte sub-amortiguado: frena con
+  // inercia y se asienta con un rebote sutil (no seco). Integración
+  // semi-implícita por frame; el dt se clampea para no explotar al volver de
+  // una pestaña en background.
+  let ringX = 0;
+  let ringY = 0;
+  let velX = 0;
+  let velY = 0;
+  const SETTLE = 0.47; // tiempo de asentado (s)
+  const ZETA = 0.7; // <1 → overshoot ~5%
+  const OMEGA = (2 * Math.PI) / SETTLE;
+  const SPRING_K = OMEGA * OMEGA;
+  const SPRING_C = 2 * ZETA * OMEGA;
+
   // El menú del header no persigue al puntero: el aro se ciñe al <li> y lo
   // envuelve (aire 0, igual que la bubble). Se anima con un tween propio con
-  // overshoot (el "imán") y se mata al salir: si el chase de quickTo quedara
-  // vivo pisándose con este, la posición saltaría.
+  // overshoot (el "imán") y se mata al salir: mientras dura, el resorte queda
+  // pausado para que no se pisen pisándose la posición.
   let snapEl = null;
   let snapTween = null;
 
@@ -65,8 +84,11 @@ export const initCursor = () => {
     if (!node) {
       ring.style.removeProperty('--cursor-w');
       ring.style.removeProperty('--cursor-h');
-      toRingX(px);
-      toRingY(py);
+      // el resorte retoma desde donde quedó el imán, sin salto
+      ringX = gsap.getProperty(ring, 'x');
+      ringY = gsap.getProperty(ring, 'y');
+      velX = 0;
+      velY = 0;
       return;
     }
     const r = node.getBoundingClientRect();
@@ -86,13 +108,12 @@ export const initCursor = () => {
     el.classList.add(`cursor--${state}`);
     label.textContent = next === 'scroll' ? 'SCROLL' : '';
     el.classList.toggle('cursor--label', next === 'scroll');
-    // GSAP maneja el transform del aro entero: el tilt de la etiqueta en los
-    // proyectos tiene que ir acá, un rotate en CSS lo pisaría.
-    gsap.to(ring, {
-      rotation: next === 'project' ? -8 : 0,
+    // El tilt va al proxy: el render lo combina con el ángulo de velocidad.
+    gsap.to(tilt, {
+      v: next === 'project' ? -8 : 0,
       duration: 0.55,
       ease: 'power3.out',
-      overwrite: 'auto',
+      overwrite: true,
     });
   };
 
@@ -141,8 +162,13 @@ export const initCursor = () => {
   const show = () => {
     visible = true;
     root.classList.add('cursor-ready');
+    ringX = px;
+    ringY = py;
+    velX = 0;
+    velY = 0;
     gsap.set(ring, { x: px, y: py });
     el.classList.add('cursor--on');
+    angle = 0;
     schedule();
   };
 
@@ -158,11 +184,6 @@ export const initCursor = () => {
     px = e.clientX;
     py = e.clientY;
     if (!visible) show();
-    // mientras el aro está ciñéndose a un <li> no hay que perseguir al puntero
-    if (!snapEl) {
-      toRingX(px);
-      toRingY(py);
-    }
     schedule();
   };
 
@@ -178,13 +199,56 @@ export const initCursor = () => {
   // Click: solo un scale suave. Sin burst (el aro es chico y minimalista).
   const onPress = () => {
     if (!visible) return;
-    gsap.to(ring, { scale: 0.88, duration: 0.14, ease: 'power2.out', overwrite: 'auto' });
+    gsap.to(press, { v: 0.88, duration: 0.14, ease: 'power2.out', overwrite: true });
   };
 
   const onRelease = () => {
     if (!visible) return;
-    gsap.to(ring, { scale: 1, duration: 0.7, ease: 'back.out(3)', overwrite: 'auto' });
+    gsap.to(press, { v: 1, duration: 0.7, ease: 'back.out(3)', overwrite: true });
   };
+
+  // Squash & stretch por lag: el aro se estira en la dirección en que quedó
+  // atrás respecto al puntero y se achata en la perpendicular. Solo estados
+  // circulares: project (cápsula) y nav (imán) quedan sin deformar.
+  const LAG_REF = 80;
+  const MAX_STRETCH = 0.45;
+  const SQUASH = 0.5;
+  const render = (time, deltaTime) => {
+    if (!visible || vtHidden) return;
+
+    // Resorte de posición (pausado durante el imán del menú).
+    if (!snapEl) {
+      const dt = Math.min(deltaTime, 33) / 1000;
+      velX += ((px - ringX) * SPRING_K - velX * SPRING_C) * dt;
+      velY += ((py - ringY) * SPRING_K - velY * SPRING_C) * dt;
+      ringX += velX * dt;
+      ringY += velY * dt;
+      gsap.set(ring, { x: ringX, y: ringY });
+    }
+
+    const circular = state !== 'project' && state !== 'nav';
+    let stretch = 0;
+    if (circular) {
+      const lagX = px - ringX;
+      const lagY = py - ringY;
+      const dist = Math.hypot(lagX, lagY);
+      if (dist > 10) angle = Math.atan2(lagY, lagX) * (180 / Math.PI);
+      stretch = Math.min(MAX_STRETCH, (dist / LAG_REF) * MAX_STRETCH);
+    }
+
+    gsap.set(ring, {
+      rotation: tilt.v + (circular ? angle : 0),
+      scaleX: press.v * (1 + stretch),
+      scaleY: press.v * (1 - stretch * SQUASH),
+    });
+    // La etiqueta queda derecha y a tamaño constante durante el estirado.
+    gsap.set(label, {
+      rotation: -(circular ? angle : 0),
+      scaleX: 1 / (1 + stretch),
+      scaleY: 1 / (1 - stretch * SQUASH),
+    });
+  };
+  gsap.ticker.add(render);
 
   // El overlay de la View Transition tapa el hit-test y tapa al cursor: se
   // oculta mientras dura y se re-resuelve el estado al terminar (evento
@@ -211,6 +275,7 @@ export const initCursor = () => {
       snapTween = null;
     }
     snapEl = null;
+    gsap.ticker.remove(render);
     window.removeEventListener('pointermove', onMove);
     window.removeEventListener('scroll', onScroll);
     vtObserver.disconnect();
