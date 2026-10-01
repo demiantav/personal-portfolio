@@ -326,6 +326,39 @@ header {
     color: currentColor;
   }
 
+  /* Menú del footer: mismo roll que el navbar con shift sutil a la derecha.
+     La palabra entrante es peach (el base ya es coral sobre fondo oscuro). */
+  .contact-section__nav-links-wrapper a {
+    display: inline-block;
+    will-change: transform;
+    transition:
+      transform 0.45s var(--bounce),
+      opacity 0.3s ease;
+  }
+
+  .contact-section__nav-links-wrapper a:hover .roll__base,
+  .contact-section__nav-links-wrapper a:focus-visible .roll__base,
+  .contact-section__nav-links-wrapper a:hover .roll__alt,
+  .contact-section__nav-links-wrapper a:focus-visible .roll__alt {
+    transform: translateY(-100%);
+  }
+
+  .contact-section__nav-links-wrapper a:hover,
+  .contact-section__nav-links-wrapper a:focus-visible {
+    transform: translateX(6px);
+  }
+
+  /* Foco de lista: al hover el resto se atenúa y el item activo queda full */
+  .contact-section__nav-links-wrapper ul:hover a,
+  .contact-section__nav-links-wrapper ul:focus-within a {
+    opacity: 0.35;
+  }
+
+  .contact-section__nav-links-wrapper ul:hover a:hover,
+  .contact-section__nav-links-wrapper ul a:focus-visible {
+    opacity: 1;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .roll__base,
     .roll__alt {
@@ -336,6 +369,15 @@ header {
     .header__nav-link:focus-visible .roll__base,
     .header__nav-link:hover .roll__alt,
     .header__nav-link:focus-visible .roll__alt {
+      transform: none;
+    }
+
+    .contact-section__nav-links-wrapper a {
+      transition: none;
+    }
+
+    .contact-section__nav-links-wrapper a:hover,
+    .contact-section__nav-links-wrapper a:focus-visible {
       transform: none;
     }
   }

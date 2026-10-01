@@ -10,6 +10,7 @@ import { initHeroZoomTransition } from './js/hero-zoom-transition.js';
 import { headerTheme } from './js/headerTheme.js';
 import { initCursor } from './js/cursor.js';
 import { magneticBackToTop } from './js/magnetic-button.js';
+import { footerNavRoll } from './js/footerNavRoll.js';
 import ScrollTrigger from 'gsap/ScrollTrigger';
 
 history.scrollRestoration = 'manual';
@@ -65,6 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setClock();
   headerTheme();
   magneticBackToTop();
+  footerNavRoll();
   // recién terminada la intro: antes el cursor nativo sigue siendo el ref
   whenIntroDone(initCursor);
 });
