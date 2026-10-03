@@ -171,7 +171,7 @@ export const initProjectDialog = () => {
     setInert(false);
   };
 
-  const open = (project, button, pushHistory = true) => {
+  const open = async (project, button, pushHistory = true) => {
     if (isOpen) return;
     isOpen = true;
     sourceButton = button;
@@ -195,6 +195,14 @@ export const initProjectDialog = () => {
       show();
       if (animate) playIntro();
       return;
+    }
+
+    // Esperar a que la imagen del modal esté decodificada ANTES de capturar el
+    // snapshot nuevo: si no, el frame capturado puede salir en blanco (parpadeo).
+    try {
+      await img.decode();
+    } catch {
+      /* si falla el decode, seguimos igual */
     }
 
     if (sourceImg) sourceImg.style.viewTransitionName = '--project-media';
