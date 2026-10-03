@@ -116,10 +116,12 @@ header {
 
   @container scroll-state(scrolled: bottom) {
     opacity: 0;
+    pointer-events: none;
   }
 
   @container scroll-state(scrolled: top) {
     opacity: 1;
+    pointer-events: auto;
   }
 }
 
