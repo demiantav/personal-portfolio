@@ -636,14 +636,18 @@ canvas {
 }
 
 .main__project-card {
-  > a {
+  .main__project-trigger {
     display: block;
     justify-self: start;
     overflow: hidden;
     border-radius: 8px;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
   }
 
-  > a img {
+  .main__project-trigger img {
     width: var(--fluid-300-714);
     height: auto;
     border-radius: 8px;
@@ -1453,4 +1457,269 @@ body.footer-reveal-active .progress-title-section {
 
 .lens-active .main__gallery img {
   filter: saturate(0.25) brightness(0.88);
+}
+
+/* ===== Project modal editorial (View Transitions) =====
+   Superficie coral (misma que la sección About, de donde salen las cards) para
+   que la VT sea coherente coral→coral. Overlay custom por debajo del cursor
+   custom (z 100000). Layout asimétrico: media a sangre (58%) + columna de texto
+   angosta, con índice vertical. */
+.project-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 90000;
+  display: none;
+}
+
+.project-modal.is-open {
+  display: block;
+}
+
+.project-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background-color: color-mix(in srgb, var(--bg-color) 90%, transparent);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.project-modal.is-open .project-modal__backdrop {
+  opacity: 1;
+}
+
+.project-modal__panel {
+  position: absolute;
+  /* inset mínimo: deja ver un marco fino del backdrop */
+  inset: clamp(0.4rem, 1vw, 1rem);
+  display: grid;
+  grid-template-columns: 58fr 42fr;
+  overflow: hidden;
+  background-color: var(--primary-color);
+  color: var(--bg-color);
+  border: 1px solid color-mix(in srgb, var(--bg-color) 25%, transparent);
+  opacity: 0;
+  transform: translateY(22px);
+  transition:
+    opacity 0.4s ease,
+    transform 0.6s var(--bounce);
+}
+
+.project-modal.is-open .project-modal__panel {
+  opacity: 1;
+  transform: none;
+}
+
+/* Con View Transition, el morph + cross-fade del root hacen el trabajo: sin
+   transiciones CSS para no capturar el panel a medio animar. */
+.project-modal--vt .project-modal__panel,
+.project-modal--vt .project-modal__backdrop {
+  transition: none;
+}
+
+/* Índice vertical, en el coral, justo a la derecha del media */
+.project-modal__index {
+  position: absolute;
+  left: calc(58% + clamp(0.75rem, 1.6vw, 1.75rem));
+  top: 50%;
+  transform: translateY(-50%) rotate(180deg);
+  writing-mode: vertical-rl;
+  z-index: 2;
+  font-size: var(--step--2);
+  letter-spacing: 0.18em;
+  color: color-mix(in srgb, var(--bg-color) 45%, transparent);
+}
+
+.project-modal__index-current {
+  color: var(--bg-color);
+}
+
+.project-modal__index-sep {
+  margin-inline: 0.4em;
+  color: color-mix(in srgb, var(--bg-color) 30%, transparent);
+}
+
+.project-modal__media {
+  margin: 0;
+  overflow: hidden;
+  min-height: 0;
+  padding: clamp(1.5rem, 4vw, 4rem);
+  display: grid;
+}
+
+.project-modal__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: cover;
+}
+
+.project-modal__body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  /* aire asimétrico: más arriba que abajo → el bloque cae un poco */
+  padding: clamp(3rem, 8vw, 8rem) clamp(3rem, 6vw, 6rem) clamp(2rem, 5vw, 5rem);
+}
+
+.project-modal__meta {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  margin-block-end: var(--space-2xs);
+  font-size: var(--step--2);
+  color: var(--bg-color);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
+.project-modal__sep {
+  color: var(--red-color);
+}
+
+.project-modal__divider {
+  width: min(100%, 12rem);
+  height: 1px;
+  margin-block: var(--space-l) var(--space-s);
+  background-color: color-mix(in srgb, var(--bg-color) 30%, transparent);
+  transform-origin: left center;
+}
+
+.project-modal__title {
+  font-size: var(--step-3);
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--bg-color);
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
+.project-modal__desc {
+  max-width: 42ch;
+  margin-block-start: var(--space-s);
+  font-size: var(--step--2);
+  line-height: 1.7;
+  color: color-mix(in srgb, var(--bg-color) 82%, transparent);
+}
+
+.project-modal__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-block-start: var(--space-xl);
+}
+
+.project-modal__tags li {
+  background-color: var(--bg-color);
+  color: var(--primary-color);
+  padding: 0.6rem 0.9rem;
+  border-radius: 0.5rem;
+  font-size: var(--step--1);
+}
+
+.project-modal__link {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-block-start: var(--space-m);
+  padding-block-end: 0.35rem;
+  color: var(--bg-color);
+  font-size: var(--step--1);
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 100% 1px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size 0.3s var(--bounce);
+}
+
+.project-modal__link:hover {
+  background-size: 100% 2px;
+}
+
+.project-modal__link[hidden] {
+  display: none;
+}
+
+.project-modal__arrow {
+  transition: transform 0.35s var(--bounce);
+}
+
+.project-modal__link:hover .project-modal__arrow {
+  transform: translate(3px, -3px);
+}
+
+.project-modal__close {
+  position: absolute;
+  top: clamp(0.9rem, 2.5vw, 2rem);
+  right: clamp(0.9rem, 2.5vw, 2.5rem);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--bg-color);
+  font-size: var(--step--1);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: color 0.3s ease;
+}
+
+.project-modal__close svg {
+  display: block;
+  transition: transform 0.35s var(--bounce);
+}
+
+.project-modal__close:hover svg {
+  transform: rotate(90deg);
+}
+
+/* Sin scroll de fondo mientras el modal está abierto */
+html.project-modal-open {
+  overflow: hidden;
+}
+
+@media (max-width: 860px) {
+  .project-modal__panel {
+    grid-template-columns: 1fr;
+    grid-template-rows: 48dvh 1fr;
+  }
+
+  .project-modal__index {
+    display: none;
+  }
+
+  .project-modal__body {
+    justify-content: flex-start;
+    padding: var(--space-l) var(--space-m) var(--space-xl);
+  }
+
+  /* sobre el media, el close necesita contraste: pastilla oscura + peach */
+  .project-modal__close {
+    top: var(--space-s);
+    right: var(--space-s);
+    padding: 0.5rem 0.9rem;
+    border-radius: 999px;
+    background-color: color-mix(in srgb, var(--bg-color) 45%, transparent);
+    color: var(--secondary-color);
+  }
+}
+
+/* View Transition: morph del medio compartido (card -> modal) */
+::view-transition-group(--project-media) {
+  animation-duration: 0.5s;
+  animation-timing-function: var(--bounce);
+}
+
+::view-transition-old(--project-media),
+::view-transition-new(--project-media) {
+  object-fit: cover;
 }

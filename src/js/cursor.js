@@ -6,7 +6,7 @@ import gsap from 'gsap';
 // transform y se togglea una clase por estado.
 const HOVER_DESKTOP = '(width >= 970px) and (hover: hover) and (pointer: fine)';
 const REDUCE = '(prefers-reduced-motion: reduce)';
-const LIGHT_SECTIONS = '.main__about-me-section, .main__skills-section';
+const LIGHT_SECTIONS = '.main__about-me-section, .main__skills-section, .project-modal';
 const INTERACTIVE = 'a, button, [role="button"], summary, label, [tabindex]:not([tabindex="-1"])';
 const EXPLICIT = '[data-cursor]';
 const HIDE_RING =

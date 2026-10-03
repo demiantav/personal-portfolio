@@ -75,7 +75,7 @@ export const animateReveals = () => {
   if (projectCards.length === 0) return;
 
   projectCards.forEach((card) => {
-    const link = card.querySelector('a');
+    const link = card.querySelector('.main__project-trigger, a');
     const img = card.querySelector('img');
     const tags = gsap.utils.toArray(card.querySelectorAll('.main__label span'));
     const tagContainer = card.querySelector('.main__label');
