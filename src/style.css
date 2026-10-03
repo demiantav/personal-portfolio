@@ -711,7 +711,7 @@ canvas {
       content: '';
     }
 
-    :not(p)::after {
+    summary::after {
       content: '▸';
       transition: all 0.2s;
       transform-origin: 50%;
@@ -730,7 +730,7 @@ canvas {
 
   [open]::details-content {
     height: auto;
-    padding: 2rem 3rem;
+    padding: 0 3rem;
   }
 
   details[open] summary::after {
@@ -743,6 +743,112 @@ canvas {
     justify-content: space-evenly;
     max-width: 1000px;
     font-size: var(--step-7);
+  }
+}
+
+/* Skills: marquesina negra que se revela al abrir cada categoría. Las skills
+   corren en loop; skillsMarquee.js clona el track (aria-hidden) y calcula la
+   duración según el ancho. */
+.skill-marquee {
+  --d: 30s;
+  overflow: hidden;
+  background-color: var(--bg-color);
+  color: var(--secondary-color);
+  padding-block: 1.25rem;
+  /* sangra hasta los bordes de la sección (el content tiene 3rem de padding) */
+  margin-inline: -3rem;
+}
+
+/* Viewport de la cinta: en flex, los dos tracks van en fila (si no, se apilan).
+   El fade de bordes vive acá para no desvanecer la banda negra. */
+.skill-marquee__viewport {
+  display: flex;
+  overflow: hidden;
+  width: 100%;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 3rem,
+    #000 calc(100% - 3rem),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 3rem,
+    #000 calc(100% - 3rem),
+    transparent 100%
+  );
+}
+
+.skill-marquee__track {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  width: max-content;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  white-space: nowrap;
+  font-size: var(--step-2);
+  letter-spacing: -0.02em;
+  will-change: transform;
+  animation: skill-marquee var(--d) linear infinite;
+}
+
+.skill-marquee--reverse .skill-marquee__track {
+  animation-direction: reverse;
+}
+
+.skill-marquee li {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Separador entre skills (también cae en la costura, así el loop es continuo) */
+.skill-marquee li::after {
+  content: '✦';
+  margin-inline: 1.75rem;
+  font-size: 0.55em;
+  color: var(--primary-color);
+  transform: translateY(-0.05em);
+}
+
+.skill-marquee:hover .skill-marquee__track,
+.skill-marquee:focus-within .skill-marquee__track {
+  animation-play-state: paused;
+}
+
+@keyframes skill-marquee {
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skill-marquee {
+    overflow-x: auto;
+  }
+
+  /* Sin movimiento no hay cinta que enmascarar: el track envuelve en bloque. */
+  .skill-marquee__viewport {
+    display: block;
+    overflow: visible;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .skill-marquee__track {
+    width: auto;
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 0.5rem;
+    white-space: normal;
+    animation: none;
+  }
+
+  .skill-marquee__track[aria-hidden='true'] {
+    display: none;
   }
 }
 
