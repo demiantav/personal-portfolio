@@ -1,0 +1,59 @@
+========================================
+LINKEDIN — HERO MICROINTERACTIONS
+(waves + menu letter-roll)
+========================================
+
+
+----------------------------------------
+EN — VERSIÓN PRINCIPAL
+----------------------------------------
+
+Just reworked my portfolio hero around two microinteractions I can't stop playing with.
+
+The waves aren't a video. They're ten lines of simplex noise on a canvas — drawn point by point, every frame. Move your cursor and the lines part around it, like water remembering where you've been. Scroll, and they get sliced away, one by one.
+
+The menu is the opposite of loud. Each letter is two stacked copies inside a mask. On hover the top one leaves and a coral one rolls in — one letter at a time, 35ms apart. Barely a movement. Exactly enough.
+
+I keep re-learning the same thing: the best microinteractions are felt, not seen. The moment you notice the technique, I probably overdid it. Restraint is the feature.
+
+Both pause when they leave the viewport and respect reduced-motion.
+
+Built with GSAP and a little canvas maths.
+
+Waves or letters — which one catches your eye first? Link in the comments 👇
+
+#webdevelopment #gsap #frontend #uiux #microinteractions
+
+
+----------------------------------------
+EN — VERSIÓN CORTA
+----------------------------------------
+
+Microinteractions are felt, not seen.
+
+My hero waves are ten lines of simplex noise on a canvas — and they part around your cursor. My menu letters are two masked copies: the coral one rolls in on hover, 35ms apart.
+
+Both pause off-screen and respect reduced-motion. Small details, big feel.
+
+Which one do you notice first? 👇
+
+#webdevelopment #gsap #frontend #uiux
+
+
+----------------------------------------
+ES — VERSIÓN PRINCIPAL
+----------------------------------------
+
+Rehíce el hero de mi portfolio alrededor de dos microinteracciones con las que no puedo parar de jugar.
+
+Las waves no son un video: son diez líneas de simplex noise en canvas, dibujadas punto por punto, frame a frame. Movés el cursor y las líneas se abren a su alrededor, como agua que recuerda por dónde pasaste. Scrolleás y se cortan una por una.
+
+El menú es lo opuesto a lo ruidoso: cada letra son dos copias apiladas dentro de una máscara. Al hover, la de arriba se va y entra una coral, una letra por vez, con 35ms de separación. Apenas un movimiento. Justo lo necesario.
+
+Sigo recordando lo mismo: las mejores microinteracciones se sienten, no se ven. El día que notás la técnica, probablemente me pasé. La restricción es la feature.
+
+Ambas se pausan fuera de pantalla y respetan reduced-motion.
+
+¿Cuál te llama primero, las waves o las letras? Link en comentarios 👇
+
+#webdevelopment #gsap #frontend #uiux #microinteractions

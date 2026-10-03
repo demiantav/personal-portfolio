@@ -914,25 +914,33 @@
           />
         </figure>
         <div class="project-modal__body">
-          <p class="project-modal__meta">
-            <span class="project-modal__year"></span>
-            <span class="project-modal__sep" aria-hidden="true">·</span>
-            <span class="project-modal__role"></span>
-          </p>
+          <div class="project-modal__mask project-modal__mask--meta">
+            <p class="project-modal__meta">
+              <span class="project-modal__year"></span>
+              <span class="project-modal__sep" aria-hidden="true">·</span>
+              <span class="project-modal__role"></span>
+            </p>
+          </div>
           <div class="project-modal__divider" aria-hidden="true"></div>
-          <h2 class="project-modal__title" id="project-modal-title"></h2>
-          <p class="project-modal__desc"></p>
+          <div class="project-modal__mask project-modal__mask--title">
+            <h2 class="project-modal__title" id="project-modal-title"></h2>
+          </div>
+          <div class="project-modal__mask project-modal__mask--desc">
+            <p class="project-modal__desc"></p>
+          </div>
           <ul class="project-modal__tags"></ul>
-          <a
-            class="project-modal__link"
-            href="#"
-            target="_blank"
-            rel="noopener noreferrer"
-            hidden
-          >
-            <span>View live project</span>
-            <span class="project-modal__arrow" aria-hidden="true">↗</span>
-          </a>
+          <div class="project-modal__mask project-modal__mask--link">
+            <a
+              class="project-modal__link"
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+              hidden
+            >
+              <span>View live project</span>
+              <span class="project-modal__arrow" aria-hidden="true">↗</span>
+            </a>
+          </div>
         </div>
       </div>
     </div>

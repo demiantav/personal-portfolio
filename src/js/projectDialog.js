@@ -1,11 +1,14 @@
 import gsap from 'gsap';
+import SplitText from 'gsap/SplitText';
 import { projects } from '../data/projects.js';
 
-// Modal de proyecto. Overlay custom (no <dialog>) a propósito: queda por debajo
-// del cursor custom (z 100000) para que el aro siga visible. Apertura/cierre con
-// View Transitions (morph de la imagen de la card) + stagger del contenido con
-// GSAP, coordinado con la VT. Fallback sin VT y con reduced-motion. El botón
-// atrás cierra (history).
+gsap.registerPlugin(SplitText);
+
+// Modal de proyecto. Overlay custom (no <dialog>) para quedar por debajo del
+// cursor custom (z 100000). Apertura/cierre con View Transitions (morph de la
+// imagen) + reveal enmascarado por elemento (GSAP) coordinado con la VT. El
+// párrafo se divide en palabras y cada una emerge de su propia máscara.
+// Fallback sin VT y reduced-motion. El botón atrás cierra (history).
 const REDUCE = '(prefers-reduced-motion: reduce)';
 
 export const initProjectDialog = () => {
@@ -23,6 +26,7 @@ export const initProjectDialog = () => {
   const tags = modal.querySelector('.project-modal__tags');
   const desc = modal.querySelector('.project-modal__desc');
   const link = modal.querySelector('.project-modal__link');
+  const linkMask = link.closest('.project-modal__mask');
   const closeBtn = modal.querySelector('.project-modal__close');
   const meta = modal.querySelector('.project-modal__meta');
   const main = document.querySelector('main');
@@ -34,12 +38,22 @@ export const initProjectDialog = () => {
   let isOpen = false;
   let sourceButton = null;
   let sourceImg = null;
+  let descSplit = null;
+  let descWords = [];
 
-  // Items que entran en stagger (el divisor se anima con scaleX aparte).
-  const items = [meta, title, desc, tags, link].filter(Boolean);
-  const allAnim = [meta, divider, title, desc, tags, link].filter(Boolean);
+  // Elementos con máscara a animar (se consultan frescos: los chips y las
+  // palabras del párrafo se recrean en cada render). El divisor va aparte.
+  const chipInners = () => Array.from(tags.querySelectorAll('.project-modal__tag'));
+  const textInners = () => [meta, title, ...(link.hidden ? [] : [link])];
+  const allInners = () => [...textInners(), ...descWords, ...chipInners()];
 
   const render = (project, mediaSrc, mediaAlt) => {
+    // Revertir el split anterior antes de reescribir el texto del párrafo.
+    if (descSplit) {
+      descSplit.revert();
+      descSplit = null;
+      descWords = [];
+    }
     const idx = projects.findIndex((p) => p.id === project.id) + 1;
     indexCurrent.textContent = String(Math.max(1, idx)).padStart(2, '0');
     indexTotal.textContent = String(projects.length).padStart(2, '0');
@@ -48,11 +62,17 @@ export const initProjectDialog = () => {
     role.textContent = project.role || '';
     sep.hidden = !(project.year && project.role);
     desc.textContent = project.description || '';
+    descSplit = SplitText.create(desc, { type: 'words', mask: 'words' });
+    descWords = descSplit.words;
     tags.replaceChildren(
       ...(project.tags || []).map((t) => {
-        const li = document.createElement('li');
-        li.textContent = t;
-        return li;
+        const mask = document.createElement('li');
+        mask.className = 'project-modal__tag-mask';
+        const chip = document.createElement('span');
+        chip.className = 'project-modal__tag';
+        chip.textContent = t;
+        mask.append(chip);
+        return mask;
       }),
     );
     img.src = mediaSrc || '';
@@ -60,30 +80,51 @@ export const initProjectDialog = () => {
     if (project.link) {
       link.href = project.link;
       link.hidden = false;
+      linkMask.hidden = false;
     } else {
       link.removeAttribute('href');
       link.hidden = true;
+      linkMask.hidden = true;
     }
   };
 
   const setHidden = () => {
-    gsap.set(items, { autoAlpha: 0, y: 24 });
-    gsap.set(divider, { autoAlpha: 0, scaleX: 0 });
+    gsap.set(allInners(), { yPercent: 110 });
+    gsap.set(divider, { scaleX: 0 });
   };
 
   const setVisible = () => {
-    gsap.set(allAnim, { autoAlpha: 1, y: 0, scaleX: 1, clearProps: 'transform' });
+    gsap.set([...allInners(), divider], { yPercent: 0, scaleX: 1, clearProps: 'transform' });
   };
 
-  const playIntro = () =>
+  // Entrada: cada bloque (y cada chip) emerge desde su máscara, en cascada.
+  // Delay corto: deja que el morph de la imagen lidere y el contenido entre
+  // un instante después (sin el bache largo de esperar toda la VT).
+  const INTRO_DELAY = 0.18;
+
+  const playIntro = () => {
+    const tl = gsap.timeline({
+      delay: INTRO_DELAY,
+      defaults: { ease: 'expo.out', duration: 0.8 },
+    });
+    tl.to(meta, { yPercent: 0 }, 0)
+      .to(divider, { scaleX: 1, duration: 0.9 }, 0.04)
+      .to(title, { yPercent: 0 }, 0.08)
+      .to(descWords, { yPercent: 0, duration: 0.6, stagger: 0.015 }, 0.16)
+      .to(chipInners(), { yPercent: 0, stagger: 0.06 }, 0.3);
+    if (!link.hidden) tl.to(link, { yPercent: 0 }, 0.4);
+    return tl;
+  };
+
+  // Salida: al revés (salen hacia arriba por la máscara), antes del morph.
+  const playOutro = (onComplete) => {
+    const blocks = [meta, title, ...(link.hidden ? [] : [link]), ...chipInners()];
     gsap
-      .timeline({ defaults: { ease: 'power3.out' } })
-      .to(meta, { autoAlpha: 1, y: 0, duration: 0.45 })
-      .to(divider, { autoAlpha: 1, scaleX: 1, duration: 0.5 }, '<0.05')
-      .to(title, { autoAlpha: 1, y: 0, duration: 0.55 }, '<0.08')
-      .to(desc, { autoAlpha: 1, y: 0, duration: 0.5 }, '<0.1')
-      .to(tags, { autoAlpha: 1, y: 0, duration: 0.4 }, '<0.08')
-      .to(link, { autoAlpha: 1, y: 0, duration: 0.4 }, '<0.06');
+      .timeline({ onComplete })
+      .to(descWords, { yPercent: -110, duration: 0.35, ease: 'expo.in', stagger: 0.008 }, 0)
+      .to(blocks, { yPercent: -110, duration: 0.4, ease: 'expo.in', stagger: 0.025 }, 0.02)
+      .to(divider, { scaleX: 0, duration: 0.3, ease: 'expo.in' }, 0);
+  };
 
   const lockScroll = (on) =>
     document.documentElement.classList.toggle('project-modal-open', on);
@@ -166,13 +207,16 @@ export const initProjectDialog = () => {
       img.style.viewTransitionName = '--project-media';
     });
 
+    // El contenido arranca apenas se muestra el nuevo estado (en paralelo con
+    // el morph), no al terminar toda la VT: así no hay delay tras la imagen.
+    if (animate) vt.updateCallbackDone.finally(playIntro);
+
     vt.finished.finally(() => {
       modal.classList.remove('project-modal--vt');
       document.documentElement.classList.remove('vt-active');
       window.dispatchEvent(new Event('vt-done'));
       img.style.viewTransitionName = '';
       if (sourceImg) sourceImg.style.viewTransitionName = '';
-      if (animate) playIntro();
     });
   };
 
@@ -223,14 +267,7 @@ export const initProjectDialog = () => {
       });
     };
 
-    gsap.to(allAnim, {
-      autoAlpha: 0,
-      y: -16,
-      duration: 0.22,
-      ease: 'power2.in',
-      stagger: 0.025,
-      onComplete: afterOutro,
-    });
+    playOutro(afterOutro);
   };
 
   triggers.forEach((button) => {
