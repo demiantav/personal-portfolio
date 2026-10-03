@@ -55,7 +55,18 @@ export const footerReveal = () => {
   // Compensación de recorte para descendentes (g, y), igual que #projects
   titleEl.style.padding = '0.14em 0.05em';
   titleEl.style.margin = '-0.14em -0.05em';
-  const titleWords = SplitText.create(titleEl, { type: 'words', mask: 'words' }).words;
+  // chars + words: la entrada sigue por palabra (máscara), pero las letras
+  // quedan disponibles para el imán del cursor (footerTitleMagnet.js).
+  const titleSplit = SplitText.create(titleEl, { type: 'chars, words', mask: 'words' });
+  const titleWords = titleSplit.words;
+  const titleMasks = titleSplit.masks;
+
+  // Publica las letras: propiedad + evento, así el módulo del imán funciona
+  // tanto si se inicializa antes como después del split.
+  titleEl.__titleChars = titleSplit.chars;
+  window.dispatchEvent(
+    new CustomEvent('footerTitleReady', { detail: { chars: titleSplit.chars, titleEl } }),
+  );
 
   // Meta del header: "Torino, Italy" es texto estático → chars con máscara.
   // La hora NO puede splitearse a caracteres: setClock reescribe el
@@ -148,6 +159,19 @@ export const footerReveal = () => {
   // coreografía correría entera detrás del lienzo aún opaco). Anclar al final
   // del documento es determinístico: la ventana ocupa exactamente los últimos
   // footer.offsetHeight px y termina SIEMPRE en maxScroll.
+  // Máscaras del título: se liberan cuando el titular ya está visible (para no
+  // recortar el imán del cursor) y se restauran al revertir el reveal.
+  let masksReleased = false;
+  const setMasks = (released) => {
+    masksReleased = released;
+    titleMasks.forEach((m) => {
+      m.style.overflow = released ? 'visible' : 'hidden';
+    });
+    // El título ya asentó: el imán recalcula sus bases (ya sin el yPercent del
+    // reveal ni las máscaras intermedias).
+    if (released) window.dispatchEvent(new Event('footerRevealSettled'));
+  };
+
   const tl = gsap.timeline({
     scrollTrigger: {
       id: 'footerReveal',
@@ -166,6 +190,8 @@ export const footerReveal = () => {
             shot.tween.play();
           }
         }
+        const release = p >= 0.82;
+        if (release !== masksReleased) setMasks(release);
       },
     },
     defaults: { ease: 'none' },
