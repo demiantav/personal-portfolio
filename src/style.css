@@ -663,6 +663,9 @@ canvas {
 
 .main__skills-section {
   display: grid;
+  /* La columna no debe crecer al max-content del contenido (la marquesina):
+     sin esto el grid se ensancha al abrir un <details> y empuja el título. */
+  grid-template-columns: minmax(0, 1fr);
   min-height: 100dvh;
   background-color: var(--secondary-color);
   color: var(--bg-color);
@@ -701,6 +704,8 @@ canvas {
 .main__skills-container {
   display: flex;
   flex-direction: column;
+  /* deja que el ítem se encoja por debajo del min-content de la marquesina */
+  min-width: 0;
   margin-block-end: 5rem;
 
   details {
@@ -754,6 +759,7 @@ canvas {
 .skill-marquee {
   --d: 30s;
   overflow: hidden;
+  min-width: 0;
   background-color: var(--bg-color);
   color: var(--secondary-color);
   padding-block: 1.25rem;
@@ -767,6 +773,7 @@ canvas {
   display: flex;
   overflow: hidden;
   width: 100%;
+  max-width: 100%;
   -webkit-mask-image: linear-gradient(
     to right,
     transparent 0,
