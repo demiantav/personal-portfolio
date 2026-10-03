@@ -41,6 +41,8 @@ export const initCursor = () => {
   let state = '';
   let vtHidden = false;
   let lastScrollY = window.scrollY;
+  // Imagen que la lente magnifica mientras dura el estado 'lens'.
+  let lensEl = null;
   const header = d.querySelector('header');
 
   // Física del aro: la deformación se calcula por LAG (cuánto quedó atrás el aro
@@ -106,6 +108,9 @@ export const initCursor = () => {
     if (state) el.classList.remove(`cursor--${state}`);
     state = next;
     el.classList.add(`cursor--${state}`);
+    // Revelado de la lente: con 'lens' la página se desatura (CSS) y la lente
+    // a color resalta como un loupe. En los demás estados se limpia.
+    root.classList.toggle('lens-active', next === 'lens');
     label.textContent = next === 'scroll' ? 'SCROLL' : '';
     el.classList.toggle('cursor--label', next === 'scroll');
     // El tilt va al proxy: el render lo combina con el ángulo de velocidad.
@@ -131,6 +136,24 @@ export const initCursor = () => {
     let next = 'default';
     if (explicit) next = explicit.dataset.cursor === 'none' ? 'default' : explicit.dataset.cursor || 'default';
     else if (target?.closest(INTERACTIVE)) next = 'link';
+
+    // Lente sobre las fotos del gallery: el aro se vuelve una lupa circular.
+    // Las fotos no son links, así que sin esto quedarían en estado base.
+    const lens = target?.closest('.main__gallery img');
+    if (lens && !explicit) next = 'lens';
+
+    // Al entrar en la lente se fija la imagen de fondo; al salir se limpia.
+    if (next === 'lens' && lens) {
+      if (lensEl !== lens) {
+        lensEl = lens;
+        ring.style.backgroundImage = `url("${lens.currentSrc || lens.src}")`;
+        ring.style.backgroundRepeat = 'no-repeat';
+      }
+    } else if (lensEl) {
+      lensEl = null;
+      ring.style.removeProperty('background-image');
+      ring.style.removeProperty('background-repeat');
+    }
 
     // El snap se evalúa SIEMPRE, aunque el estado no cambie: moverse de un
     // link del menú a otro re-apunta el aro al nuevo <li>.
@@ -209,10 +232,17 @@ export const initCursor = () => {
 
   // Squash & stretch por lag: el aro se estira en la dirección en que quedó
   // atrás respecto al puntero y se achata en la perpendicular. Solo estados
-  // circulares: project (cápsula) y nav (imán) quedan sin deformar.
+  // circulares: project (cápsula), nav (imán) y lens (vidrio) quedan sin
+  // deformar.
   const LAG_REF = 80;
   const MAX_STRETCH = 0.45;
   const SQUASH = 0.5;
+  // Lente: tamaño (debe coincidir con --cursor-w/h de .cursor--lens) y zoom.
+  // Zoom contenido a 1.3× para no agrandar las fuentes ~920px más allá de lo
+  // perceptible; el grade + vidrio (CSS) completan el efecto sin subir peso.
+  const LENS_SIZE = 160;
+  const LENS_HALF = LENS_SIZE / 2;
+  const LENS_ZOOM = 1.3;
   const render = (time, deltaTime) => {
     if (!visible || vtHidden) return;
 
@@ -226,7 +256,7 @@ export const initCursor = () => {
       gsap.set(ring, { x: ringX, y: ringY });
     }
 
-    const circular = state !== 'project' && state !== 'nav';
+    const circular = state !== 'project' && state !== 'nav' && state !== 'lens';
     let stretch = 0;
     if (circular) {
       const lagX = px - ringX;
@@ -241,6 +271,16 @@ export const initCursor = () => {
       scaleX: press.v * (1 + stretch),
       scaleY: press.v * (1 - stretch * SQUASH),
     });
+
+    // Lupa: el punto de la foto bajo el centro del aro queda magnificado en el
+    // centro del vidrio, así el contenido se mantiene alineado al mover.
+    if (state === 'lens' && lensEl) {
+      const r = lensEl.getBoundingClientRect();
+      ring.style.backgroundSize = `${r.width * LENS_ZOOM}px ${r.height * LENS_ZOOM}px`;
+      ring.style.backgroundPosition =
+        `${LENS_HALF - (ringX - r.left) * LENS_ZOOM}px ` +
+        `${LENS_HALF - (ringY - r.top) * LENS_ZOOM}px`;
+    }
     // La etiqueta queda derecha y a tamaño constante durante el estirado.
     gsap.set(label, {
       rotation: -(circular ? angle : 0),

@@ -1305,3 +1305,33 @@ body.footer-reveal-active .progress-title-section {
   --cursor-color: var(--primary-color);
   --cursor-fill: var(--bg-color);
 }
+
+/* Lente del gallery: el aro se vuelve una lupa circular que magnifica la foto
+   (cursor.js le setea background-image/size/position inline). */
+.cursor--lens {
+  --cursor-w: 160px;
+  --cursor-h: 160px;
+  --cursor-fill: transparent;
+}
+
+.cursor--lens .cursor__ring {
+  border-radius: 50%;
+  border-color: color-mix(in srgb, white 28%, transparent);
+  background-color: transparent;
+  /* Micro-contraste: enmascara la leve suavidad de las fuentes ~920px. */
+  filter: contrast(1.06) saturate(1.12);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, white 14%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, white 14%, transparent),
+    0 14px 44px rgba(0, 0, 0, 0.4);
+}
+
+/* Revelado (D): al activarse la lente, la página se desatura y la lente a color
+   resalta. Sin escalar contenido, así siempre se ve nítida. */
+.main__gallery img {
+  transition: filter 0.35s ease;
+}
+
+.lens-active .main__gallery img {
+  filter: saturate(0.25) brightness(0.88);
+}
