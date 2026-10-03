@@ -3,6 +3,13 @@ import { createNoise3D } from 'simplex-noise';
 const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 const clamp01 = (v) => Math.min(Math.max(v, 0), 1);
 
+// Distorsión reactiva al cursor: las líneas se apartan alrededor del puntero con
+// falloff gaussiano y vuelven solas al alejarse.
+const DISTORT_SIGMA = 210; // radio de influencia, en unidades de dibujo
+const DISTORT_PUSH = 130; // amplitud máxima del empuje (px de dibujo)
+const POINTER_EASE = 0.14; // suavizado de la posición del puntero
+const STRENGTH_EASE = 0.08; // suavizado de entrada/salida de la distorsión
+
 export class Waves {
   constructor(options) {
     this.container = options.dom;
@@ -35,15 +42,101 @@ export class Waves {
     this.revealProgress = Array(this.parameters.lines).fill(0);
     this.randomness = [];
 
+    // Puntero (coords en espacio de dibujo) + estado suavizado de la distorsión.
+    this.pointer = { x: 0, y: 0, strength: 0 };
+    this.pointerTarget = { x: 0, y: 0, strength: 0 };
+    this.reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    this.finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
+    this.isRendering = false;
+    this.rafId = 0;
+
     this.setSizes();
     this.setupCanvas();
     this.setupRandomness();
-    this.render();
     this.setupResize();
+    this.setupPointer();
+    this.setupVisibility();
+
+    this.loop = this.loop.bind(this);
+    this.startLoop();
   }
 
   start() {
     this.isStarted = true;
+  }
+
+  // Loop controlable: se pausa cuando el hero sale de pantalla (IO) para no
+  // dibujar de fondo el resto de la sesión.
+  startLoop() {
+    this.isRendering = true;
+    if (!this.rafId) this.rafId = requestAnimationFrame(this.loop);
+  }
+
+  stopLoop() {
+    this.isRendering = false;
+    if (this.rafId) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = 0;
+    }
+  }
+
+  loop() {
+    this.rafId = 0;
+    if (!this.isRendering) return;
+    this.context.clearRect(0, 0, this.width, this.height);
+    this.smoothPointer();
+    this.drawPaths();
+    this.rafId = requestAnimationFrame(this.loop);
+  }
+
+  // El puntero real va un paso por delante; el visible lo persigue para que la
+  // deformación no tiemble ni salte.
+  smoothPointer() {
+    const p = this.pointer;
+    const t = this.pointerTarget;
+    p.x += (t.x - p.x) * POINTER_EASE;
+    p.y += (t.y - p.y) * POINTER_EASE;
+    p.strength += (t.strength - p.strength) * STRENGTH_EASE;
+  }
+
+  setupPointer() {
+    // Solo desktop con puntero fino y sin reduce-motion: en táctil y en
+    // reduce-motion las waves quedan como estaban.
+    if (this.reduceMotion.matches || !this.finePointer.matches) return;
+
+    this.onPointerMove = (e) => {
+      const rect = this.container.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      // El canvas se dibuja a innerHeight pero se muestra a 50dvh: mapear de
+      // CSS a unidades de dibujo en ambos ejes.
+      this.pointerTarget.x = (e.clientX - rect.left) * (this.width / rect.width);
+      this.pointerTarget.y = (e.clientY - rect.top) * (this.height / rect.height);
+      this.pointerTarget.strength = 1;
+    };
+    // relatedTarget null también dispara al eliminar nodos: solo al salir de la
+    // ventana se apaga la distorsión.
+    this.onPointerOut = (e) => {
+      if (e.relatedTarget) return;
+      this.pointerTarget.strength = 0;
+    };
+
+    window.addEventListener('pointermove', this.onPointerMove, { passive: true });
+    window.addEventListener('pointerout', this.onPointerOut);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.pointerTarget.strength = 0;
+    });
+  }
+
+  setupVisibility() {
+    if (!('IntersectionObserver' in window)) return;
+    this.observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) this.startLoop();
+        else this.stopLoop();
+      },
+      { threshold: 0 },
+    );
+    this.observer.observe(this.container);
   }
 
   setupCanvas() {
@@ -75,6 +168,12 @@ export class Waves {
     const ctx = this.context;
     const { lines, exitStagger, exitFadeStart, exitArcY } = this.parameters;
     const totalStagger = (lines - 1) * exitStagger;
+
+    // Distorsión: mismas variables para todas las líneas del frame.
+    const px = this.pointer.x;
+    const py = this.pointer.y;
+    const ps = this.pointer.strength;
+    const sigmaTerm = 2 * DISTORT_SIGMA * DISTORT_SIGMA;
 
     ctx.shadowColor = `rgba(${this.parameters.shadowColor.r}, ${this.parameters.shadowColor.g}, ${this.parameters.shadowColor.b}, ${this.parameters.shadowColor.a})`;
     ctx.lineWidth = this.parameters.lineStroke;
@@ -111,13 +210,26 @@ export class Waves {
       const lineProgress = this.revealProgress[i];
       const drawWidth = this.width * lineProgress * (1 - eased);
 
+      // El puntero vive en coords de canvas; la línea se dibuja local y luego se
+      // traduce, así que se compensa el offset para deformar bajo el cursor real.
+      const localPx = px - offsetX;
+      const localPy = py - offsetY;
+
       for (let x = 0; x <= drawWidth; x += 2) {
         const noiseValue = this.perlin(
           x * this.parameters.variation + this.randomness[i],
           x * this.parameters.variation,
           this.time,
         );
-        const y = this.height / 2 + this.parameters.amplitude * noiseValue;
+        let y = this.height / 2 + this.parameters.amplitude * noiseValue;
+
+        if (ps > 0.001) {
+          const ddx = x - localPx;
+          const ddy = y - localPy;
+          const d2 = ddx * ddx + ddy * ddy;
+          const falloff = Math.exp(-d2 / sigmaTerm);
+          y += (ddy / (Math.sqrt(d2) + 1)) * falloff * DISTORT_PUSH * ps;
+        }
 
         if (x === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
@@ -150,11 +262,5 @@ export class Waves {
     this.setSizes();
     this.setupCanvas();
     this.setupRandomness();
-  }
-
-  render() {
-    this.context.clearRect(0, 0, this.width, this.height);
-    this.drawPaths();
-    requestAnimationFrame(this.render.bind(this));
   }
 }
