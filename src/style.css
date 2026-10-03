@@ -1350,11 +1350,15 @@ body.footer-reveal-active .progress-title-section {
   align-items: center;
   overflow: hidden;
   opacity: 0;
-  transition: opacity 0.3s ease 0.25s;
+  /* Salida inmediata: al dejar el proyecto el texto se desvanece al instante
+     mientras la cápsula se encoge (el delay de entrada vive en el estado). */
+  transition: opacity 0.18s ease;
 }
 
 .cursor--project .cursor__marquee {
   opacity: 1;
+  /* El delay aplica solo al entrar: espera a que la cápsula crezca. */
+  transition-delay: 0.22s;
 }
 
 .cursor__marquee-track {

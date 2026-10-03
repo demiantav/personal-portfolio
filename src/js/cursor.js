@@ -29,6 +29,7 @@ export const initCursor = () => {
 
   const ring = el.querySelector('.cursor__ring');
   const label = el.querySelector('.cursor__label');
+  const marquee = el.querySelector('.cursor__marquee');
   const track = el.querySelector('.cursor__marquee-track');
   track.textContent = MARQUEE_TEXT.repeat(8);
 
@@ -40,6 +41,9 @@ export const initCursor = () => {
   let visible = false;
   let state = '';
   let vtHidden = false;
+  // Lock temporal al salir de un estado no-circular: evita que la rotación por
+  // velocidad dé vuelta el aro/label mientras morpha a círculo.
+  let morphUntil = 0;
   let lastScrollY = window.scrollY;
   // Imagen que la lente magnifica mientras dura el estado 'lens'.
   let lensEl = null;
@@ -105,9 +109,15 @@ export const initCursor = () => {
   };
 
   const applyState = (next) => {
+    const wasMorph = state === 'project' || state === 'nav' || state === 'lens';
     if (state) el.classList.remove(`cursor--${state}`);
     state = next;
     el.classList.add(`cursor--${state}`);
+    // Al pasar de un estado no-circular (cápsula/lente/snap) a uno circular,
+    // congelamos rotación/estirado por velocidad durante el morph (~0.5s): el
+    // aro encoge limpio y el label no se da vuelta en vertical.
+    const isMorph = next === 'project' || next === 'nav' || next === 'lens';
+    if (wasMorph && !isMorph) morphUntil = performance.now() + 500;
     // Revelado de la lente: con 'lens' la página se desatura (CSS) y la lente
     // a color resalta como un loupe. En los demás estados se limpia.
     root.classList.toggle('lens-active', next === 'lens');
@@ -256,7 +266,10 @@ export const initCursor = () => {
       gsap.set(ring, { x: ringX, y: ringY });
     }
 
-    const circular = state !== 'project' && state !== 'nav' && state !== 'lens';
+    // Durante el morph de salida se ignora la velocidad: sin rotación ni
+    // estirado, el aro no se da vuelta ni se achata en vertical.
+    const morphing = performance.now() < morphUntil;
+    const circular = !morphing && state !== 'project' && state !== 'nav' && state !== 'lens';
     let stretch = 0;
     if (circular) {
       const lagX = px - ringX;
@@ -283,6 +296,13 @@ export const initCursor = () => {
     }
     // La etiqueta queda derecha y a tamaño constante durante el estirado.
     gsap.set(label, {
+      rotation: -(circular ? angle : 0),
+      scaleX: 1 / (1 + stretch),
+      scaleY: 1 / (1 - stretch * SQUASH),
+    });
+    // La marquesina tampoco debe rotar con el aro (se mantiene horizontal
+    // mientras se desvanece al salir del proyecto).
+    gsap.set(marquee, {
       rotation: -(circular ? angle : 0),
       scaleX: 1 / (1 + stretch),
       scaleY: 1 / (1 - stretch * SQUASH),
