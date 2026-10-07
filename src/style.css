@@ -1170,6 +1170,58 @@ body.footer-reveal-active .progress-title-section {
   width: 100%;
   height: 1px;
   background-color: var(--primary-color);
+  transition: opacity 0.25s ease;
+}
+
+/* Menisco líquido: el overlay SVG toma el relevo de la línea (deformada + gota)
+   mientras el puntero la ronda. Mismo color/grosor para que el cruce sea
+   invisible; debajo del header (z10) y muy por debajo del cursor (z100000). */
+.contact-section_footer-line.is-liquid {
+  opacity: 0;
+}
+
+.footer-line__svg {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.footer-line__svg.is-active {
+  opacity: 1;
+}
+
+.footer-line__path {
+  fill: none;
+  stroke: var(--primary-color);
+  stroke-width: 1;
+}
+
+/* La gota pendante es del mismo material que la línea: flat coral, sin volumen */
+.footer-line__neck,
+.footer-line__body,
+.footer-line__dot {
+  fill: var(--primary-color);
+}
+
+/* Gota libre: contorno coral (se vacía al desprenderse). El squash & stretch
+   llega por transform, así que escala/rota desde su propio centro. */
+.footer-line__drop {
+  fill: none;
+  stroke: var(--primary-color);
+  stroke-width: 1.25px;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .footer-line__svg {
+    display: none;
+  }
 }
 
 .contact-section__bottom-info {
