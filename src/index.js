@@ -7,6 +7,7 @@ import { parallaxAnimations } from './js/parallax-animations.js';
 import { sectionOverlap } from './js/section-overlap.js';
 import { skillsProgressReveal } from './js/skillsProgressReveal.js';
 import { processEyes } from './js/processEyes.js';
+import { filmGrain } from './js/filmGrain.js';
 import { footerReveal } from './js/footer-reveal.js';
 import { initHeroZoomTransition } from './js/hero-zoom-transition.js';
 import { headerTheme } from './js/headerTheme.js';
@@ -70,6 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
     },
   });
   animateMenu();
+  filmGrain();
   setClock();
   headerTheme();
   magneticBackToTop();
