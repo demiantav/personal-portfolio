@@ -12,7 +12,6 @@ import { initCursor } from './js/cursor.js';
 import { initSkillsMarquee } from './js/skillsMarquee.js';
 import { initFooterTitleMagnet } from './js/footerTitleMagnet.js';
 import { initProjectDialog } from './js/projectDialog.js';
-import { initFooterLine } from './js/footerLine.js';
 import { magneticBackToTop } from './js/magnetic-button.js';
 import { footerNavRoll } from './js/footerNavRoll.js';
 import ScrollTrigger from 'gsap/ScrollTrigger';
@@ -76,6 +75,4 @@ document.addEventListener('DOMContentLoaded', () => {
   initProjectDialog();
   // recién terminada la intro: antes el cursor nativo sigue siendo el ref
   whenIntroDone(initCursor);
-  // menisco líquido de la línea del footer (dormant hasta el reveal)
-  whenIntroDone(initFooterLine);
 });
