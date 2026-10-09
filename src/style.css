@@ -727,6 +727,30 @@ canvas {
   summary {
     letter-spacing: -0.08em;
   }
+
+  /* Arco colgante inferior: el durazno se hunde en el negro de la sección de
+     proceso con una curva grande (mitad de elipse). Universal (border-radius),
+     no pisa contenido (queda debajo del box) y cuelga fuera del flujo. */
+  --skills-curve: clamp(120px, 16vh, 240px);
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(-1 * var(--skills-curve));
+    height: var(--skills-curve);
+    background-color: var(--secondary-color);
+    border-radius: 0 0 50% 50% / 0 0 100% 100%;
+  }
+}
+
+/* Wrapper de parallax del contenido de Skills (lo crea skillsProgressParallax.js).
+   La sección mantiene fondo, arco y bisel; solo el contenido escala/recede. */
+.skills-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  will-change: transform;
 }
 
 /* Bisel superior audaz (solo Chromium): el fondo moldeado deja ver el About
@@ -1081,6 +1105,14 @@ body.footer-reveal-active
   :is(.hero-pin, .main__about-me-section, .main__skills-section, .progress-title-section) {
   position: relative;
   z-index: 2;
+}
+
+/* Skills sube a z3: su arco inferior cuelga sobre el negro de la sección
+   siguiente y debe pintar por encima (misma especificidad que el grupo z2,
+   pero después en la fuente) */
+.main__skills-section,
+body.footer-reveal-active .main__skills-section {
+  z-index: 3;
 }
 
 /* Las dos únicas sin fondo propio: lienzo blanco idéntico al body */

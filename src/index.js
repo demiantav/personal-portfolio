@@ -5,6 +5,7 @@ import horizontalAnimation from './js/horizontalAnimation.js';
 import { animateReveals } from './js/reveal-animations.js';
 import { parallaxAnimations } from './js/parallax-animations.js';
 import { sectionOverlap } from './js/section-overlap.js';
+import { skillsProgressParallax } from './js/skillsProgressParallax.js';
 import { footerReveal } from './js/footer-reveal.js';
 import { initHeroZoomTransition } from './js/hero-zoom-transition.js';
 import { headerTheme } from './js/headerTheme.js';
@@ -62,6 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
       animateReveals();
       parallaxAnimations();
       sectionOverlap();
+      skillsProgressParallax();
       footerReveal();
     },
   });
