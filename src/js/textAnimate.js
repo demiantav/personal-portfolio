@@ -377,6 +377,16 @@ const animateSectionHeader = (trigger, opts = {}) => {
     autoSplit: true,
     smartWrap: true,
     onSplit(self) {
+      // Publica los chars: el consumidor (processEyes) exporta el título con
+      // el mismo efecto en reversa. `autoSplit` re-emite en resize.
+      // `trigger` puede venir como selector (string) → resolver el elemento.
+      const el = typeof trigger === 'string' ? document.querySelector(trigger) : trigger;
+      if (el) {
+        el.__headerChars = self.chars;
+        window.dispatchEvent(
+          new CustomEvent('sectionHeaderSplit', { detail: { trigger: el, chars: self.chars } }),
+        );
+      }
       const tween = gsap.from(self.chars, {
         duration: opts.duration ?? 0.48,
         yPercent: 'random([-100, 100])',

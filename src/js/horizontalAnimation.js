@@ -8,7 +8,6 @@ const horizontalAnimation = () => {
 
   horizontalSections.forEach(function (sec, i) {
     const pinWrap = sec.querySelector('.progress-section_cards-container');
-    const cards = sec.querySelectorAll('.progress__card');
 
     let pinWrapWidth;
     let horizontalScrollLength;
@@ -20,9 +19,12 @@ const horizontalAnimation = () => {
 
     refresh();
 
+    // Un solo recorrido para todo el carrusel. scrub con inercia (0.6 s) suaviza
+    // la rueda/trackpad sin cambiar la distancia; la inclinación de las cartas
+    // queda en CSS (rotate) y no se toca desde JS.
     gsap.to(pinWrap, {
       scrollTrigger: {
-        scrub: true,
+        scrub: 0.6,
         trigger: sec,
         pin: sec,
         start: 'center center',
@@ -32,19 +34,6 @@ const horizontalAnimation = () => {
 
       x: () => -horizontalScrollLength,
       ease: 'none',
-    });
-
-    cards.forEach((card) => {
-      gsap.to(card, {
-        scrollTrigger: {
-          trigger: card,
-          scrub: true,
-          start: 'center center',
-          end: () => `+=${pinWrapWidth}`,
-        },
-        rotate: 0.5,
-        ease: 'none',
-      });
     });
 
     ScrollTrigger.addEventListener('refreshInit', refresh);

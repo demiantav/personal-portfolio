@@ -982,7 +982,7 @@ canvas {
 /*** Progress section ***/
 
 .progress-title-section {
-  min-height: 60dvh;
+  min-height: 100dvh;
   display: grid;
   place-items: center;
   padding-inline: 3rem;
@@ -997,6 +997,24 @@ canvas {
 
   .section-title__line {
     background-color: var(--red-color);
+  }
+}
+
+/* Capa fija de los ojos (processEyes.js): pegada al top del viewport, por
+   encima de las cards (z2) y por debajo de Skills (z3) → la cortina la sigue
+   destapando. */
+.process-eyes {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 4;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .process-eyes {
+    display: none;
   }
 }
 
@@ -1102,7 +1120,7 @@ body.footer-reveal-active .main__contact-section {
    como capa opaca en z2 o asomaría a través de ellas en cualquier punto
    del scroll. Solo con la clase activa para no tocar el flujo base */
 body.footer-reveal-active
-  :is(.hero-pin, .main__about-me-section, .main__skills-section, .progress-title-section) {
+  :is(.hero-pin, .main__about-me-section, .main__skills-section) {
   position: relative;
   z-index: 2;
 }
@@ -1113,6 +1131,31 @@ body.footer-reveal-active
 .main__skills-section,
 body.footer-reveal-active .main__skills-section {
   z-index: 3;
+}
+
+/* Reveal fijado (skillsProgressReveal.js): durante la salida de Skills, la
+   sección de progreso queda fija detrás (z2 < z3 de Skills) y se destapa.
+   El alto en flujo lo mantiene su wrapper .progress-reveal. */
+body.footer-reveal-active .progress-title-section.is-revealed {
+  position: fixed;
+  inset-inline: 0;
+  top: 0;
+  z-index: 2;
+  height: 100dvh;
+  margin: 0;
+}
+
+.progress-reveal {
+  position: relative;
+}
+
+/* Título de progreso: queda fijo en el viewport durante el recorrido de pin
+   que reserva el holder (skillsProgressReveal.js) y después sigue el scroll.
+   Así el título y los ojos (canvas fijo) comparten el mismo punto de pantalla. */
+.progress-reveal > .progress-title-section {
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 /* Las dos únicas sin fondo propio: lienzo blanco idéntico al body */
