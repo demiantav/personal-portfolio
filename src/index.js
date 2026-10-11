@@ -1,7 +1,8 @@
 import { animateMenu } from './js/menuAnimation.js';
 import { pageLoad, animateSectionText, whenIntroDone } from './js/textAnimate.js';
 import setClock from './js/time.js';
-import horizontalAnimation from './js/horizontalAnimation.js';
+import { progressCards3D } from './js/progressCards3D.js';
+import { progressFog, titleFog } from './js/progressFog.js';
 import { animateReveals } from './js/reveal-animations.js';
 import { parallaxAnimations } from './js/parallax-animations.js';
 import { sectionOverlap } from './js/section-overlap.js';
@@ -61,7 +62,9 @@ document.addEventListener('DOMContentLoaded', () => {
     onReady: () => {
       animateSectionText();
       initHeroZoomTransition();
-      horizontalAnimation();
+      progressCards3D();
+      progressFog();
+      titleFog();
       animateReveals();
       parallaxAnimations();
       sectionOverlap();

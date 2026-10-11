@@ -1138,6 +1138,54 @@ canvas {
   gap: 10rem;
 }
 
+/* Escena 3D (progressCards3D.js): sólo con JS y sin reduce-motion. Las cartas se
+   apilan en profundidad sobre la capa del humo; sin la clase queda el carrusel
+   horizontal estático. La inclinación pasa a GSAP (rotationZ). */
+.progress-section--3d {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.progress-section--3d .progress-section_cards-container {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.progress-section--3d .progress-section_wrapper {
+  position: absolute;
+  inset: 0;
+  display: block;
+  gap: 0;
+  will-change: auto;
+  perspective: 1200px;
+  transform-style: preserve-3d;
+}
+
+.progress-section--3d .progress__card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  rotate: none;
+  will-change: transform, filter, opacity;
+}
+
+/* Humo de fondo (progressFog.js): detrás de las cartas y del título, sobre el
+   fondo de la sección */
+.progress-fog {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.progress-title-section > .section-title {
+  position: relative;
+  z-index: 1;
+}
+
 /* Progress section end */
 
 /* Footer section*/

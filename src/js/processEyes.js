@@ -1,5 +1,6 @@
 import gsap from 'gsap';
 import { createNoise2D } from 'simplex-noise';
+import { progressState } from './progressState.js';
 
 // Dos ojos ROJOS durante la fase de proceso. Todo va atado al scroll real del
 // holder (.progress-reveal, skillsProgressReveal.js), sin ScrollTrigger propio.
@@ -13,12 +14,12 @@ import { createNoise2D } from 'simplex-noise';
 //    ciclo de emociones mientras el título está fijo;
 //  · MIRADA: sacádicos secos entre objetivos (cartas) y persecución suave con
 //    el scroll. Sin flotación: el globo no se mueve, sólo párpados.
-// Forma: almendra asimétrica (cat-eye). Las tapas usan --bg-color para
-// fundirse con la sección. Reduced-motion / sin JS: sin overlay.
+// Forma: almendra asimétrica (cat-eye). Las tapas no se pintan: borran el rojo
+// (destination-out), así el párpado cerrado deja ver el humo de fondo.
+// Reduced-motion / sin JS: sin overlay.
 const REDUCE = '(prefers-reduced-motion: reduce)';
 const COARSE = '(hover: none)';
 const RED = '#ff0000';
-const FALLBACK_LID = '#080707';
 const DEG = Math.PI / 180;
 const TILT = 0.1; // inclinación cat-eye (rad)
 const EYE_TOP = 0.08; // franja superior (fracción de H) donde quedan al subir
@@ -134,7 +135,6 @@ export const processEyes = () => {
   const titleSection = document.querySelector('.progress-title-section');
   const holder = document.querySelector('.progress-reveal');
   if (!titleSection || !holder) return;
-  const cards = document.querySelector('.progress-section_cards-container');
   const titleEl = titleSection.querySelector('.section-title__progress');
   const titleBlock = titleSection.querySelector('.section-title');
   const lines = titleSection.querySelectorAll('.section-title__line');
@@ -146,10 +146,6 @@ export const processEyes = () => {
   document.body.appendChild(canvas);
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
-
-  // Color de las tapas: el mismo fondo de la sección (variable de tema)
-  const lid =
-    getComputedStyle(titleSection).getPropertyValue('--bg-color').trim() || FALLBACK_LID;
 
   // ─── Estado ─────────────────────────────────────────────────────────
   let W = 0;
@@ -267,20 +263,7 @@ export const processEyes = () => {
       const el = document.elementFromPoint(px, py);
       return el?.closest?.('.progress__card') ?? null;
     }
-    if (isCoarse) {
-      let best = null;
-      let bestD = Infinity;
-      for (const c of cardItems()) {
-        const r = c.getBoundingClientRect();
-        if (r.right <= 0 || r.left >= W) continue;
-        const d = Math.abs(r.left + r.width / 2 - W / 2);
-        if (d < bestD) {
-          bestD = d;
-          best = c;
-        }
-      }
-      return best;
-    }
+    if (isCoarse) return cardItems()[progressState.active] ?? null;
     return null;
   };
 
@@ -345,7 +328,9 @@ export const processEyes = () => {
     ctx.save();
     almond(rx, ry);
     ctx.clip();
-    ctx.fillStyle = lid;
+    // Tapas transparentes: borran el rojo y dejan ver el humo detrás
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.fillStyle = '#000';
 
     // Tapa superior
     const upRot = s.upRot + look.upRotExtra;
@@ -398,10 +383,7 @@ export const processEyes = () => {
     const now = performance.now();
     const tSec = now / 1000;
 
-    if (cards) {
-      const maxX = cards.scrollWidth - window.innerWidth;
-      if (maxX > 0) p = clamp(-gsap.getProperty(cards, 'x') / maxX, 0, 1);
-    }
+    p = progressState.p;
     const dp = Math.abs(p - lastP);
     const speed = dp / dt;
     lastP = p;
@@ -496,6 +478,7 @@ export const processEyes = () => {
     const bloomTarget = smoothstep(OPEN_FROM, OPEN_TO, pinP);
     bloom += clamp((bloomTarget - bloom), -dt / BLOOM_SEC, dt / BLOOM_SEC);
     const e = smoothstep(0, 1, clamp(bloom, 0, 1));
+    progressState.eyes = e;
     const targets = {
       upPos: ENTER_POS * (1 - e) + tgt.upPos * e,
       upRot: tgt.upRot * e,

@@ -24,7 +24,7 @@ export const footerReveal = () => {
     page.style.marginBottom = `${footer.offsetHeight}px`;
   };
   syncRunway();
-  // Mismo patrón de horizontalAnimation: recalcular antes de cada medición
+  // Mismo patrón de progressCards3D: recalcular antes de cada medición
   // de triggers (el alto del pie cambia con breakpoints/orientación)
   ScrollTrigger.addEventListener('refreshInit', syncRunway);
 
@@ -154,7 +154,7 @@ export const footerReveal = () => {
     addShot(timeUnits[0].closest('p'), gsap.from(timeUnits, { ...burstDNA, paused: true }));
 
   // Sin trigger element: .main__progress-section es el MISMO elemento que
-  // horizontalAnimation pinea, y ScrollTrigger no compensa el pin-spacer del
+  // progressCards3D pinea, y ScrollTrigger no compensa el pin-spacer del
   // trigger propio (mediría 'bottom bottom' sin el largo del pin: la
   // coreografía correría entera detrás del lienzo aún opaco). Anclar al final
   // del documento es determinístico: la ventana ocupa exactamente los últimos
