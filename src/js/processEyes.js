@@ -155,6 +155,7 @@ export const processEyes = () => {
   let W = 0;
   let H = 0;
   let alpha = 0;
+  let lastOpacity = -1; // último opacity aplicado al canvas (evita writes por frame)
   let p = 0; // progreso horizontal de las cards (0→1)
   let lastP = 0;
   let pinP = 0; // 0→1 mientras el título está fijo
@@ -533,6 +534,16 @@ export const processEyes = () => {
     const mix = integrate(sMix, mixTarget, S_MIX, dt);
     alpha += (alphaTarget - alpha) * Math.min(1, dt * 8);
 
+    // El fade se aplica al canvas YA COMPUESTO (opacity CSS), no con
+    // globalAlpha: si las tapas se dibujaran con alpha < 1 dejarían traslucir
+    // el rojo del cuerpo y el ojo "cerrado" se vería completo durante la
+    // entrada. Así las tapas tapan siempre y el fade es del ojo entero.
+    const opacity = alpha < 0.004 ? 0 : alpha;
+    if (Math.abs(opacity - lastOpacity) > 0.002) {
+      canvas.style.opacity = String(opacity);
+      lastOpacity = opacity;
+    }
+
     // Mirada: persecución (scroll) + sacádicos (objetivo) + microderiva
     const sac = sacAt(now);
     const driftX = noise(tSec * 1.3, 40) * DRIFT_AMP;
@@ -572,7 +583,6 @@ export const processEyes = () => {
     }
 
     if (alpha > 0.004) {
-      ctx.globalAlpha = alpha;
       const R = Math.min(W * 0.055, H * 0.085);
       const cx = W / 2;
       const gap = R * 4.4;
@@ -585,7 +595,6 @@ export const processEyes = () => {
           loRotExtra: lookLoRot,
         });
       }
-      ctx.globalAlpha = 1;
     }
 
     raf = requestAnimationFrame(render);
