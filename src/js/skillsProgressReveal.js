@@ -11,7 +11,7 @@ gsap.registerPlugin(ScrollTrigger);
 // Después la sección sale con normalidad hacia las tarjetas.
 // Encima se mantiene el "lens pull": el contenido de Skills recede y el título
 // de progreso emerge y se asienta.
-const PIN_VH = 0.5;
+const PIN_VH = 0.8;
 
 export const skillsProgressReveal = () => {
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;

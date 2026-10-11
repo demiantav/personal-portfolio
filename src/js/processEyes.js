@@ -21,9 +21,10 @@ const RED = '#ff0000';
 const FALLBACK_LID = '#080707';
 const DEG = Math.PI / 180;
 const TILT = 0.1; // inclinación cat-eye (rad)
-const EYE_TOP = 0.14; // franja superior (fracción de H) donde quedan al subir
-const OPEN_FROM = 0.55; // progreso del pin en que empiezan a entrar (título ya saliendo)
-const OPEN_TO = 0.95; // y en que terminan de abrir
+const EYE_TOP = 0.08; // franja superior (fracción de H) donde quedan al subir
+const OPEN_FROM = 0.6; // progreso del pin en que empiezan a entrar (título ya salió)
+const OPEN_TO = 1; // y en que terminan de abrir
+const BLOOM_SEC = 1; // s: duración fija de la apertura (no scrubbeada al scroll)
 const LAG_RIGHT = 0.04; // s: retardo mínimo del ojo derecho respecto al estado compartido
 const MAX_A = 0.16; // rotación de tapas por mirada lateral (rad)
 const SQUINT_MAX = 0.2; // cobertura extra por scroll rápido
@@ -163,6 +164,7 @@ export const processEyes = () => {
   let raf = 0;
   let running = false;
   let cyInit = false;
+  let bloom = 0; // entrada temporal de párpados: 0 cerrado → 1 abierto
   const S_CY = mkSpring(0.9, 0.95);
   const S_GAZE = mkSpring(0.85, 0.9); // persecución con el scroll
   const S_MIX = mkSpring(0.16, 0.9); // transición scroll ↔ mirada a objetivo
@@ -422,7 +424,7 @@ export const processEyes = () => {
     riseP = clamp((d - hold) / H, 0, 1);
 
     if (titleExit && pinP !== lastPinP) {
-      titleExit.progress(pinP);
+      titleExit.progress(clamp(pinP / 0.6, 0, 1));
       lastPinP = pinP;
     }
 
@@ -484,11 +486,15 @@ export const processEyes = () => {
       cycleAt = 0;
     }
 
-    // Estado activo y gestos de tapa. Al entrar (e) las tapas van de 50% a la
-    // pose del estado; el cuerpo no cambia de tamaño.
+    // Estado activo y gestos de tapa. Al entrar las tapas van de 50% a la pose
+    // del estado; el cuerpo no cambia de tamaño.
     curState = pickState(now, scanning);
     const tgt = FLAT[curState];
-    const e = smoothstep(OPEN_FROM, OPEN_TO, pinP);
+    // Apertura temporal, no scrubbeada: bloom avanza en tiempo real hacia el
+    // umbral del pin (una ráfaga de scroll no se come la rendija de entrada).
+    const bloomTarget = smoothstep(OPEN_FROM, OPEN_TO, pinP);
+    bloom += clamp((bloomTarget - bloom), -dt / BLOOM_SEC, dt / BLOOM_SEC);
+    const e = smoothstep(0, 1, clamp(bloom, 0, 1));
     const targets = {
       upPos: ENTER_POS * (1 - e) + tgt.upPos * e,
       upRot: tgt.upRot * e,
@@ -556,8 +562,10 @@ export const processEyes = () => {
 
     ctx.clearRect(0, 0, W, H);
 
-    // Sin nada visible: se pausa el loop hasta el próximo scroll
-    const idle = e <= 0.001 && alpha < 0.004;
+    // Sin nada visible se pausa el loop hasta el próximo scroll, pero nunca
+    // dentro de la ventana de entrada: el bloom necesita frames para abrirse.
+    const nearEntry = pinP > OPEN_FROM - 0.02;
+    const idle = !nearEntry && e <= 0.001 && alpha < 0.004;
     if (idle) {
       running = false;
       return;
@@ -596,7 +604,7 @@ export const processEyes = () => {
     if (!chars || !chars.length) return;
     titleExit?.kill();
     const offsets = chars.map(() => (Math.random() < 0.5 ? -100 : 100));
-    titleExit = gsap.timeline({ paused: true, defaults: { ease: 'none' } });
+    titleExit = gsap.timeline({ paused: true, defaults: { ease: 'power2.in' } });
     titleExit.to(chars, { yPercent: (i) => offsets[i], stagger: { from: 'random', amount: 0.4 } }, 0);
     titleExit.to(lines, { yPercent: -60 }, 0);
     titleExit.to(titleBlock, { autoAlpha: 0 }, 0.15);

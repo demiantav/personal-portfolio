@@ -1069,6 +1069,7 @@ canvas {
   overflow-x: hidden;
   width: 100%;
   min-height: 100dvh;
+  padding-top: 48px;
   /* capa frontal del footer reveal: el fondo opaco es lo que oculta al pie
      fijo hasta que esta sección empieza a salir del viewport */
   position: relative;
