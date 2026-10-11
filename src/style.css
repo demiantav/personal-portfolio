@@ -1170,14 +1170,27 @@ canvas {
   will-change: transform, filter, opacity;
 }
 
-/* Humo de fondo (progressFog.js): detrás de las cartas y del título, sobre el
-   fondo de la sección */
+/* Humo fijo (progressFog.js): un solo canvas en el viewport, detrás del contenido
+   de las secciones y encima del velo. El recorte (clip-path) lo ajusta el JS. */
 .progress-fog {
-  position: absolute;
+  position: fixed;
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Velo fijo del color de la sección, debajo del humo y encima del pie. La altura
+   la ajusta el JS hasta el borde inferior de la sección de cards. */
+.progress-veil {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100dvh;
+  z-index: 1;
+  background-color: var(--bg-color);
   pointer-events: none;
 }
 
@@ -1254,6 +1267,12 @@ body.footer-reveal-active .progress-title-section.is-revealed {
 /* Las dos únicas sin fondo propio: lienzo blanco idéntico al body */
 body.footer-reveal-active .progress-title-section {
   background-color: var(--bg-color);
+}
+
+/* Con el humo fijo, las dos secciones dejan ver el humo y el velo (mismo color) */
+body.progress-stage .progress-title-section,
+body.progress-stage .main__progress-section {
+  background-color: transparent;
 }
 
 .main__contact-section-wrapper {

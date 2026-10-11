@@ -1,11 +1,14 @@
 import { progressState } from './progressState.js';
 
-// Humo rojizo: un fragment shader sobre un quad fullscreen por sección.
-// El campo se muestrea en coordenadas de documento, así el título y las cards
-// comparten la misma niebla y no se nota la costura entre los dos canvas. Media
-// resolución: el humo es de baja frecuencia y el escalado por CSS no se nota.
+// Humo rojizo: un único canvas fijo en el viewport, detrás del contenido. El
+// campo se muestrea en coordenadas de viewport, así el humo no viaja con el
+// scroll: el scroll sólo controla la intensidad. Media resolución: el humo es de
+// baja frecuencia y el escalado por CSS no se nota.
+// Velo: un fondo fijo del color de la sección, hasta el borde inferior de la
+// sección de cards. Tapa el pie como antes y, junto con el canvas, se recorta
+// con el mismo borde para que el humo nunca pinte sobre el pie.
 // Luz motivada: los ojos iluminan la niebla con un halo suave que se apaga hacia
-// afuera.
+// afuera; en el finale la absorción tira del humo hacia ellos.
 const REDUCE = '(prefers-reduced-motion: reduce)';
 const SCALE = 0.5;
 
@@ -24,10 +27,7 @@ precision mediump float;
 #endif
 
 uniform vec2 u_res;     // canvas en px de buffer
-uniform vec2 u_css;     // canvas en px CSS
-uniform vec2 u_base;    // (0, posición de documento del borde superior del canvas)
 uniform vec2 u_view;    // viewport en px CSS
-uniform float u_scroll;
 uniform float u_time;
 uniform float u_alpha;
 uniform vec2 u_eye;     // centro de los ojos, px de viewport
@@ -61,21 +61,9 @@ float fbm(vec2 p) {
   return v;
 }
 
-float fbm3(vec2 p) {
-  float v = 0.0;
-  float a = 0.5;
-  mat2 m = mat2(1.6, 1.2, -1.2, 1.6);
-  for (int i = 0; i < 3; i++) {
-    v += a * noise(p);
-    p = m * p;
-    a *= 0.5;
-  }
-  return v;
-}
-
-// Coordenadas de ruido desde px de viewport (mismo mapeo en todos los canvas)
+// Coordenadas de ruido desde px de viewport: el campo queda fijo en la pantalla
 vec2 toNoise(vec2 vp) {
-  return vec2((vp.x - u_view.x * 0.5) / u_view.y, (vp.y + u_scroll) / u_view.y) * 2.2;
+  return vec2((vp.x - u_view.x * 0.5) / u_view.y, vp.y / u_view.y) * 2.2;
 }
 
 // Absorción: el campo se muestrea desde más lejos del ojo y girando, así las
@@ -97,9 +85,7 @@ vec2 sinkWarp(vec2 vp, float a) {
 }
 
 void main() {
-  vec2 local = vec2(gl_FragCoord.x / u_res.x, 1.0 - gl_FragCoord.y / u_res.y) * u_css;
-  vec2 world = local + u_base;
-  vec2 vp = vec2(world.x, world.y - u_scroll);
+  vec2 vp = vec2(gl_FragCoord.x / u_res.x, 1.0 - gl_FragCoord.y / u_res.y) * u_view;
   float vy = vp.y / u_view.y;
   vec2 p = toNoise(sinkWarp(vp, u_absorb));
   float t = u_time * 0.05;
@@ -142,15 +128,18 @@ const compile = (gl, type, src) => {
   return shader;
 };
 
-// Monta el humo dentro de `host`. `target()` devuelve la intensidad deseada
-// (0→1) mientras la sección está en pantalla.
-const mountFog = (host, target) => {
-  if (!host) return;
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+// Humo fijo para el título y las cards. Se enciende con la apertura de los ojos
+// (título) y queda a plena intensidad con las cards. Fuera de la zona no se dibuja.
+export const progressFog = () => {
+  if (window.matchMedia(REDUCE).matches) return;
+  const sec = document.querySelector('.main__progress-section');
+  if (!sec) return;
 
   const canvas = document.createElement('canvas');
   canvas.className = 'progress-fog';
   canvas.setAttribute('aria-hidden', 'true');
-  host.prepend(canvas);
 
   const gl = canvas.getContext('webgl', {
     alpha: true,
@@ -163,17 +152,11 @@ const mountFog = (host, target) => {
   const vs = gl && compile(gl, gl.VERTEX_SHADER, VERT);
   const fs = gl && compile(gl, gl.FRAGMENT_SHADER, FRAG);
   const program = vs && fs && gl.createProgram();
-  if (!program) {
-    canvas.remove();
-    return;
-  }
+  if (!program) return;
   gl.attachShader(program, vs);
   gl.attachShader(program, fs);
   gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    canvas.remove();
-    return;
-  }
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return;
   gl.useProgram(program);
 
   // Triángulo que cubre el viewport: un solo draw call
@@ -185,16 +168,21 @@ const mountFog = (host, target) => {
 
   const u = {
     res: gl.getUniformLocation(program, 'u_res'),
-    css: gl.getUniformLocation(program, 'u_css'),
-    base: gl.getUniformLocation(program, 'u_base'),
     view: gl.getUniformLocation(program, 'u_view'),
-    scroll: gl.getUniformLocation(program, 'u_scroll'),
     time: gl.getUniformLocation(program, 'u_time'),
     alpha: gl.getUniformLocation(program, 'u_alpha'),
     eye: gl.getUniformLocation(program, 'u_eye'),
     eyeAmt: gl.getUniformLocation(program, 'u_eyeAmt'),
     absorb: gl.getUniformLocation(program, 'u_absorb'),
   };
+
+  const veil = document.createElement('div');
+  veil.className = 'progress-veil';
+  veil.setAttribute('aria-hidden', 'true');
+
+  document.body.prepend(canvas);
+  document.body.append(veil);
+  document.body.classList.add('progress-stage');
 
   const resize = () => {
     const cw = canvas.clientWidth;
@@ -205,35 +193,45 @@ const mountFog = (host, target) => {
     canvas.height = h;
     gl.viewport(0, 0, w, h);
     gl.uniform2f(u.res, w, h);
-    gl.uniform2f(u.css, cw, ch);
     gl.uniform2f(u.view, window.innerWidth, window.innerHeight);
   };
   resize();
-  window.addEventListener('resize', resize);
+
+  // Borde inferior de la zona: el velo y el canvas se recortan con la sección de
+  // cards, así el pie queda tapado exactamente como antes.
+  let stageH = -1;
+  const updateStage = () => {
+    const H = window.innerHeight;
+    const s = clamp(sec.getBoundingClientRect().bottom, 0, H);
+    if (s !== stageH) {
+      stageH = s;
+      veil.style.height = `${s}px`;
+      canvas.style.clipPath = `inset(0 0 ${H - s}px 0)`;
+    }
+    return s;
+  };
 
   const t0 = performance.now();
   let last = t0;
   let alpha = 0;
-  let visible = false;
   let raf = 0;
 
-  // Fade propio por frame (dt-based), siguiendo la intensidad de la sección
+  // El loop corre sólo mientras hay humo visible o un fade en curso; el scroll lo
+  // despierta para que el velo y el recorte sigan a la sección.
   const frame = (now) => {
     raf = 0;
     const dt = (now - last) / 1000;
     last = now;
-    const goal = visible ? target() : 0;
-    alpha += (goal - alpha) * (1 - Math.exp(-dt * 2.5));
-    const rect = canvas.getBoundingClientRect();
-    gl.uniform2f(u.base, 0, window.scrollY + rect.top);
-    gl.uniform1f(u.scroll, window.scrollY);
+    const stage = updateStage();
+    const lit = stage > 0 ? Math.max(progressState.eyes, progressState.p > 0.001 ? 1 : 0) : 0;
+    alpha += (lit - alpha) * (1 - Math.exp(-dt * 2.5));
     gl.uniform1f(u.time, (now - t0) / 1000);
     gl.uniform1f(u.alpha, alpha);
     gl.uniform2f(u.eye, progressState.eyeX, progressState.eyeY);
     gl.uniform1f(u.eyeAmt, progressState.eyes);
     gl.uniform1f(u.absorb, progressState.absorb);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
-    if (visible || alpha > 0.002) raf = requestAnimationFrame(frame);
+    if (lit > 0 || alpha > 0.002) raf = requestAnimationFrame(frame);
   };
   const start = () => {
     if (raf) return;
@@ -241,30 +239,20 @@ const mountFog = (host, target) => {
     raf = requestAnimationFrame(frame);
   };
 
-  // Sólo renderiza mientras la sección está en pantalla
-  new IntersectionObserver(([entry]) => {
-    visible = entry.isIntersecting;
-    if (visible) start();
-  }).observe(host);
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && visible) start();
+  window.addEventListener('scroll', start, { passive: true });
+  window.addEventListener('resize', () => {
+    resize();
+    stageH = -1;
+    start();
   });
-
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) start();
+  });
   canvas.addEventListener('webglcontextlost', (e) => {
     e.preventDefault();
     cancelAnimationFrame(raf);
     raf = 0;
   });
-};
 
-// Cards: humo completo mientras la sección está en pantalla
-export const progressFog = () => {
-  if (window.matchMedia(REDUCE).matches) return;
-  mountFog(document.querySelector('.main__progress-section'), () => 1);
-};
-
-// Título: el humo arranca con la apertura de los ojos (no antes)
-export const titleFog = () => {
-  if (window.matchMedia(REDUCE).matches) return;
-  mountFog(document.querySelector('.progress-title-section'), () => progressState.eyes);
+  start();
 };
