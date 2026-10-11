@@ -1,9 +1,11 @@
 import { progressState } from './progressState.js';
 
-// Humo rojizo (Tier 1): un fragment shader sobre un quad fullscreen por sección.
+// Humo rojizo: un fragment shader sobre un quad fullscreen por sección.
 // El campo se muestrea en coordenadas de documento, así el título y las cards
 // comparten la misma niebla y no se nota la costura entre los dos canvas. Media
 // resolución: el humo es de baja frecuencia y el escalado por CSS no se nota.
+// Luz motivada: los ojos iluminan la niebla con un halo suave que se apaga hacia
+// afuera.
 const REDUCE = '(prefers-reduced-motion: reduce)';
 const SCALE = 0.5;
 
@@ -21,13 +23,16 @@ precision highp float;
 precision mediump float;
 #endif
 
-uniform vec2 u_res;    // canvas en px de buffer
-uniform vec2 u_css;    // canvas en px CSS
-uniform vec2 u_base;   // (0, posición de documento del borde superior del canvas)
-uniform vec2 u_view;   // viewport en px CSS
+uniform vec2 u_res;     // canvas en px de buffer
+uniform vec2 u_css;     // canvas en px CSS
+uniform vec2 u_base;    // (0, posición de documento del borde superior del canvas)
+uniform vec2 u_view;    // viewport en px CSS
 uniform float u_scroll;
 uniform float u_time;
 uniform float u_alpha;
+uniform vec2 u_eye;     // centro de los ojos, px de viewport
+uniform float u_eyeAmt; // apertura de los ojos 0→1
+uniform float u_absorb; // finale: los ojos absorben el humo 0→1
 
 float hash(vec2 p) {
   return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
@@ -56,11 +61,47 @@ float fbm(vec2 p) {
   return v;
 }
 
+float fbm3(vec2 p) {
+  float v = 0.0;
+  float a = 0.5;
+  mat2 m = mat2(1.6, 1.2, -1.2, 1.6);
+  for (int i = 0; i < 3; i++) {
+    v += a * noise(p);
+    p = m * p;
+    a *= 0.5;
+  }
+  return v;
+}
+
+// Coordenadas de ruido desde px de viewport (mismo mapeo en todos los canvas)
+vec2 toNoise(vec2 vp) {
+  return vec2((vp.x - u_view.x * 0.5) / u_view.y, (vp.y + u_scroll) / u_view.y) * 2.2;
+}
+
+// Absorción: el campo se muestrea desde más lejos del ojo y girando, así las
+// volutas se contraen hacia él y giran al acercarse. El giro y la contracción
+// crecen con la proximidad (1/r); una turbulencia leve evita el remolino perfecto.
+vec2 sinkWarp(vec2 vp, float a) {
+  if (a < 0.001) return vp;
+  vec2 d = vp - u_eye;
+  float R = u_view.y;
+  float r = length(d);
+  float near = 1.0 / (1.0 + r / (0.5 * R));
+  float k = 1.0 + a * (0.9 * near + 0.15);
+  float ang = a * 3.0 * near;
+  float c = cos(ang);
+  float s = sin(ang);
+  vec2 rd = vec2(c * d.x - s * d.y, s * d.x + c * d.y);
+  vec2 turb = (vec2(noise(vp / (0.25 * R) + u_time * 0.2), noise(vp / (0.25 * R) - u_time * 0.17)) - 0.5) * 0.12 * R * a;
+  return u_eye + rd * k + turb;
+}
+
 void main() {
   vec2 local = vec2(gl_FragCoord.x / u_res.x, 1.0 - gl_FragCoord.y / u_res.y) * u_css;
   vec2 world = local + u_base;
-  float vy = (world.y - u_scroll) / u_view.y;
-  vec2 p = vec2((world.x - u_view.x * 0.5) / u_view.y, world.y / u_view.y) * 2.2;
+  vec2 vp = vec2(world.x, world.y - u_scroll);
+  float vy = vp.y / u_view.y;
+  vec2 p = toNoise(sinkWarp(vp, u_absorb));
   float t = u_time * 0.05;
   p.y -= t * 2.0;
 
@@ -74,9 +115,19 @@ void main() {
 
   float body = smoothstep(0.30, 0.85, d);
   float floorBias = mix(0.35, 1.0, clamp(vy, 0.0, 1.0));
-  float density = body * floorBias * 0.6 * u_alpha;
+  // Hueco de densidad junto al ojo y apagado final: el humo se vacía hacia él
+  float rEye = length(vp - u_eye) / u_view.y;
+  float hole = mix(1.0, smoothstep(0.04, 0.3, rEye), u_absorb);
+  float gone = 1.0 - smoothstep(0.55, 1.0, u_absorb);
+  // Halo del ojo: crece con lo absorbido (energía acumulada)
+  float glowR = u_view.y * (0.3 + 0.35 * u_absorb);
+  float lit = exp(-length(vp - u_eye) / glowR) * u_eyeAmt * (1.0 + 1.2 * u_absorb);
+  float base = body * floorBias * 0.6 * hole * gone;
+  float density = clamp((base + lit * (0.25 + 0.35 * body)) * u_alpha, 0.0, 1.0);
   vec3 tint = mix(vec3(0.14, 0.01, 0.02), vec3(0.42, 0.03, 0.05), body);
-  gl_FragColor = vec4(tint * density, density);
+  vec3 hot = vec3(0.6, 0.05, 0.07);
+  vec3 col = mix(tint, hot, clamp(lit, 0.0, 1.0));
+  gl_FragColor = vec4(col * density, density);
 }
 `;
 
@@ -140,6 +191,9 @@ const mountFog = (host, target) => {
     scroll: gl.getUniformLocation(program, 'u_scroll'),
     time: gl.getUniformLocation(program, 'u_time'),
     alpha: gl.getUniformLocation(program, 'u_alpha'),
+    eye: gl.getUniformLocation(program, 'u_eye'),
+    eyeAmt: gl.getUniformLocation(program, 'u_eyeAmt'),
+    absorb: gl.getUniformLocation(program, 'u_absorb'),
   };
 
   const resize = () => {
@@ -175,6 +229,9 @@ const mountFog = (host, target) => {
     gl.uniform1f(u.scroll, window.scrollY);
     gl.uniform1f(u.time, (now - t0) / 1000);
     gl.uniform1f(u.alpha, alpha);
+    gl.uniform2f(u.eye, progressState.eyeX, progressState.eyeY);
+    gl.uniform1f(u.eyeAmt, progressState.eyes);
+    gl.uniform1f(u.absorb, progressState.absorb);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     if (visible || alpha > 0.002) raf = requestAnimationFrame(frame);
   };

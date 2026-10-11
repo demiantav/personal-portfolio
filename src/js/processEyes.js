@@ -55,6 +55,10 @@ const SLEEP_AFTER = 6000; // inactividad para el sueño (ms)
 // Ciclo de emociones mientras el título está fijo
 const CYCLE = ['angry', 'playful', 'sleepy'];
 const CYCLE_GAP = [3000, 5000];
+// Mood por carta (Discovery, Clarify, Design, Create)
+const BEATS = ['neutral', 'scan', 'playful', 'angry'];
+// Umbral de absorción en que los ojos quedan cerrados (dispara eyesClosed)
+const CLOSE_AT = 0.97;
 
 // Estados del rig de párpados. Ángulos en grados (rotación de la tapa en la
 // referencia local del ojo; mismo signo en ambos ojos). pos = cobertura de la
@@ -192,6 +196,7 @@ export const processEyes = () => {
   let lastActivityAt = performance.now();
   let cycleState = null;
   let cycleAt = 0;
+  let wasClosed = false;
 
   // Ojos: sólo se diferencian por el retardo del resorte (el derecho sigue un
   // poco después). `s` guarda el gesto que realmente dibuja cada ojo.
@@ -364,11 +369,14 @@ export const processEyes = () => {
   };
 
   // ─── Estado emocional: disparadores reactivos ───────────────────────
-  // Prioridad: enojo > escaneo > pícara > sueño > ciclo > neutral.
+  // Prioridad: enojo > escaneo > pícara > beat de carta > sueño > ciclo > neutral.
+  let beatState = null;
+  let lastActive = -1;
   const pickState = (now, scanning) => {
     if (now < angryUntil) return 'angry';
     if (scanning) return 'scan';
     if (now < playUntil) return 'playful';
+    if (beatState) return beatState;
     if (now - lastActivityAt > SLEEP_AFTER) return 'sleepy';
     if (cycleState) return cycleState;
     return 'neutral';
@@ -471,6 +479,18 @@ export const processEyes = () => {
 
     // Estado activo y gestos de tapa. Al entrar las tapas van de 50% a la pose
     // del estado; el cuerpo no cambia de tamaño.
+    // Beat por carta: al cambiar la carta en foco, parpadeo corto como corte de
+    // escena y mood del paso. Antes de las cards no hay beat (manda el ciclo).
+    if (progressState.p > 0.001) {
+      const act = progressState.active;
+      if (act !== lastActive) {
+        lastActive = act;
+        blinkStart = now;
+      }
+      beatState = BEATS[act];
+    } else {
+      beatState = null;
+    }
     curState = pickState(now, scanning);
     const tgt = FLAT[curState];
     // Apertura temporal, no scrubbeada: bloom avanza en tiempo real hacia el
@@ -503,9 +523,13 @@ export const processEyes = () => {
     }
 
     const gazeTarget = (1 - 2 * p) * smoothstep(0, 1, riseP);
-    const alphaTarget = e > 0.001 ? 1 - smoothstep(0.94, 1, p) : 0;
+    // Visible mientras haya apertura; con el finale completo (ojos cerrados)
+    // deja de dibujarse, así el loop puede pausarse
+    const alphaTarget = e > 0.001 && progressState.absorb < 0.999 ? 1 : 0;
     const anchorY = titleSection.offsetHeight / 2;
-    const eyeCyTarget = anchorY + (H * EYE_TOP - anchorY) * smoothstep(0, 1, riseP);
+    // Finale: los ojos bajan del top al centro mientras absorben el humo
+    const topCy = anchorY + (H * EYE_TOP - anchorY) * smoothstep(0, 1, riseP);
+    const eyeCyTarget = topCy + (anchorY - topCy) * smoothstep(0, 1, progressState.absorb);
     if (!cyInit) {
       sCy.v = eyeCyTarget;
       cyInit = true;
@@ -513,6 +537,8 @@ export const processEyes = () => {
 
     const scrollGazeX = integrate(sGaze, gazeTarget, S_GAZE, dt);
     const eyeCy = integrate(sCy, eyeCyTarget, S_CY, dt);
+    progressState.eyeX = W / 2;
+    progressState.eyeY = eyeCy;
     const squint = integrate(sSquint, clamp(speed * 0.25, 0, SQUINT_MAX), S_SQUINT, dt);
     const mix = integrate(sMix, mixTarget, S_MIX, dt);
     alpha += (alphaTarget - alpha) * Math.min(1, dt * 8);
@@ -534,7 +560,13 @@ export const processEyes = () => {
     const gazeY = mix * sac.y;
 
     // Cobertura final: estado + cierre al final del recorrido + parpadeo + squint
-    const closeAmt = smoothstep(0.84, 0.96, p);
+    // Los párpados cierran al absorber el humo (ya no al final de las cards)
+    const closeAmt = smoothstep(0.9, 1, progressState.absorb);
+    const closedNow = progressState.absorb >= CLOSE_AT;
+    if (closedNow !== wasClosed) {
+      wasClosed = closedNow;
+      window.dispatchEvent(new Event(closedNow ? 'eyesClosed' : 'eyesOpened'));
+    }
     const blink = blinkLevel(now);
     const upCover = clamp(Math.max(g.upPos + squint, closeAmt, blink), 0, 1);
     const loCover = clamp(Math.max(g.loPos, closeAmt, blink * 0.6), 0, 1);
@@ -556,10 +588,10 @@ export const processEyes = () => {
 
     ctx.clearRect(0, 0, W, H);
 
-    // Sin nada visible se pausa el loop hasta el próximo scroll, pero nunca
-    // dentro de la ventana de entrada: el bloom necesita frames para abrirse.
-    const nearEntry = pinP > OPEN_FROM - 0.02;
-    const idle = !nearEntry && e <= 0.001 && alpha < 0.004;
+    // Sin nada visible se pausa el loop. Mientras la apertura siga en curso
+    // (objetivo de bloom > 0 y bloom sin llegar a 1) el loop se mantiene.
+    const entering = bloomTarget > 0.001 && bloom < 0.999;
+    const idle = !entering && alpha < 0.004;
     if (idle) {
       running = false;
       return;
