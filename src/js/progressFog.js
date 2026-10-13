@@ -35,9 +35,9 @@ uniform float u_eyeAmt; // apertura de los ojos 0→1
 uniform float u_ring;   // finale: anillo 0→1 (tiempo fijo)
 uniform float u_absorb; // finale: absorción del humo restante 0→1 (scroll)
 uniform float u_flow;   // tiempo de flujo del humo: acelera con la absorción
+uniform float u_inPhase; // fase de succión en ciclos (0→1): más ciclos por segundo al final
 uniform float u_light;  // reloj de las luces: avanza con la misma velocidad que el humo
 uniform float u_lag;    // absorción con retraso suavizado: el halo se contrae con el humo
-uniform float u_spin;   // reloj del giro: avanza más rápido cuanto más absorbido
 uniform float u_close;  // finale: cierre de los ojos 0→1 (apaga el halo)
 const float RING_R = 1.3; // radio máximo del anillo (aprobado): sale del viewport antes de la absorción
 
@@ -73,6 +73,22 @@ vec2 toNoise(vec2 vp) {
   return vec2((vp.x - u_view.x * 0.5) / u_view.y, vp.y / u_view.y) * 2.2;
 }
 
+// Campo de densidad del humo muestreado en src (coordenadas de ruido)
+float fieldAt(vec2 src, float t, float fa) {
+  vec2 p = toNoise(src);
+  // base ascendente: el humo sube desde el borde inferior (la coordenada crece hacia abajo).
+  // Durante la absorción la deriva se apaga: el humo cae hacia el ojo
+  p.y += t * 2.0 * (1.0 - fa);
+
+  // domain warping en dos pasos: remolinos y estratificación, no nubes blandas
+  vec2 q = vec2(fbm(p), fbm(p + vec2(5.2, 1.3)));
+  vec2 r = vec2(
+    fbm(p + 2.0 * q + vec2(1.7, 9.2) + 0.3 * t),
+    fbm(p + 2.0 * q + vec2(8.3, 2.8) - 0.2 * t)
+  );
+  return fbm(p + 2.5 * r);
+}
+
 void main() {
   vec2 vp = vec2(gl_FragCoord.x / u_res.x, 1.0 - gl_FragCoord.y / u_res.y) * u_view;
   float vy = vp.y / u_view.y;
@@ -94,26 +110,21 @@ void main() {
   float fa = smoothstep(0.0, 0.6, ab);
   float near = 1.0 - smoothstep(0.0, 1.2, rEye);
   // Giro con velocidad inversa al radio: arranca suave con el scroll y se acelera al acercarse al ojo
-  float spinGate = smoothstep(0.0, 0.3, rg) * (1.0 - smoothstep(0.0, 1.0, u_close));
   float spin = 1.5 * smoothstep(0.0, 1.0, ab) / (rEye + 0.15);
   mat2 swirl = mat2(cos(spin), -sin(spin), sin(spin), cos(spin));
   // Flujo continuo hacia el ojo: el muestreo se acerca en escala log-polar con ab, sin saturarse
   float inflow = exp(1.1 * ab);
-  vec2 src = u_eye + swirl * off * ((pull + antic) * (1.0 + 1.4 * fa * near) * inflow);
-
-  vec2 p = toNoise(src);
+  vec2 srcBase = u_eye + swirl * off * ((pull + antic) * (1.0 + 1.4 * fa * near) * inflow);
   float t = u_flow * 0.1;
-  // base ascendente: el humo sube desde el borde inferior (la coordenada crece hacia abajo).
-  // Durante la absorción la deriva se apaga: el humo cae hacia el ojo
-  p.y += t * 2.0 * (1.0 - fa);
-
-  // domain warping en dos pasos: remolinos y estratificación, no nubes blandas
-  vec2 q = vec2(fbm(p), fbm(p + vec2(5.2, 1.3)));
-  vec2 r = vec2(
-    fbm(p + 2.0 * q + vec2(1.7, 9.2) + 0.3 * t),
-    fbm(p + 2.0 * q + vec2(8.3, 2.8) - 0.2 * t)
-  );
-  float d = fbm(p + 2.5 * r);
+  // Succión por tiempo: dos muestras desfasadas medio ciclo se mezclan con pesos
+  // triangulares, así el humo avanza hacia el ojo sin saltos al reiniciar el ciclo
+  float s1 = fract(u_inPhase);
+  float s2 = fract(u_inPhase + 0.5);
+  float w1 = 1.0 - abs(2.0 * s1 - 1.0);
+  float d = fieldAt(u_eye + (srcBase - u_eye) * exp(0.5 * fa * s1), t, fa);
+  if (fa > 0.0) {
+    d = mix(fieldAt(u_eye + (srcBase - u_eye) * exp(0.5 * fa * s2), t, fa), d, w1);
+  }
 
   // contrapeso: volutas que caen suave sólo en la franja superior, así el humo se
   // disipa arriba y no queda una columna uniforme que sube
@@ -219,9 +230,9 @@ export const progressFog = () => {
     absorb: gl.getUniformLocation(program, 'u_absorb'),
     close: gl.getUniformLocation(program, 'u_close'),
     flow: gl.getUniformLocation(program, 'u_flow'),
+    inPhase: gl.getUniformLocation(program, 'u_inPhase'),
     light: gl.getUniformLocation(program, 'u_light'),
     lag: gl.getUniformLocation(program, 'u_lag'),
-    spin: gl.getUniformLocation(program, 'u_spin'),
   };
 
   const veil = document.createElement('div');
@@ -269,8 +280,9 @@ export const progressFog = () => {
   let flow = 0;
   let light = 0;
   let speed = 1;
+  let inPhase = 0;
+  let inV = 0.1;
   let lag = 0;
-  let spinT = 0;
 
   // El loop corre sólo mientras hay humo visible o un fade en curso; el scroll lo
   // despierta para que el velo y el recorte sigan a la sección.
@@ -289,11 +301,12 @@ export const progressFog = () => {
     speed += (1 + 7 * ab * ab - speed) * (1 - Math.exp(-dt * 2.5));
     flow += dt * speed;
     light += dt * speed;
+    inV += (0.1 + 0.6 * ab * ab * ab - inV) * (1 - Math.exp(-dt * 2.5));
+    inPhase = (inPhase + dt * inV) % 1;
     lag += (ab - lag) * (1 - Math.exp(-dt * 0.6));
-    spinT += dt * speed;
-    gl.uniform1f(u.spin, spinT);
     gl.uniform1f(u.time, (now - t0) / 1000);
     gl.uniform1f(u.flow, flow);
+    gl.uniform1f(u.inPhase, inPhase);
     gl.uniform1f(u.light, light);
     gl.uniform1f(u.lag, lag);
     gl.uniform1f(u.alpha, alpha);
