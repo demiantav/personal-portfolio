@@ -198,6 +198,28 @@ Pendiente de esta fase:
 - Con `eyesOpened`: se revierte la escena del pie y el humo vuelve.
 - Pendiente: revisar `footerRevealSettled`, que lo usa `footerTitleMagnet.js`, con scroll real.
 
+## Ajustes de absorción (sesión posterior a la fase E, sin verificar en movimiento)
+
+Todo lo siguiente se hizo por ajustes sucesivos guiados por la prueba del usuario. Ninguno se verificó con capturas en serie; la validación fue visual con scroll real.
+
+**Humo (`progressFog.js`, shader):**
+
+- **Flujo hacia el ojo:** `inflow = exp(1.1·ab)` multiplica el muestreo de `src`. A diferencia del `fa` anterior, no se satura en 0.6, así que el humo sigue avanzando hacia el ojo durante toda la absorción.
+- **Borde del consumo:** `inside = 1 − smoothstep(reach − 0.2, reach + 0.05, rEye)`, más suave que el ±0.05 original.
+- **Velocidad del humo:** `t = u_flow · 0.1`. `u_flow` es un acumulador en JS (`flow`) que integra `speed · dt`. Con `t` en reposo el humo se mueve; antes casi no se notaba.
+- **Velocidad suavizada (JS):** `speed` se acerca a `1 + 7·ab²` con `1 − exp(−dt·2.5)`. Acelera hacia el final, cuando el humo casi desaparece, y el scroll cambia la velocidad sin saltos.
+- **Luces (hilos):** la fase usa `u_light`, un reloj propio que integra la misma `speed`: `log(r)·3 + u_light·0.25`. Ya no depende de la posición del scroll, así que las luces siguen moviéndose hacia el centro aunque el scroll esté quieto.
+- **Halo amplio (`lit`):**
+  - `u_lag` es `ab` suavizado con `1 − exp(−dt·0.6)`, así que el halo va detrás del humo.
+  - `haloK = 1 − smoothstep(0.25, 1.0, u_lag)` controla el radio `glowR = u_view.y·(0.3 + 0.35·rg)·(0.35 + 0.65·haloK)` y el brillo `(0.3 + 0.7·haloK)`.
+- **Giro del humo:** `spin = 1.5 · smoothstep(0, 1, ab) / (rEye + 0.15)`. Es la versión que confirmaste. Se intentó sumar un giro continuo (`u_spin`, con compuertas `spinGate` y `spinNear`). Produjo patrones circulares en cada variante y se retiró. Ver pendientes.
+
+**Scroll (`progressCards3D.js`):**
+
+- `ABSORB_VH` pasó de `1.5` a `3`. La absorción completa necesita el doble de scroll. Las cards no cambian porque su recorrido depende de `stepVh`.
+
+**Estado de las luces y del humo:** el término de tiempo del hilo (`u_time · 0.5`) y los términos de absorción de la fase de los hilos fueron reemplazados por `u_light`. La fase de los hilos ya no tiene término de scroll.
+
 ## Pendientes y deuda técnica
 
 - [ ] Probar la fase A y confirmar la costura entre título y cards con el humo fijo.
@@ -215,6 +237,8 @@ Pendiente de esta fase:
 - [ ] Fallbacks: sin WebGL y `prefers-reduced-motion` todavía no tienen una capa estática de respaldo.
 - [ ] Reversibilidad completa (subir y bajar desde el pie y desde la absorción).
 - [x] Transición de las cards al footer después de la fase D: capturas de la salida (verificada en Chrome headless).
+- [ ] Rotación continua del humo: sigue sin resolverse. Las variantes con término de tiempo (`u_spin`) producen patrones circulares. La hipótesis es que el giro diferencial (velocidad que depende del radio) genera anillos concéntricos; las variantes con giro rígido alrededor del ojo también se vieron circulares. Hace falta una captura o video del momento en que aparecen los círculos antes de volver a intentarlo.
+- [ ] Verificar con scroll real: velocidad del humo y de los hilos (`speed`, `u_light`), retraso del halo (`lag` 0.6, `haloK` 0.25–1.0) y duración de la absorción con `ABSORB_VH = 3`.
 - [ ] Commits: separar por etapa (cards 3D, humo y luz, tapas transparentes, fix del loop, humo fijo, ojos y cards, absorción por sector e inhale (C2), fin sin cortina).
 
 ## Ya resuelto

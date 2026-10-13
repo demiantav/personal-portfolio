@@ -17,7 +17,7 @@ gsap.registerPlugin(ScrollTrigger);
 const REDUCE = '(prefers-reduced-motion: reduce)';
 const COMPACT = '(max-width: 48rem)';
 const TILT = 12; // inclinación de reposo (°), alterna igual que el layout original
-const ABSORB_VH = 1.5; // duración del finale, en alto de viewport
+const ABSORB_VH = 3; // duración del finale, en alto de viewport
 const CENTER_END = 0.15; // fracción del finale en que los ojos llegan al centro y se dispara el anillo
 const ABSORB_END = 0.9; // fracción del finale en que el humo ya fue absorbido por completo
 const CLOSE_IN = 0.9; // fracción del finale en que empiezan a cerrar los ojos

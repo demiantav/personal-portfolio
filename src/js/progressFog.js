@@ -36,6 +36,8 @@ uniform float u_ring;   // finale: anillo 0→1 (tiempo fijo)
 uniform float u_absorb; // finale: absorción del humo restante 0→1 (scroll)
 uniform float u_flow;   // tiempo de flujo del humo: acelera con la absorción
 uniform float u_light;  // reloj de las luces: avanza con la misma velocidad que el humo
+uniform float u_lag;    // absorción con retraso suavizado: el halo se contrae con el humo
+uniform float u_spin;   // reloj del giro: avanza más rápido cuanto más absorbido
 uniform float u_close;  // finale: cierre de los ojos 0→1 (apaga el halo)
 const float RING_R = 1.3; // radio máximo del anillo (aprobado): sale del viewport antes de la absorción
 
@@ -92,6 +94,7 @@ void main() {
   float fa = smoothstep(0.0, 0.6, ab);
   float near = 1.0 - smoothstep(0.0, 1.2, rEye);
   // Giro con velocidad inversa al radio: arranca suave con el scroll y se acelera al acercarse al ojo
+  float spinGate = smoothstep(0.0, 0.3, rg) * (1.0 - smoothstep(0.0, 1.0, u_close));
   float spin = 1.5 * smoothstep(0.0, 1.0, ab) / (rEye + 0.15);
   mat2 swirl = mat2(cos(spin), -sin(spin), sin(spin), cos(spin));
   // Flujo continuo hacia el ojo: el muestreo se acerca en escala log-polar con ab, sin saturarse
@@ -134,8 +137,9 @@ void main() {
   float sinkR = 0.2 * fa;
   float sink = smoothstep(sinkR - 0.03, sinkR + 0.03, rEye);
   // Halo del ojo: crece con el anillo y la absorción, se apaga al cerrar
-  float glowR = u_view.y * (0.3 + 0.35 * max(rg, ab));
-  float lit = exp(-length(vp - u_eye) / glowR) * u_eyeAmt * (1.0 + 1.2 * max(rg, ab)) * (1.0 - smoothstep(0.0, 1.0, u_close));
+  float haloK = 1.0 - smoothstep(0.25, 1.0, u_lag);
+  float glowR = u_view.y * (0.3 + 0.35 * rg) * (0.35 + 0.65 * haloK);
+  float lit = exp(-length(vp - u_eye) / glowR) * u_eyeAmt * (1.0 + 1.2 * max(rg, u_lag)) * (0.3 + 0.7 * haloK) * (1.0 - smoothstep(0.0, 1.0, u_close));
   // Borde del frente: humo que se está tragando, se ve encendido mientras cae
   float rim = exp(-pow((rEye - frontR - edge) / 0.035, 2.0)) * smoothstep(0.15, 0.3, rg) * (1.0 - smoothstep(0.8, 0.95, rg));
   // Calor del frente de succión: el borde que se contrae se enciende
@@ -216,6 +220,8 @@ export const progressFog = () => {
     close: gl.getUniformLocation(program, 'u_close'),
     flow: gl.getUniformLocation(program, 'u_flow'),
     light: gl.getUniformLocation(program, 'u_light'),
+    lag: gl.getUniformLocation(program, 'u_lag'),
+    spin: gl.getUniformLocation(program, 'u_spin'),
   };
 
   const veil = document.createElement('div');
@@ -263,6 +269,8 @@ export const progressFog = () => {
   let flow = 0;
   let light = 0;
   let speed = 1;
+  let lag = 0;
+  let spinT = 0;
 
   // El loop corre sólo mientras hay humo visible o un fade en curso; el scroll lo
   // despierta para que el velo y el recorte sigan a la sección.
@@ -281,9 +289,13 @@ export const progressFog = () => {
     speed += (1 + 7 * ab * ab - speed) * (1 - Math.exp(-dt * 2.5));
     flow += dt * speed;
     light += dt * speed;
+    lag += (ab - lag) * (1 - Math.exp(-dt * 0.6));
+    spinT += dt * speed;
+    gl.uniform1f(u.spin, spinT);
     gl.uniform1f(u.time, (now - t0) / 1000);
     gl.uniform1f(u.flow, flow);
     gl.uniform1f(u.light, light);
+    gl.uniform1f(u.lag, lag);
     gl.uniform1f(u.alpha, alpha);
     gl.uniform2f(u.eye, progressState.eyeX, progressState.eyeY);
     gl.uniform1f(u.eyeAmt, progressState.eyes);
