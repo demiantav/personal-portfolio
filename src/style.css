@@ -1162,10 +1162,13 @@ canvas {
   transform-style: preserve-3d;
 }
 
+/* Cards: layout original (alto y espaciado de .progress__card). Sólo se mueven y
+   escalan en el escenario: el centro queda en 64%, debajo de los ojos (reposo en
+   0.30H). progressCards3D.js aplica la escala base y la pose 3D. */
 .progress-section--3d .progress__card {
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: 64%;
   rotate: none;
   will-change: transform, filter, opacity;
 }

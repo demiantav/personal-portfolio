@@ -66,30 +66,26 @@ vec2 toNoise(vec2 vp) {
   return vec2((vp.x - u_view.x * 0.5) / u_view.y, vp.y / u_view.y) * 2.2;
 }
 
-// Absorción: el campo se muestrea desde más lejos del ojo y girando, así las
-// volutas se contraen hacia él y giran al acercarse. El giro y la contracción
-// crecen con la proximidad (1/r); una turbulencia leve evita el remolino perfecto.
-vec2 sinkWarp(vec2 vp, float a) {
-  if (a < 0.001) return vp;
-  vec2 d = vp - u_eye;
-  float R = u_view.y;
-  float r = length(d);
-  float near = 1.0 / (1.0 + r / (0.5 * R));
-  float k = 1.0 + a * (0.9 * near + 0.15);
-  float ang = a * 3.0 * near;
-  float c = cos(ang);
-  float s = sin(ang);
-  vec2 rd = vec2(c * d.x - s * d.y, s * d.x + c * d.y);
-  vec2 turb = (vec2(noise(vp / (0.25 * R) + u_time * 0.2), noise(vp / (0.25 * R) - u_time * 0.17)) - 0.5) * 0.12 * R * a;
-  return u_eye + rd * k + turb;
-}
-
 void main() {
   vec2 vp = vec2(gl_FragCoord.x / u_res.x, 1.0 - gl_FragCoord.y / u_res.y) * u_view;
   float vy = vp.y / u_view.y;
-  vec2 p = toNoise(sinkWarp(vp, u_absorb));
+  // Finale: el humo se consume en un frente radial que crece desde el ojo. Antes
+  // del frente, la anticipación aleja el humo un instante
+  float ph = u_absorb;
+  float antic = -0.12 * smoothstep(0.0, 0.15, ph) * (1.0 - smoothstep(0.15, 0.3, ph));
+  float frontR = 1.3 * smoothstep(0.15, 0.85, ph);
+
+  // Mapeo de la fuente: el humo junto al frente se tira hacia el ojo
+  vec2 off = vp - u_eye;
+  float rad = max(length(off), 1e-4);
+  float rEye = rad / u_view.y;
+  float pull = 1.0 + 1.6 * smoothstep(0.15, 0.85, ph) * exp(-pow((rEye - frontR) / 0.25, 2.0));
+  vec2 src = u_eye + off * (pull + antic);
+
+  vec2 p = toNoise(src);
   float t = u_time * 0.05;
-  p.y -= t * 2.0;
+  // base ascendente: el humo sube desde el borde inferior (la coordenada crece hacia abajo)
+  p.y += t * 2.0;
 
   // domain warping en dos pasos: remolinos y estratificación, no nubes blandas
   vec2 q = vec2(fbm(p), fbm(p + vec2(5.2, 1.3)));
@@ -99,20 +95,32 @@ void main() {
   );
   float d = fbm(p + 2.5 * r);
 
+  // contrapeso: volutas que caen suave sólo en la franja superior, así el humo se
+  // disipa arriba y no queda una columna uniforme que sube
+  vec2 pd = toNoise(vp) * 0.8;
+  pd.y -= t * 2.0;
+  float dn = fbm(pd + vec2(3.7, 1.9));
+  float topBand = 1.0 - smoothstep(0.3, 0.9, vy);
+  d = mix(d, dn, topBand * 0.35);
+
   float body = smoothstep(0.30, 0.85, d);
-  float floorBias = mix(0.35, 1.0, clamp(vy, 0.0, 1.0));
-  // Hueco de densidad junto al ojo y apagado final: el humo se vacía hacia él
-  float rEye = length(vp - u_eye) / u_view.y;
-  float hole = mix(1.0, smoothstep(0.04, 0.3, rEye), u_absorb);
-  float gone = 1.0 - smoothstep(0.55, 1.0, u_absorb);
-  // Halo del ojo: crece con lo absorbido (energía acumulada)
-  float glowR = u_view.y * (0.3 + 0.35 * u_absorb);
-  float lit = exp(-length(vp - u_eye) / glowR) * u_eyeAmt * (1.0 + 1.2 * u_absorb);
-  float base = body * floorBias * 0.6 * hole * gone;
-  float density = clamp((base + lit * (0.25 + 0.35 * body)) * u_alpha, 0.0, 1.0);
+  // fuente en el borde inferior, donde está la costura con el pie
+  float floorBias = mix(0.3, 1.0, smoothstep(0.0, 1.0, vy));
+  // Frente con borde ruidoso: dentro del radio consumido no queda humo
+  float edge = (noise(vp / u_view.y * 6.0 + vec2(0.0, t)) - 0.5) * 0.16;
+  float eaten = smoothstep(frontR + edge - 0.04, frontR + edge + 0.04, rEye);
+  // Fundido global: el humo restante se apaga antes de cerrar los ojos
+  float left = 1.0 - smoothstep(0.6, 0.85, ph);
+  // Halo del ojo: crece con lo absorbido y se apaga al cerrar
+  float glowR = u_view.y * (0.3 + 0.35 * ph);
+  float lit = exp(-length(vp - u_eye) / glowR) * u_eyeAmt * (1.0 + 1.2 * ph) * (1.0 - smoothstep(0.85, 1.0, ph));
+  // Borde del frente: humo que se está tragando, se ve encendido mientras cae
+  float rim = exp(-pow((rEye - frontR - edge) / 0.035, 2.0)) * smoothstep(0.15, 0.3, ph) * (1.0 - smoothstep(0.8, 0.95, ph));
+  float base = body * floorBias * 0.6 * eaten * left;
+  float density = clamp((base + rim * body * 0.9 + lit * (0.25 + 0.35 * body)) * u_alpha, 0.0, 1.0);
   vec3 tint = mix(vec3(0.14, 0.01, 0.02), vec3(0.42, 0.03, 0.05), body);
   vec3 hot = vec3(0.6, 0.05, 0.07);
-  vec3 col = mix(tint, hot, clamp(lit, 0.0, 1.0));
+  vec3 col = mix(tint, hot, clamp(max(lit, rim), 0.0, 1.0));
   gl_FragColor = vec4(col * density, density);
 }
 `;

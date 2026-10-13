@@ -22,7 +22,7 @@ const COARSE = '(hover: none)';
 const RED = '#ff0000';
 const DEG = Math.PI / 180;
 const TILT = 0.1; // inclinación cat-eye (rad)
-const EYE_TOP = 0.08; // franja superior (fracción de H) donde quedan al subir
+const EYE_TOP = 0.3; // reposo de los ojos tras el pin (fracción de H): cards y finale
 const OPEN_FROM = 0.6; // progreso del pin en que empiezan a entrar (título ya salió)
 const OPEN_TO = 1; // y en que terminan de abrir
 const BLOOM_SEC = 1; // s: duración fija de la apertura (no scrubbeada al scroll)
@@ -38,7 +38,8 @@ const DRIFT_AMP = 0.02; // microderiva continua de la fijación
 const HIT_EVERY = 6; // frames entre hit-tests del puntero/carta centrada
 const REFOCUS_MS = 500; // cada cuánto se re-enfoca la misma carta mientras se desplaza
 const LID_SETTLE = 0.18; // s: asentado de las tapas (seco, zeta 1)
-const TREMOR_HZ = 22; // frecuencia del temblor de enojo
+const TREMOR_RATE = 5; // ritmo del ruido del temblor de enojo (no senoidal: sin aliasing)
+const TREMOR_AMP = 0.009; // amplitud del temblor (rad, ~0.5°): sutil
 
 // Disparadores reactivos
 const BRUSQUE_PX = 1500; // px/s promedio dentro de la ventana para considerar scroll brusco
@@ -58,7 +59,7 @@ const CYCLE_GAP = [3000, 5000];
 // Mood por carta (Discovery, Clarify, Design, Create)
 const BEATS = ['neutral', 'scan', 'playful', 'angry'];
 // Umbral de absorción en que los ojos quedan cerrados (dispara eyesClosed)
-const CLOSE_AT = 0.97;
+const CLOSE_AT = 0.95;
 
 // Estados del rig de párpados. Ángulos en grados (rotación de la tapa en la
 // referencia local del ojo; mismo signo en ambos ojos). pos = cobertura de la
@@ -527,9 +528,9 @@ export const processEyes = () => {
     // deja de dibujarse, así el loop puede pausarse
     const alphaTarget = e > 0.001 && progressState.absorb < 0.999 ? 1 : 0;
     const anchorY = titleSection.offsetHeight / 2;
-    // Finale: los ojos bajan del top al centro mientras absorben el humo
-    const topCy = anchorY + (H * EYE_TOP - anchorY) * smoothstep(0, 1, riseP);
-    const eyeCyTarget = topCy + (anchorY - topCy) * smoothstep(0, 1, progressState.absorb);
+    // Tras el pin los ojos suben a su reposo (EYE_TOP) y se quedan ahí, también
+    // durante el finale de absorción
+    const eyeCyTarget = anchorY + (H * EYE_TOP - anchorY) * smoothstep(0, 1, riseP);
     if (!cyInit) {
       sCy.v = eyeCyTarget;
       cyInit = true;
@@ -561,7 +562,7 @@ export const processEyes = () => {
 
     // Cobertura final: estado + cierre al final del recorrido + parpadeo + squint
     // Los párpados cierran al absorber el humo (ya no al final de las cards)
-    const closeAmt = smoothstep(0.9, 1, progressState.absorb);
+    const closeAmt = smoothstep(0.85, 0.95, progressState.absorb);
     const closedNow = progressState.absorb >= CLOSE_AT;
     if (closedNow !== wasClosed) {
       wasClosed = closedNow;
@@ -598,11 +599,11 @@ export const processEyes = () => {
     }
 
     if (alpha > 0.004) {
-      const R = Math.min(W * 0.055, H * 0.085);
+      const R = Math.min(W * 0.055, H * 0.085) * (1 + progressState.inhale);
       const cx = W / 2;
       const gap = R * 4.4;
       // Temblor fino sólo en enojo
-      const tremorRot = Math.sin(tSec * TREMOR_HZ * Math.PI * 2) * 0.03 * eyes[0].s.tremor;
+      const tremorRot = noise(tSec * TREMOR_RATE, 3.7) * TREMOR_AMP * eyes[0].s.tremor;
       for (const eye of eyes) {
         drawEye(eye, eye.dir < 0 ? cx - gap / 2 : cx + gap / 2, eyeCy, R, {
           dx: -gazeX * R * 0.45, // ambos ojos se desplazan hacia el lado de la mirada
