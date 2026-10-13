@@ -89,7 +89,8 @@ void main() {
   // Absorción: el humo gira y se estira hacia el ojo, más fuerte cuanto más cerca
   float fa = smoothstep(0.0, 0.6, ab);
   float near = 1.0 - smoothstep(0.0, 1.2, rEye);
-  float spin = 1.1 * fa * near;
+  // Giro con velocidad inversa al radio: arranca suave con el scroll y se acelera al acercarse al ojo
+  float spin = 1.5 * smoothstep(0.0, 1.0, ab) / (rEye + 0.15);
   mat2 swirl = mat2(cos(spin), -sin(spin), sin(spin), cos(spin));
   // Flujo continuo hacia el ojo: el muestreo se acerca en escala log-polar con ab, sin saturarse
   float inflow = exp(1.1 * ab);
@@ -139,7 +140,8 @@ void main() {
   float front = exp(-pow((rEye - reach) / 0.05, 2.0)) * fa;
   // Hilos de luz: corrientes radiales que caen hacia el ojo al ritmo de la absorción
   float ang = atan(off.y, off.x);
-  float strands = smoothstep(0.6, 0.85, noise(vec2(ang * 9.0, log(max(rEye, 1e-3)) * 3.0 + ab * 4.0))) * fa * inside;
+  float strandT = log(max(rEye, 1e-3)) * 3.0 + ab * 4.0 + u_time * 0.5;
+  float strands = smoothstep(0.6, 0.85, noise(vec2(ang * 9.0, strandT))) * fa * inside;
   float glow = (front * 0.9 + strands * 0.7) * body;
   float base = body * floorBias * 0.6 * eaten * sink * inside;
   // El halo es luz pura: sin la textura del humo, así no se lee como humo residual
