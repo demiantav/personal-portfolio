@@ -34,6 +34,8 @@ uniform vec2 u_eye;     // centro de los ojos, px de viewport
 uniform float u_eyeAmt; // apertura de los ojos 0→1
 uniform float u_ring;   // finale: anillo 0→1 (tiempo fijo)
 uniform float u_absorb; // finale: absorción del humo restante 0→1 (scroll)
+uniform float u_flow;   // tiempo de flujo del humo: acelera con la absorción
+uniform float u_light;  // reloj de las luces: avanza con la misma velocidad que el humo
 uniform float u_close;  // finale: cierre de los ojos 0→1 (apaga el halo)
 const float RING_R = 1.3; // radio máximo del anillo (aprobado): sale del viewport antes de la absorción
 
@@ -97,7 +99,7 @@ void main() {
   vec2 src = u_eye + swirl * off * ((pull + antic) * (1.0 + 1.4 * fa * near) * inflow);
 
   vec2 p = toNoise(src);
-  float t = u_time * 0.05;
+  float t = u_flow * 0.1;
   // base ascendente: el humo sube desde el borde inferior (la coordenada crece hacia abajo).
   // Durante la absorción la deriva se apaga: el humo cae hacia el ojo
   p.y += t * 2.0 * (1.0 - fa);
@@ -140,7 +142,7 @@ void main() {
   float front = exp(-pow((rEye - reach) / 0.05, 2.0)) * fa;
   // Hilos de luz: corrientes radiales que caen hacia el ojo al ritmo de la absorción
   float ang = atan(off.y, off.x);
-  float strandT = log(max(rEye, 1e-3)) * 3.0 + ab * 4.0 + u_time * 0.5;
+  float strandT = log(max(rEye, 1e-3)) * 3.0 + u_light * 0.25;
   float strands = smoothstep(0.6, 0.85, noise(vec2(ang * 9.0, strandT))) * fa * inside;
   float glow = (front * 0.9 + strands * 0.7) * body;
   float base = body * floorBias * 0.6 * eaten * sink * inside;
@@ -212,6 +214,8 @@ export const progressFog = () => {
     ring: gl.getUniformLocation(program, 'u_ring'),
     absorb: gl.getUniformLocation(program, 'u_absorb'),
     close: gl.getUniformLocation(program, 'u_close'),
+    flow: gl.getUniformLocation(program, 'u_flow'),
+    light: gl.getUniformLocation(program, 'u_light'),
   };
 
   const veil = document.createElement('div');
@@ -256,6 +260,9 @@ export const progressFog = () => {
   // Cierre de los ojos: el velo y el humo se desvanecen y el pie entra en tiempo
   let hidden = false;
   let fade = 1;
+  let flow = 0;
+  let light = 0;
+  let speed = 1;
 
   // El loop corre sólo mientras hay humo visible o un fade en curso; el scroll lo
   // despierta para que el velo y el recorte sigan a la sección.
@@ -270,7 +277,13 @@ export const progressFog = () => {
     fade += (target - fade) * (1 - Math.exp(-dt * 6));
     veil.style.opacity = String(fade);
     canvas.style.opacity = String(fade);
+    const ab = progressState.absorb;
+    speed += (1 + 7 * ab * ab - speed) * (1 - Math.exp(-dt * 2.5));
+    flow += dt * speed;
+    light += dt * speed;
     gl.uniform1f(u.time, (now - t0) / 1000);
+    gl.uniform1f(u.flow, flow);
+    gl.uniform1f(u.light, light);
     gl.uniform1f(u.alpha, alpha);
     gl.uniform2f(u.eye, progressState.eyeX, progressState.eyeY);
     gl.uniform1f(u.eyeAmt, progressState.eyes);
