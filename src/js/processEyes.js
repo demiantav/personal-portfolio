@@ -58,7 +58,7 @@ const CYCLE = ['angry', 'playful', 'sleepy'];
 const CYCLE_GAP = [3000, 5000];
 // Mood por carta (Discovery, Clarify, Design, Create)
 const BEATS = ['neutral', 'scan', 'playful', 'angry'];
-// Umbral de absorción en que los ojos quedan cerrados (dispara eyesClosed)
+// Umbral de cierre en que los ojos quedan cerrados (dispara eyesClosed)
 const CLOSE_AT = 0.95;
 
 // Estados del rig de párpados. Ángulos en grados (rotación de la tapa en la
@@ -128,9 +128,14 @@ const mkSpring = (settle, zeta) => {
   const w = (2 * Math.PI) / settle;
   return { k: w * w, c: 2 * zeta * w };
 };
+// Subpasos: a frames lentos (dt > 1/60) el resorte diverge con un solo paso
 const integrate = (s, target, sp, dt) => {
-  s.vel += ((target - s.v) * sp.k - s.vel * sp.c) * dt;
-  s.v += s.vel * dt;
+  const n = Math.ceil(dt * 120);
+  const h = dt / n;
+  for (let i = 0; i < n; i++) {
+    s.vel += ((target - s.v) * sp.k - s.vel * sp.c) * h;
+    s.v += s.vel * h;
+  }
   return s.v;
 };
 const rand = (a, b) => a + Math.random() * (b - a);
@@ -526,11 +531,12 @@ export const processEyes = () => {
     const gazeTarget = (1 - 2 * p) * smoothstep(0, 1, riseP);
     // Visible mientras haya apertura; con el finale completo (ojos cerrados)
     // deja de dibujarse, así el loop puede pausarse
-    const alphaTarget = e > 0.001 && progressState.absorb < 0.999 ? 1 : 0;
+    const alphaTarget = e > 0.001 && progressState.close < 0.999 ? 1 : 0;
     const anchorY = titleSection.offsetHeight / 2;
     // Tras el pin los ojos suben a su reposo (EYE_TOP) y se quedan ahí, también
     // durante el finale de absorción
-    const eyeCyTarget = anchorY + (H * EYE_TOP - anchorY) * smoothstep(0, 1, riseP);
+    const restY = anchorY + (H * EYE_TOP - anchorY) * smoothstep(0, 1, riseP);
+    const eyeCyTarget = restY + (H * 0.5 - restY) * progressState.center;
     if (!cyInit) {
       sCy.v = eyeCyTarget;
       cyInit = true;
@@ -561,9 +567,9 @@ export const processEyes = () => {
     const gazeY = mix * sac.y;
 
     // Cobertura final: estado + cierre al final del recorrido + parpadeo + squint
-    // Los párpados cierran al absorber el humo (ya no al final de las cards)
-    const closeAmt = smoothstep(0.85, 0.95, progressState.absorb);
-    const closedNow = progressState.absorb >= CLOSE_AT;
+    // Los párpados cierran al final del finale, por scroll
+    const closeAmt = smoothstep(0, 1, progressState.close);
+    const closedNow = progressState.close >= CLOSE_AT;
     if (closedNow !== wasClosed) {
       wasClosed = closedNow;
       window.dispatchEvent(new Event(closedNow ? 'eyesClosed' : 'eyesOpened'));
@@ -599,7 +605,10 @@ export const processEyes = () => {
     }
 
     if (alpha > 0.004) {
-      const R = Math.min(W * 0.055, H * 0.085) * (1 + progressState.inhale);
+      // Latido mientras absorbe: más rápido cuanto más humo traga; se apaga al cerrar
+      const drainT = progressState.absorb;
+      const beat = 0.012 * drainT * (1 - progressState.close) * Math.sin(tSec * Math.PI * 2 * (2 + 3 * drainT));
+      const R = Math.min(W * 0.055, H * 0.085) * (1 + progressState.inhale + beat);
       const cx = W / 2;
       const gap = R * 4.4;
       // Temblor fino sólo en enojo

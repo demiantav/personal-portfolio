@@ -12,7 +12,8 @@ Todo está en el working tree, sin commits.
 | C | Absorción con dos brazos | Reemplazada por C2 (histórico) |
 | C2 | Absorción por sector, estiramiento radial e inhale del ojo | Reemplazada por C3 (histórico) |
 | C3 | Absorción por frente radial con anillo brillante | Implementada. Anillo aprobado. Falta que la animación se lea como absorción (ver pendientes) |
-| D | Fin sin cortina: fade de las secciones y pie en tiempo | Pendiente |
+| E | Secuencia del finale: centrado por scroll, anillo por tiempo, absorción por scroll con brillo de los ojos | Implementada. Pendiente de prueba del usuario en movimiento |
+| D | Fin sin cortina: fade del velo y del humo, pie en tiempo | Implementada. Pendiente de prueba del usuario |
 
 Orden acordado: se avanza por fase y el usuario prueba cada una antes de seguir.
 
@@ -25,13 +26,13 @@ Orden acordado: se avanza por fase y el usuario prueba cada una antes de seguir.
 - **Cards:** pin de 1.25 vh por carta en desktop y 1.0 vh en mobile. Separación lateral alternada. Blur sólo en las no activas.
 - **Cards 3D:** escenario con `perspective` y `preserve-3d`. Mobile también es 3D, con profundidad y rotación reducidas.
 - **Ojos en reposo:** centro en 0.30H durante cards y finale.
-- **Finale:** ritmo contemplativo, de aproximadamente 1 viewport. Absorción por frente radial con anillo brillante (C3).
-  - 0 a 0.15: anticipación. El humo se aleja un instante del ojo y el ojo se abre un 3 %.
-  - 0.15 a 0.85: un frente radial crece desde el ojo (0 a 1.3 alturas de viewport). Dentro del frente no queda humo. En el borde, el humo se tira hacia el ojo y se enciende en un anillo.
-  - 0.6 a 0.85: fundido global del humo restante.
-  - 0.85 a 1: el halo del ojo se apaga. El ojo se estrecha un 2 %.
-  - Los párpados cierran entre 0.85 y 0.95 y se emite `eyesClosed` en 0.95.
-- **Salida al footer:** sin cortina. Al cerrar los ojos, las secciones con humo hacen fade y el pie entra con su coreografía en tiempo. Si los ojos se reabren, todo se revierte.
+- **Finale:** pin de 1.5 vh, con esta secuencia (ver Fase E):
+  1. Centrado de los ojos por scroll (0 a 0.15 del finale). Se ven moverse del 0.30H al centro.
+  2. Anillo disparado por tiempo fijo (1.6 s) al quedar centrados. Se invierte si el usuario sube antes de que termine.
+  3. Absorción por scroll, desde donde esté el scroll al terminar el anillo, hasta 0.9. Un frente de succión se contrae hacia el ojo y no queda humo al final.
+  4. Entre 0.9 y 1 los párpados cierran por scroll. Se emite `eyesClosed` al pasar 0.95.
+- **Brillo sólo en el halo:** el cuerpo del ojo sigue rojo puro. El halo es luz pura, sin la textura del humo, y crece con la absorción.
+- **Salida al footer:** sin cortina. Al cerrar los ojos, el velo y el humo se desvanecen y el pie entra con su coreografía en tiempo. Si los ojos se reabren, todo se revierte.
 
 ## Fase A: humo fijo (implementada)
 
@@ -117,13 +118,85 @@ Verificación:
 
 Pendiente de esta fase: revisar la fluidez con el scroll real y ajustar `1.5` (zoom), `1.1` (giro) y `0.4` (retardo) si hace falta.
 
-## Fase D: fin sin cortina (pendiente)
+## Fase C3: frente radial con anillo (implementada)
 
-- Eliminar `liftCurtain` y el scrub del reveal en `footer-reveal.js`.
-- Al disparar `eyesClosed`: fade a 0 de `.progress-veil` y del canvas en unos 0.6 s. La escena del pie corre en tiempo.
-- Al disparar `eyesOpened`: se revierte la escena del pie y el humo vuelve.
-- Revisar `footerRevealSettled`, que lo usa `footerTitleMagnet.js`.
-- Verificación: subir y bajar para comprobar la reversibilidad, y revisar que el pie quede completo.
+Motivo: en C2 el humo giraba como espejo alrededor del ojo y no se consumía. Con `drain` y el retardo por dirección, el humo seguía denso hasta casi el final, y el `hole` alrededor del ojo se leía como una sombra.
+
+Cambios en `progressFog.js` (shader):
+
+- **Frente radial:** `frontR = 1.3 · smoothstep(0.15, 0.85, absorb)`. Todo el humo dentro de `frontR` (con borde ruidoso de ±0.08) se borra con `eaten`.
+- **Tirón en el borde:** `pull = 1 + 1.6 · smoothstep(0.15, 0.85, absorb) · gauss(rEye − frontR, 0.25)`. El humo junto al frente muestrea de más lejos, así parece que cae hacia el ojo.
+- **Anillo brillante:** `rim` es una gaussiana angosta (ancho 0.035) en el frente. Se pinta con el color caliente y sube la densidad. Visto por el usuario: gusta, se mantiene.
+- **Fundido global:** `left = 1 − smoothstep(0.6, 0.85, absorb)`.
+- **Halo del ojo:** se apaga entre 0.85 y 1.
+- **Eliminados:** `drain`, `hole`, `absorbDelay`, `twist` y `stretch`.
+
+Cambios en `processEyes.js`:
+
+- `CLOSE_AT` pasa de 0.97 a 0.95.
+- `closeAmt = smoothstep(0.85, 0.95, absorb)`, así los párpados cierran después de que el humo se apagó.
+
+Verificación:
+
+- `npm run build` sin errores.
+- Visto por el usuario: el anillo brillante se ve bien. Al hacer scroll se ve una sombra radial que crece desde el ojo y, al cerrarse, el humo se apaga y entra el footer.
+- No verificado con capturas en serie. El tirón del humo hacia el ojo no se percibe como movimiento.
+
+Estado: la animación de absorción todavía no se lee como humo que se succiona hacia los ojos. Lo que se ve es el anillo y el fundido, no el recorrido del humo.
+
+## Fase E: secuencia del finale y absorción (implementada)
+
+Motivo: el anillo y la absorción iban atados al mismo scroll, y el anillo se leía como máscara. Ahora el anillo es un momento que se reproduce solo y la absorción es lo que el usuario controla, con los ojos reaccionando al esfuerzo.
+
+Estado compartido (`progressState.js`): `center`, `ring`, `absorb`, `close`, `inhale`.
+
+Cambios en `progressCards3D.js`:
+
+- `ABSORB_VH = 1.5`. El finale ocupa 1.5 vh después de las cards.
+- `center = ease(f / 0.15)`: los ojos se desplazan al centro por scroll.
+- `ring`: `gsap.to({}, { duration: 1.6, paused: true })`. Se hace `play()` cuando `f ≥ 0.15` y `reverse()` cuando baja.
+- `absorb = (f − absorbFrom) / (0.9 − absorbFrom)`, sólo cuando el anillo terminó. `absorbFrom` es `max(0.15, f)` al terminar el anillo, así no hay zona muerta ni salto.
+- `close = clamp((f − 0.9) / 0.1)`.
+- `inhale`: 3 % con el anillo, +12 % con `absorb²` (el ojo crece al tragar, con ease-in), −12 % con `close`.
+
+Cambios en `progressFog.js` (shader):
+
+- Uniforms `u_ring` (tiempo fijo, mismas fórmulas del anillo aprobado con `RING_R = 1.3`), `u_absorb` (scroll) y `u_close`.
+- Frente de succión: `reach = 1.4 · (1 − smoothstep(0, 0.9, absorb))`. Lo que queda fuera del frente se descarta, así que a `absorb = 1` no queda humo. Reemplaza al fundido global.
+- El humo gira y se estira hacia el ojo. La deriva hacia arriba se apaga durante la absorción.
+- Calor en el borde del frente y hilos de luz radiales que caen hacia el ojo.
+- Halo: crece con el anillo y la absorción, es luz pura (sin la textura del humo) y se apaga con `close`.
+- El velo y el canvas hacen fade al recibir `eyesClosed` y vuelven con `eyesOpened`.
+
+Cambios en `processEyes.js`:
+
+- El centro de reposo pasa de 0.30H a H/2 según `center`.
+- Los párpados cierran según `close`.
+- Latido mientras absorbe: amplitud 1.2 % del radio, más rápido cuanto más humo queda, apagado al cerrar.
+- `integrate` usa subpasos de 1/120 s. A frames lentos (dt > 1/60) el resorte de la mirada divergía a `NaN` y los ojos salían desplazados.
+
+Cambios en `footer-reveal.js` (fase D): se quitó `liftCurtain` y el plugin `ScrollToPlugin`. El pie entra en tiempo al recibir `eyesClosed`.
+
+Verificación (Chrome headless, `npm run build` sin errores, sin errores de consola):
+
+- El canvas del humo compila y linkea.
+- Centrado, anillo (1.6 s), absorción por scroll y cierre llegan a su valor esperado.
+- Con scroll lento, la absorción se ve: el humo se contrae hacia el ojo con hilos de luz, el ojo crece y el halo se enciende.
+- Al final el humo desaparece y el pie entra sin cortina.
+- No verificado: fluidez en movimiento real en mobile y dispositivos lentos. Scroll brusco dispara el enojo (comportamiento existente).
+
+Pendiente de esta fase:
+
+- Revisar la fluidez con scroll real en desktop y mobile.
+- Ajustar el tamaño del ojo (+12 %), el brillo y el latido según la prueba.
+- Revisar la reversibilidad completa: subir desde el pie y desde la absorción.
+
+## Fase D: fin sin cortina (implementada)
+
+- Se quitó `liftCurtain` y el scrub del reveal en `footer-reveal.js`.
+- Con `eyesClosed`: el velo y el canvas del humo hacen fade a 0 en unos 0.2 s (exponencial) y la escena del pie corre en tiempo.
+- Con `eyesOpened`: se revierte la escena del pie y el humo vuelve.
+- Pendiente: revisar `footerRevealSettled`, que lo usa `footerTitleMagnet.js`, con scroll real.
 
 ## Pendientes y deuda técnica
 
@@ -133,12 +206,15 @@ Pendiente de esta fase: revisar la fluidez con el scroll real y ajustar `1.5` (z
 - [ ] Ojos por encima de Skills al scrollear hacia atrás. Los ojos están en `z-index: 4` y Skills en 3. Revisar después de la fase D.
 - [ ] Borde rojo fino alrededor del almendro al estar casi cerrado. Verificar si sigue apareciendo con tapas transparentes.
 - [ ] Densidad del humo del título, que se ve más tenue que en las cards.
-- [ ] Fase C2: revisar la fluidez de la absorción y del inhale con el scroll real. Si hace falta, ajustar zoom (`1.5`), giro (`1.1`) y retardo (`0.4`).
+- [x] Fase C3 / E: el scroll mueve el humo hacia los ojos y los ojos lo absorben (frente de succión, hilos de luz, sumidero). Resuelto en la fase E, pendiente de prueba con scroll real.
+- [x] Fase E: el inhale del ojo ahora llega a +12 % al absorber y −12 % al cerrar.
+- [ ] Fase E: verificar en capturas en serie en mobile.
+- [x] Fase E: el halo se apaga con `close` y no sobrevive al cierre.
 - [ ] Mobile: medir frames por segundo en un dispositivo real. Si hace falta, bajar octavas del fbm base o del warp.
 - [ ] Mobile: ojos en reposo, que no pisen el título.
 - [ ] Fallbacks: sin WebGL y `prefers-reduced-motion` todavía no tienen una capa estática de respaldo.
 - [ ] Reversibilidad completa (subir y bajar desde el pie y desde la absorción).
-- [ ] Transición de las cards al footer después de la fase D: capturas de la salida.
+- [x] Transición de las cards al footer después de la fase D: capturas de la salida (verificada en Chrome headless).
 - [ ] Commits: separar por etapa (cards 3D, humo y luz, tapas transparentes, fix del loop, humo fijo, ojos y cards, absorción por sector e inhale (C2), fin sin cortina).
 
 ## Ya resuelto

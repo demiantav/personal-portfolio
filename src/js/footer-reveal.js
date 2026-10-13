@@ -1,17 +1,16 @@
 import { gsap } from 'gsap';
 import ScrollTrigger from 'gsap/ScrollTrigger';
-import ScrollToPlugin from 'gsap/ScrollToPlugin';
 import SplitText from 'gsap/SplitText';
 
-gsap.registerPlugin(ScrollTrigger, ScrollToPlugin, SplitText);
+gsap.registerPlugin(ScrollTrigger, SplitText);
 
 // Footer reveal: el pie vive FIJO en su posición final durante toda la sesión,
 // oculto tras el lienzo opaco de la sección de proceso. El documento reserva su
 // alto (margin en #hero) como ventana de scroll: al final, el proceso sale
 // revelando el pie sin que este se mueva un pixel.
 // Finale: cuando los ojos cierran (evento eyesClosed) el humo ya fue absorbido,
-// la cortina se libera sola hacia arriba y el pie entra como una escena en
-// tiempo, no atado al scroll. Si los ojos se reabren, la escena se revierte.
+// el velo se desvanece y el pie entra como una escena en tiempo, no atado al
+// scroll. Si los ojos se reabren, la escena se revierte.
 export const footerReveal = () => {
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const progress = document.querySelector('.main__progress-section');
@@ -150,38 +149,10 @@ export const footerReveal = () => {
   if (nav) scene.to(nav, { autoAlpha: 1, y: 0, duration: 0.25 }, 0.5);
   scene.to(titleWords, { yPercent: 0, duration: 0.3, stagger: 0.05, ease: 'power1.out' }, 0.5);
 
-  // Libera la cortina hacia arriba de forma automática, en paralelo a la escena.
-  // Corta si el usuario empieza a scrollear.
-  const root = document.documentElement;
-  let lift = null;
-  const liftCurtain = () => {
-    const target = Math.max(0, ScrollTrigger.maxScroll(window));
-    if (window.scrollY >= target - 2) return;
-    const prevBehavior = root.style.scrollBehavior;
-    root.style.scrollBehavior = 'auto';
-    const cleanup = () => {
-      root.style.scrollBehavior = prevBehavior;
-      window.removeEventListener('wheel', stop);
-      window.removeEventListener('touchstart', stop);
-    };
-    const stop = () => {
-      lift?.kill();
-      cleanup();
-    };
-    window.addEventListener('wheel', stop, { passive: true, once: true });
-    window.addEventListener('touchstart', stop, { passive: true, once: true });
-    lift = gsap.to(window, {
-      duration: 0.9,
-      ease: 'power2.inOut',
-      scrollTo: { y: target, autoKill: false },
-      onComplete: cleanup,
-      onInterrupt: cleanup,
-    });
-  };
-
+  // Sin cortina: al cerrar los ojos el velo y el humo se desvanecen (progressFog.js)
+  // y la escena del pie corre en tiempo
   window.addEventListener('eyesClosed', () => {
     scene.play();
-    liftCurtain();
   });
   window.addEventListener('eyesOpened', () => {
     scene.reverse();

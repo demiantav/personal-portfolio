@@ -10,12 +10,18 @@ gsap.registerPlugin(ScrollTrigger);
 // su propio tramo del scroll, así surgen una tras otra y se solapan al salir.
 // La carta conserva su layout original: se escala completa con una escala base
 // según el alto del viewport, sin rediseñar su contenido.
-// Finale: después de la última carta la escena queda fijada mientras se absorbe
-// el humo (absorb 0→1). Con absorb las cards desaparecen.
+// Finale (f 0→1, en 1.5 vh): después de la última carta los ojos se centran por
+// scroll (center), al quedar centrados se dispara el anillo con tiempo fijo (ring)
+// y después el scroll absorbe todo el humo (absorb, hasta f 0.9). Entre 0.9 y 1 los
+// ojos cierran por scroll (close). Con absorb las cards desaparecen.
 const REDUCE = '(prefers-reduced-motion: reduce)';
 const COMPACT = '(max-width: 48rem)';
 const TILT = 12; // inclinación de reposo (°), alterna igual que el layout original
-const ABSORB_VH = 1.0; // duración del finale, en alto de viewport
+const ABSORB_VH = 1.5; // duración del finale, en alto de viewport
+const CENTER_END = 0.15; // fracción del finale en que los ojos llegan al centro y se dispara el anillo
+const ABSORB_END = 0.9; // fracción del finale en que el humo ya fue absorbido por completo
+const CLOSE_IN = 0.9; // fracción del finale en que empiezan a cerrar los ojos
+const RING_S = 1.6; // s: duración fija del anillo
 const FRAME_FRAC = 0.48; // alto máximo de la carta respecto del viewport (escala base)
 
 const DESKTOP = {
@@ -102,24 +108,56 @@ export const progressCards3D = () => {
   measureBase();
   window.addEventListener('resize', measureBase);
 
-  // v recorre todo el pin: primero las cards (p) y después la absorción (absorb)
+  // Anillo: tiempo fijo que avanza al pasar el centrado y se invierte al subir
+  const ringTween = gsap.to({}, { duration: RING_S, ease: 'none', paused: true });
+  let ringWanted = null;
+  let anchored = false;
+  let absorbFrom = CENTER_END;
+
+  // v recorre todo el pin: primero las cards (p) y después el finale (f)
   const paint = (v) => {
     const c = profile();
     const cardsVh = c.stepVh * N;
     const cardsFrac = cardsVh / (cardsVh + ABSORB_VH);
     const p = clamp01(v / cardsFrac);
-    const absorb = clamp01((v - cardsFrac) / (1 - cardsFrac));
+    const f = clamp01((v - cardsFrac) / (1 - cardsFrac));
     const u = p * (N + 1);
     const now = performance.now() / 1000;
     const W = window.innerWidth;
     const H = window.innerHeight;
+
+    const wantRing = f >= CENTER_END;
+    if (wantRing !== ringWanted) {
+      ringWanted = wantRing;
+      if (wantRing) ringTween.play();
+      else ringTween.reverse();
+    }
+    // Mientras el anillo corre el scroll no mueve el humo. Al terminar, la
+    // absorción arranca desde donde esté el scroll, sin saltos ni zona muerta
+    const ringDone = ringTween.progress() >= 1;
+    if (ringDone && !anchored) {
+      anchored = true;
+      absorbFrom = Math.min(ABSORB_END - 0.05, Math.max(CENTER_END, f));
+    } else if (!ringDone) {
+      anchored = false;
+      absorbFrom = CENTER_END;
+    }
+    const absorb = ringDone ? clamp01((f - absorbFrom) / (ABSORB_END - absorbFrom)) : 0;
+    const close = clamp01((f - CLOSE_IN) / (1 - CLOSE_IN));
+    const ring = ringTween.progress();
+
     progressState.p = p;
+    progressState.center = ease(clamp01(f / CENTER_END));
+    progressState.ring = ring;
     progressState.absorb = absorb;
-    // El ojo se abre un poco antes de la succión y se estrecha al cerrar
-    const inhaleUp = ease(clamp01(absorb / 0.15));
-    const inhaleDown = ease(clamp01((absorb - 0.15) / 0.15));
-    const squeeze = ease(clamp01((absorb - 0.85) / 0.15));
-    progressState.inhale = 0.03 * inhaleUp * (1 - inhaleDown) - 0.02 * squeeze;
+    progressState.close = close;
+    // El ojo se abre con el anillo, crece mientras absorbe (ease-in) y vuelve a su
+    // tamaño al cerrarse
+    const inhaleUp = ease(clamp01(ring / 0.15));
+    const inhaleDown = ease(clamp01((ring - 0.15) / 0.15));
+    const drain = absorb * absorb;
+    const squeeze = ease(close);
+    progressState.inhale = 0.03 * inhaleUp * (1 - inhaleDown) + 0.12 * drain - 0.12 * squeeze;
     progressState.active = Math.min(N - 1, Math.max(0, Math.round(u - 1)));
     cards.forEach((card, i) => {
       const s = pose(u - i - 1, c);

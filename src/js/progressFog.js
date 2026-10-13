@@ -32,7 +32,10 @@ uniform float u_time;
 uniform float u_alpha;
 uniform vec2 u_eye;     // centro de los ojos, px de viewport
 uniform float u_eyeAmt; // apertura de los ojos 0→1
-uniform float u_absorb; // finale: los ojos absorben el humo 0→1
+uniform float u_ring;   // finale: anillo 0→1 (tiempo fijo)
+uniform float u_absorb; // finale: absorción del humo restante 0→1 (scroll)
+uniform float u_close;  // finale: cierre de los ojos 0→1 (apaga el halo)
+const float RING_R = 1.3; // radio máximo del anillo (aprobado): sale del viewport antes de la absorción
 
 float hash(vec2 p) {
   return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
@@ -69,23 +72,32 @@ vec2 toNoise(vec2 vp) {
 void main() {
   vec2 vp = vec2(gl_FragCoord.x / u_res.x, 1.0 - gl_FragCoord.y / u_res.y) * u_view;
   float vy = vp.y / u_view.y;
-  // Finale: el humo se consume en un frente radial que crece desde el ojo. Antes
-  // del frente, la anticipación aleja el humo un instante
-  float ph = u_absorb;
-  float antic = -0.12 * smoothstep(0.0, 0.15, ph) * (1.0 - smoothstep(0.15, 0.3, ph));
-  float frontR = 1.3 * smoothstep(0.15, 0.85, ph);
+  // Anillo (u_ring, tiempo fijo): el frente crece desde el ojo y limpia el humo que
+  // toca. Antes del frente, la anticipación aleja el humo un instante. Después, con
+  // u_absorb (scroll), el humo de afuera se succiona hacia el ojo
+  float rg = u_ring;
+  float ab = u_absorb;
+  float antic = -0.12 * smoothstep(0.0, 0.15, rg) * (1.0 - smoothstep(0.15, 0.3, rg));
+  float frontR = RING_R * smoothstep(0.15, 0.85, rg);
 
   // Mapeo de la fuente: el humo junto al frente se tira hacia el ojo
   vec2 off = vp - u_eye;
   float rad = max(length(off), 1e-4);
   float rEye = rad / u_view.y;
-  float pull = 1.0 + 1.6 * smoothstep(0.15, 0.85, ph) * exp(-pow((rEye - frontR) / 0.25, 2.0));
-  vec2 src = u_eye + off * (pull + antic);
+  float pull = 1.0 + 1.6 * smoothstep(0.15, 0.85, rg) * exp(-pow((rEye - frontR) / 0.25, 2.0));
+
+  // Absorción: el humo gira y se estira hacia el ojo, más fuerte cuanto más cerca
+  float fa = smoothstep(0.0, 0.6, ab);
+  float near = 1.0 - smoothstep(0.0, 1.2, rEye);
+  float spin = 1.1 * fa * near;
+  mat2 swirl = mat2(cos(spin), -sin(spin), sin(spin), cos(spin));
+  vec2 src = u_eye + swirl * off * ((pull + antic) * (1.0 + 1.4 * fa * near));
 
   vec2 p = toNoise(src);
   float t = u_time * 0.05;
-  // base ascendente: el humo sube desde el borde inferior (la coordenada crece hacia abajo)
-  p.y += t * 2.0;
+  // base ascendente: el humo sube desde el borde inferior (la coordenada crece hacia abajo).
+  // Durante la absorción la deriva se apaga: el humo cae hacia el ojo
+  p.y += t * 2.0 * (1.0 - fa);
 
   // domain warping en dos pasos: remolinos y estratificación, no nubes blandas
   vec2 q = vec2(fbm(p), fbm(p + vec2(5.2, 1.3)));
@@ -98,7 +110,7 @@ void main() {
   // contrapeso: volutas que caen suave sólo en la franja superior, así el humo se
   // disipa arriba y no queda una columna uniforme que sube
   vec2 pd = toNoise(vp) * 0.8;
-  pd.y -= t * 2.0;
+  pd.y -= t * 2.0 * (1.0 - fa);
   float dn = fbm(pd + vec2(3.7, 1.9));
   float topBand = 1.0 - smoothstep(0.3, 0.9, vy);
   d = mix(d, dn, topBand * 0.35);
@@ -106,21 +118,33 @@ void main() {
   float body = smoothstep(0.30, 0.85, d);
   // fuente en el borde inferior, donde está la costura con el pie
   float floorBias = mix(0.3, 1.0, smoothstep(0.0, 1.0, vy));
-  // Frente con borde ruidoso: dentro del radio consumido no queda humo
+  // Frente con borde ruidoso: dentro del radio del anillo no queda humo. Después,
+  // ese espacio queda abierto para el humo que llega desde afuera
   float edge = (noise(vp / u_view.y * 6.0 + vec2(0.0, t)) - 0.5) * 0.16;
-  float eaten = smoothstep(frontR + edge - 0.04, frontR + edge + 0.04, rEye);
-  // Fundido global: el humo restante se apaga antes de cerrar los ojos
-  float left = 1.0 - smoothstep(0.6, 0.85, ph);
-  // Halo del ojo: crece con lo absorbido y se apaga al cerrar
-  float glowR = u_view.y * (0.3 + 0.35 * ph);
-  float lit = exp(-length(vp - u_eye) / glowR) * u_eyeAmt * (1.0 + 1.2 * ph) * (1.0 - smoothstep(0.85, 1.0, ph));
+  float eaten = mix(smoothstep(frontR + edge - 0.04, frontR + edge + 0.04, rEye), 1.0, fa);
+  // Frente de succión: se contrae desde los bordes hacia el ojo. Lo que queda
+  // fuera del frente ya fue absorbido; a absorb = 1 no queda humo
+  float reach = 1.4 * (1.0 - smoothstep(0.0, 0.9, ab));
+  float inside = 1.0 - smoothstep(reach - 0.05, reach + 0.05, rEye);
+  float sinkR = 0.2 * fa;
+  float sink = smoothstep(sinkR - 0.03, sinkR + 0.03, rEye);
+  // Halo del ojo: crece con el anillo y la absorción, se apaga al cerrar
+  float glowR = u_view.y * (0.3 + 0.35 * max(rg, ab));
+  float lit = exp(-length(vp - u_eye) / glowR) * u_eyeAmt * (1.0 + 1.2 * max(rg, ab)) * (1.0 - smoothstep(0.0, 1.0, u_close));
   // Borde del frente: humo que se está tragando, se ve encendido mientras cae
-  float rim = exp(-pow((rEye - frontR - edge) / 0.035, 2.0)) * smoothstep(0.15, 0.3, ph) * (1.0 - smoothstep(0.8, 0.95, ph));
-  float base = body * floorBias * 0.6 * eaten * left;
-  float density = clamp((base + rim * body * 0.9 + lit * (0.25 + 0.35 * body)) * u_alpha, 0.0, 1.0);
+  float rim = exp(-pow((rEye - frontR - edge) / 0.035, 2.0)) * smoothstep(0.15, 0.3, rg) * (1.0 - smoothstep(0.8, 0.95, rg));
+  // Calor del frente de succión: el borde que se contrae se enciende
+  float front = exp(-pow((rEye - reach) / 0.05, 2.0)) * fa;
+  // Hilos de luz: corrientes radiales que caen hacia el ojo al ritmo de la absorción
+  float ang = atan(off.y, off.x);
+  float strands = smoothstep(0.6, 0.85, noise(vec2(ang * 9.0, rEye * 3.0 + ab * 5.0))) * fa * inside;
+  float glow = (front * 0.9 + strands * 0.7) * body;
+  float base = body * floorBias * 0.6 * eaten * sink * inside;
+  // El halo es luz pura: sin la textura del humo, así no se lee como humo residual
+  float density = clamp((base + rim * body * 0.9 + glow * 0.9 + lit * 0.35) * u_alpha, 0.0, 1.0);
   vec3 tint = mix(vec3(0.14, 0.01, 0.02), vec3(0.42, 0.03, 0.05), body);
   vec3 hot = vec3(0.6, 0.05, 0.07);
-  vec3 col = mix(tint, hot, clamp(max(lit, rim), 0.0, 1.0));
+  vec3 col = mix(tint, hot, clamp(max(max(lit, rim), glow), 0.0, 1.0));
   gl_FragColor = vec4(col * density, density);
 }
 `;
@@ -181,7 +205,9 @@ export const progressFog = () => {
     alpha: gl.getUniformLocation(program, 'u_alpha'),
     eye: gl.getUniformLocation(program, 'u_eye'),
     eyeAmt: gl.getUniformLocation(program, 'u_eyeAmt'),
+    ring: gl.getUniformLocation(program, 'u_ring'),
     absorb: gl.getUniformLocation(program, 'u_absorb'),
+    close: gl.getUniformLocation(program, 'u_close'),
   };
 
   const veil = document.createElement('div');
@@ -223,6 +249,9 @@ export const progressFog = () => {
   let last = t0;
   let alpha = 0;
   let raf = 0;
+  // Cierre de los ojos: el velo y el humo se desvanecen y el pie entra en tiempo
+  let hidden = false;
+  let fade = 1;
 
   // El loop corre sólo mientras hay humo visible o un fade en curso; el scroll lo
   // despierta para que el velo y el recorte sigan a la sección.
@@ -233,19 +262,33 @@ export const progressFog = () => {
     const stage = updateStage();
     const lit = stage > 0 ? Math.max(progressState.eyes, progressState.p > 0.001 ? 1 : 0) : 0;
     alpha += (lit - alpha) * (1 - Math.exp(-dt * 2.5));
+    const target = hidden ? 0 : 1;
+    fade += (target - fade) * (1 - Math.exp(-dt * 6));
+    veil.style.opacity = String(fade);
+    canvas.style.opacity = String(fade);
     gl.uniform1f(u.time, (now - t0) / 1000);
     gl.uniform1f(u.alpha, alpha);
     gl.uniform2f(u.eye, progressState.eyeX, progressState.eyeY);
     gl.uniform1f(u.eyeAmt, progressState.eyes);
+    gl.uniform1f(u.ring, progressState.ring);
     gl.uniform1f(u.absorb, progressState.absorb);
+    gl.uniform1f(u.close, progressState.close);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
-    if (lit > 0 || alpha > 0.002) raf = requestAnimationFrame(frame);
+    if (lit > 0 || alpha > 0.002 || Math.abs(target - fade) > 0.002) raf = requestAnimationFrame(frame);
   };
   const start = () => {
     if (raf) return;
     last = performance.now();
     raf = requestAnimationFrame(frame);
   };
+  window.addEventListener('eyesClosed', () => {
+    hidden = true;
+    start();
+  });
+  window.addEventListener('eyesOpened', () => {
+    hidden = false;
+    start();
+  });
 
   window.addEventListener('scroll', start, { passive: true });
   window.addEventListener('resize', () => {
