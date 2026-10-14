@@ -58,8 +58,9 @@ const CYCLE = ['angry', 'playful', 'sleepy'];
 const CYCLE_GAP = [3000, 5000];
 // Mood por carta (Discovery, Clarify, Design, Create)
 const BEATS = ['neutral', 'scan', 'playful', 'angry'];
-// Umbral de cierre en que los ojos quedan cerrados (dispara eyesClosed)
-const CLOSE_AT = 0.95;
+// Umbral de cierre en que los ojos quedan cerrados (dispara eyesClosed). El cierre
+// lo maneja el tween del finale (progressCards3D), por eso el umbral es el final del tween.
+const CLOSE_AT = 0.999;
 
 // Estados del rig de párpados. Ángulos en grados (rotación de la tapa en la
 // referencia local del ojo; mismo signo en ambos ojos). pos = cobertura de la

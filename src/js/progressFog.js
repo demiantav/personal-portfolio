@@ -71,7 +71,7 @@ uniform float u_inPhase; // fase de succión en ciclos (0→1): más ciclos por 
 uniform float u_light;  // reloj de las luces: avanza con la misma velocidad que el humo
 uniform float u_lag;    // absorción con retraso suavizado: el halo se contrae con el humo
 uniform float u_close;  // finale: cierre de los ojos 0→1 (apaga el halo)
-uniform float u_gone;   // residuo: 0→1 al terminar la absorción y el aro (apaga todo el humo)
+uniform float u_gone;   // residuo: 0→1 con el cierre de los ojos y durante el aro (apaga todo el humo)
 const float RING_R = 1.3; // radio máximo del anillo (aprobado): sale del viewport antes de la absorción
 ${NOISE}
 
@@ -424,8 +424,9 @@ export const progressFog = () => {
     gl.uniform1f(u.ring, progressState.ring);
     gl.uniform1f(u.absorb, progressState.absorb);
     gl.uniform1f(u.close, progressState.close);
-    const absorbed = clamp((ab - 0.85) / 0.1, 0, 1);
-    gl.uniform1f(u.gone, Math.max(absorbed * absorbed * (3 - 2 * absorbed), rv));
+    // El humo restante se apaga con el cierre de los ojos (close): desaparece junto
+    // con los párpados, sin hueco entre fin de absorción y cierre. Con el aro (rv) queda apagado
+    gl.uniform1f(u.gone, Math.max(progressState.close, rv));
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     const revealing = rv > 0 && rv < 1;
     if (lit > 0 || alpha > 0.002 || revealing) raf = requestAnimationFrame(frame);

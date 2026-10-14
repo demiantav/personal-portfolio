@@ -12,15 +12,17 @@ gsap.registerPlugin(ScrollTrigger);
 // según el alto del viewport, sin rediseñar su contenido.
 // Finale (f 0→1, en 1.5 vh): después de la última carta los ojos se centran por
 // scroll (center), al quedar centrados se dispara el anillo con tiempo fijo (ring)
-// y después el scroll absorbe todo el humo (absorb, hasta f 0.9). Entre 0.9 y 1 los
-// ojos cierran por scroll (close). Con absorb las cards desaparecen.
+// y después el scroll absorbe todo el humo (absorb, hasta f 0.9). Al terminar la
+// absorción arranca el cierre en tiempo fijo (close, 1 s): el humo y los párpados
+// se apagan juntos y, al quedar los ojos cerrados, se dispara el aro del pie
+// (reveal). Con absorb las cards desaparecen.
 const REDUCE = '(prefers-reduced-motion: reduce)';
 const COMPACT = '(max-width: 48rem)';
 const TILT = 12; // inclinación de reposo (°), alterna igual que el layout original
 const ABSORB_VH = 3; // duración del finale, en alto de viewport
 const CENTER_END = 0.15; // fracción del finale en que los ojos llegan al centro y se dispara el anillo
 const ABSORB_END = 0.9; // fracción del finale en que el humo ya fue absorbido por completo
-const CLOSE_IN = 0.9; // fracción del finale en que empiezan a cerrar los ojos
+const SHUT_S = 1.0; // s: duración fija del cierre de los ojos (arranca al terminar la absorción)
 const RING_S = 1.6; // s: duración fija del anillo
 const REVEAL_S = 1.6; // s: duración fija del aro que revela el pie
 const FRAME_FRAC = 0.48; // alto máximo de la carta respecto del viewport (escala base)
@@ -117,6 +119,11 @@ export const progressCards3D = () => {
   const revealTween = gsap.to({}, { duration: REVEAL_S, ease: 'none', paused: true });
   window.addEventListener('eyesClosed', () => revealTween.play());
   window.addEventListener('eyesOpened', () => revealTween.reverse());
+  // Cierre: tiempo fijo que arranca al completarse la absorción y se invierte si se
+  // sube antes. Un solo progreso (close) maneja párpados, humo y halo, así el humo
+  // desaparece junto con el cierre de los ojos
+  const shutTween = gsap.to({}, { duration: SHUT_S, ease: 'none', paused: true });
+  let shutWanted = false;
   let anchored = false;
   let absorbFrom = CENTER_END;
 
@@ -149,7 +156,15 @@ export const progressCards3D = () => {
       absorbFrom = CENTER_END;
     }
     const absorb = ringDone ? clamp01((f - absorbFrom) / (ABSORB_END - absorbFrom)) : 0;
-    const close = clamp01((f - CLOSE_IN) / (1 - CLOSE_IN));
+    // El cierre arranca recién cuando la absorción terminó (ab = 1): así el humo que
+    // desaparece, los párpados y el aro quedan en una sola secuencia en tiempo fijo
+    const wantShut = absorb >= 0.999;
+    if (wantShut !== shutWanted) {
+      shutWanted = wantShut;
+      if (wantShut) shutTween.play();
+      else shutTween.reverse();
+    }
+    const close = shutTween.progress();
     const ring = ringTween.progress();
 
     progressState.p = p;
