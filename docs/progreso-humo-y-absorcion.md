@@ -14,6 +14,7 @@ Todo está en el working tree, sin commits.
 | C3 | Absorción por frente radial con anillo brillante | Implementada. Anillo aprobado. Falta que la animación se lea como absorción (ver pendientes) |
 | E | Secuencia del finale: centrado por scroll, anillo por tiempo, absorción por scroll con brillo de los ojos | Implementada. Pendiente de prueba del usuario en movimiento |
 | D | Fin sin cortina: fade del velo y del humo, pie en tiempo | Implementada. Pendiente de prueba del usuario |
+| F | Aro que revela el pie: velo con agujero, entrada del footer por distancia | Implementada. Pendiente de prueba con scroll real |
 
 Orden acordado: se avanza por fase y el usuario prueba cada una antes de seguir.
 
@@ -220,7 +221,44 @@ Todo lo siguiente se hizo por ajustes sucesivos guiados por la prueba del usuari
 
 **Estado de las luces y del humo:** el término de tiempo del hilo (`u_time · 0.5`) y los términos de absorción de la fase de los hilos fueron reemplazados por `u_light`. La fase de los hilos ya no tiene término de scroll.
 
+## Fase F: aro que revela el pie (implementada)
+
+Secuencia del finale completo:
+
+1. La absorción llega a 1 (scroll, `absorb`). Los ojos cierran por scroll entre 0.9 y 1.
+2. Al cerrarse (`eyesClosed`, `close ≥ 0.95`), `revealTween` arranca solo: 1.6 s (`REVEAL_S`) de tiempo fijo. Si el usuario sube, `eyesOpened` lo revierte.
+3. El aro se escribe en `progressState.reveal` (0 a 1) y su radio es `reveal · revealMax`.
+
+Cambios por archivo:
+
+- **`progressCards3D.js`:** `revealTween` y listeners de `eyesClosed`/`eyesOpened`. Escribe `progressState.reveal`.
+- **`progressState.js`:** campos `reveal`, `revealMax`, `revealX`, `revealY`.
+- **`progressFog.js`:** el velo es un **segundo canvas WebGL** (`.progress-veil`, `z-index: 1`), debajo del humo (`z-index: 2`). Así el contenido de las secciones (`z-index: 1`) queda encima del velo.
+  - Shader del velo: borde ruidoso (fbm, ±90 px), transición de 60 px, resplandor rojo que sólo tiñe el velo.
+  - `REVEAL_MARGIN = 210`: el radio llega más allá de la esquina más lejana, así a 1 el velo desaparece del todo.
+  - El origen del aro se **congela** al empezar el aro (`revealX/Y`); los ojos siguen moviéndose con su resorte y eso cambiaba la distancia de los elementos del footer.
+  - **Mientras corre el aro, el velo ocupa toda la pantalla** (`updateVeilStage`): así el scroll no sube el borde del velo y el pie no aparece por dos vías.
+  - **Residuo del humo:** `u_gone` apaga el humo y el halo entre `absorb` 0.85 y 0.95, y durante el aro. Sin esto quedaba un punto de humo centrado sobre el footer.
+- **`footer-reveal.js`:** cada elemento (línea, CTA, meta, bloque inferior, reloj, nav, título) tiene su propia animación de duración fija. Arranca cuando el radio del aro alcanza su distancia al origen congelado y se revierte al retroceder. No hay scrub. El `wrapper` ya no se mueve: su `yPercent` causaba el "scroll hacia arriba" durante el aro. Las máscaras del título se liberan y se dispara `footerRevealSettled` al llegar el aro a 1.
+
+Verificación hecha:
+
+- Build sin errores. Los shaders del humo y del velo compilan en Chrome headless.
+- Prueba con el aro simulado (valores de `reveal` fijados desde la página, origen en el centro): cada elemento arranca cuando el aro lo alcanza, termina su animación completa y queda quieto con el aro en 1; al retroceder se revierte.
+- **No verificado:** el scroll real del finale. En el harness, el pin no se activaba con `scrollTo` y el estado de progreso quedaba en 0.
+
+Notas de la sesión de prueba:
+
+- El harness con Chrome headless (CDP por WebSocket) necesita esperar a que la página esté lista antes de medir. El render por software de WebGL es lento y bloquea `Runtime.evaluate` si se hacen muchos scrolls seguidos.
+- No dejar hooks de depuración en `window` al terminar (se usó `window.__progressState` temporalmente y se quitó).
+
 ## Pendientes y deuda técnica
+
+- [ ] Fase F: probar el finale con scroll real (subir y bajar) y confirmar que el velo, el aro y la entrada del footer se ven como se espera.
+- [ ] Fase F: los elementos lejanos al ojo empiezan más tarde y pueden terminar después de que el aro llega a 1 (se ve como "acomodo" final). Opciones: acortar la duración de los elementos lejanos o escalar la duración para que terminen con el aro.
+- [ ] Fase F: bloquear el scroll mientras corre el aro si el movimiento de scroll sigue afectando la lectura. Hoy no está bloqueado.
+- [ ] Fase F: mobile. El agujero tiene que cubrir la pantalla completa y el borde no debe verse cortado.
+- [ ] Fase F: fallback sin WebGL. Hoy sin WebGL no hay velo ni humo, igual que antes del aro.
 
 - [ ] Probar la fase A y confirmar la costura entre título y cards con el humo fijo.
 - [ ] Probar la fase B: composición de ojos y cards en escritorio y mobile.
@@ -253,7 +291,8 @@ Leer sólo lo que haga falta para la tarea:
 
 - `docs/progreso-humo-y-absorcion.md`: este documento. Siempre.
 - `src/js/progressFog.js`: humo, velo y absorción (shader). Para cualquier cambio de humo o de finale.
-- `src/js/progressState.js`: estado compartido (`p`, `active`, `absorb`, `inhale`, `eyes`, `eyeX`, `eyeY`).
+- `src/js/progressState.js`: estado compartido (`p`, `active`, `absorb`, `inhale`, `eyes`, `eyeX`, `eyeY`, `reveal`, `revealMax`, `revealX`, `revealY`).
+- `src/js/footer-reveal.js`: entrada del footer por distancia al aro (fase F).
 - `src/js/progressCards3D.js`: pin de las cards, `paint` (calcula `p`, `absorb` e `inhale`) y escena 3D.
 - `src/js/processEyes.js`: ojos y tapas. Para cambios de ojos, leer `render` (radio `R` con `inhale`, cierre con `eyesClosed`). No hace falta leer el resto.
 - `src/js/footer-reveal.js`: sólo para la fase D.

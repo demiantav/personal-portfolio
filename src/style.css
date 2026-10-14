@@ -1184,16 +1184,14 @@ canvas {
   pointer-events: none;
 }
 
-/* Velo fijo del color de la sección, debajo del humo y encima del pie. La altura
-   la ajusta el JS hasta el borde inferior de la sección de cards. */
+/* Velo (progressFog.js): mismo canvas fijo, en la capa de abajo: el contenido de las
+   secciones queda encima. Tapa el pie y el aro lo revela. */
 .progress-veil {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100dvh;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   z-index: 1;
-  background-color: var(--bg-color);
   pointer-events: none;
 }
 

@@ -22,6 +22,7 @@ const CENTER_END = 0.15; // fracción del finale en que los ojos llegan al centr
 const ABSORB_END = 0.9; // fracción del finale en que el humo ya fue absorbido por completo
 const CLOSE_IN = 0.9; // fracción del finale en que empiezan a cerrar los ojos
 const RING_S = 1.6; // s: duración fija del anillo
+const REVEAL_S = 1.6; // s: duración fija del aro que revela el pie
 const FRAME_FRAC = 0.48; // alto máximo de la carta respecto del viewport (escala base)
 
 const DESKTOP = {
@@ -111,6 +112,11 @@ export const progressCards3D = () => {
   // Anillo: tiempo fijo que avanza al pasar el centrado y se invierte al subir
   const ringTween = gsap.to({}, { duration: RING_S, ease: 'none', paused: true });
   let ringWanted = null;
+
+  // Aro del pie: tiempo fijo que arranca solo al cerrarse los ojos y se invierte si se reabren
+  const revealTween = gsap.to({}, { duration: REVEAL_S, ease: 'none', paused: true });
+  window.addEventListener('eyesClosed', () => revealTween.play());
+  window.addEventListener('eyesOpened', () => revealTween.reverse());
   let anchored = false;
   let absorbFrom = CENTER_END;
 
@@ -151,6 +157,7 @@ export const progressCards3D = () => {
     progressState.ring = ring;
     progressState.absorb = absorb;
     progressState.close = close;
+    progressState.reveal = revealTween.progress();
     // El ojo se abre con el anillo, crece mientras absorbe (ease-in) y vuelve a su
     // tamaño al cerrarse
     const inhaleUp = ease(clamp01(ring / 0.15));

@@ -4,13 +4,16 @@ import { progressState } from './progressState.js';
 // campo se muestrea en coordenadas de viewport, así el humo no viaja con el
 // scroll: el scroll sólo controla la intensidad. Media resolución: el humo es de
 // baja frecuencia y el escalado por CSS no se nota.
-// Velo: un fondo fijo del color de la sección, hasta el borde inferior de la
-// sección de cards. Tapa el pie como antes y, junto con el canvas, se recorta
-// con el mismo borde para que el humo nunca pinte sobre el pie.
+// Velo: un segundo canvas fijo, debajo del humo y encima del pie, con el color de
+// la sección hasta el borde inferior de las cards. Ambos se recortan con el mismo
+// borde para que el humo nunca pinte sobre el pie. El velo tiene un agujero (aro)
+// que crece desde los ojos y revela el pie.
 // Luz motivada: los ojos iluminan la niebla con un halo suave que se apaga hacia
 // afuera; en el finale la absorción tira del humo hacia ellos.
 const REDUCE = '(prefers-reduced-motion: reduce)';
 const SCALE = 0.5;
+// Margen del aro: borde suave (60 px) más la variación del borde ruidoso (±90 px)
+const REVEAL_MARGIN = 210;
 
 const VERT = `
 attribute vec2 a_pos;
@@ -19,28 +22,7 @@ void main() {
 }
 `;
 
-const FRAG = `
-#ifdef GL_FRAGMENT_PRECISION_HIGH
-precision highp float;
-#else
-precision mediump float;
-#endif
-
-uniform vec2 u_res;     // canvas en px de buffer
-uniform vec2 u_view;    // viewport en px CSS
-uniform float u_time;
-uniform float u_alpha;
-uniform vec2 u_eye;     // centro de los ojos, px de viewport
-uniform float u_eyeAmt; // apertura de los ojos 0→1
-uniform float u_ring;   // finale: anillo 0→1 (tiempo fijo)
-uniform float u_absorb; // finale: absorción del humo restante 0→1 (scroll)
-uniform float u_flow;   // tiempo de flujo del humo: acelera con la absorción
-uniform float u_inPhase; // fase de succión en ciclos (0→1): más ciclos por segundo al final
-uniform float u_light;  // reloj de las luces: avanza con la misma velocidad que el humo
-uniform float u_lag;    // absorción con retraso suavizado: el halo se contrae con el humo
-uniform float u_close;  // finale: cierre de los ojos 0→1 (apaga el halo)
-const float RING_R = 1.3; // radio máximo del anillo (aprobado): sale del viewport antes de la absorción
-
+const NOISE = `
 float hash(vec2 p) {
   return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
 }
@@ -67,6 +49,31 @@ float fbm(vec2 p) {
   }
   return v;
 }
+`;
+
+const FRAG = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+
+uniform vec2 u_res;     // canvas en px de buffer
+uniform vec2 u_view;    // viewport en px CSS
+uniform float u_time;
+uniform float u_alpha;
+uniform vec2 u_eye;     // centro de los ojos, px de viewport
+uniform float u_eyeAmt; // apertura de los ojos 0→1
+uniform float u_ring;   // finale: anillo 0→1 (tiempo fijo)
+uniform float u_absorb; // finale: absorción del humo restante 0→1 (scroll)
+uniform float u_flow;   // tiempo de flujo del humo: acelera con la absorción
+uniform float u_inPhase; // fase de succión en ciclos (0→1): más ciclos por segundo al final
+uniform float u_light;  // reloj de las luces: avanza con la misma velocidad que el humo
+uniform float u_lag;    // absorción con retraso suavizado: el halo se contrae con el humo
+uniform float u_close;  // finale: cierre de los ojos 0→1 (apaga el halo)
+uniform float u_gone;   // residuo: 0→1 al terminar la absorción y el aro (apaga todo el humo)
+const float RING_R = 1.3; // radio máximo del anillo (aprobado): sale del viewport antes de la absorción
+${NOISE}
 
 // Coordenadas de ruido desde px de viewport: el campo queda fijo en la pantalla
 vec2 toNoise(vec2 vp) {
@@ -109,8 +116,9 @@ void main() {
   // Absorción: el humo gira y se estira hacia el ojo, más fuerte cuanto más cerca
   float fa = smoothstep(0.0, 0.6, ab);
   float near = 1.0 - smoothstep(0.0, 1.2, rEye);
-  // Giro con velocidad inversa al radio: arranca suave con el scroll y se acelera al acercarse al ojo
-  float spin = 1.5 * smoothstep(0.0, 1.0, ab) / (rEye + 0.15);
+  // Giro con velocidad inversa al radio: crece lineal con la absorción, así mantiene
+  // su ritmo y se acelera al contraerse la esfera (antes saturaba a mitad de camino)
+  float spin = 1.5 * ab / (rEye + 0.15);
   mat2 swirl = mat2(cos(spin), -sin(spin), sin(spin), cos(spin));
   // Flujo continuo hacia el ojo: el muestreo se acerca en escala log-polar con ab, sin saturarse
   float inflow = exp(1.1 * ab);
@@ -162,11 +170,44 @@ void main() {
   float glow = (front * 0.9 + strands * 0.7) * body;
   float base = body * floorBias * 0.6 * eaten * sink * inside;
   // El halo es luz pura: sin la textura del humo, así no se lee como humo residual
-  float density = clamp((base + rim * body * 0.9 + glow * 0.9 + lit * 0.35) * u_alpha, 0.0, 1.0);
+  float density = clamp((base + rim * body * 0.9 + glow * 0.9 + lit * 0.35) * u_alpha * (1.0 - u_gone), 0.0, 1.0);
   vec3 tint = mix(vec3(0.14, 0.01, 0.02), vec3(0.42, 0.03, 0.05), body);
   vec3 hot = vec3(0.6, 0.05, 0.07);
   vec3 col = mix(tint, hot, clamp(max(max(lit, rim), glow), 0.0, 1.0));
   gl_FragColor = vec4(col * density, density);
+}
+`;
+
+// Velo con agujero: tapa el pie fuera del aro. El borde es ruidoso (como el humo)
+// y tiene un resplandor rojo que sólo tiñe el velo
+const VEIL_FRAG = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+
+uniform vec2 u_res;      // canvas en px de buffer
+uniform vec2 u_view;     // viewport en px CSS
+uniform vec2 u_eye;      // centro de los ojos, px de viewport
+uniform vec3 u_veil;     // color del velo (--bg-color) 0→1
+uniform float u_stage;   // borde inferior de la zona del velo, px de viewport
+uniform float u_reveal;  // aro del pie 0→1 (tiempo fijo)
+uniform float u_revealR; // radio del aro, px de viewport
+${NOISE}
+
+void main() {
+  vec2 vp = vec2(gl_FragCoord.x / u_res.x, 1.0 - gl_FragCoord.y / u_res.y) * u_view;
+  float rvOn = step(0.0001, u_reveal);
+  float edgeN = (fbm(vp / u_view.y * 3.0 + vec2(4.1, 2.3)) - 0.5) * 180.0;
+  float re = u_revealR + edgeN;
+  float dv = length(vp - u_eye);
+  float inStage = 1.0 - step(u_stage, vp.y);
+  float veilA = mix(1.0, smoothstep(re - 60.0, re + 60.0, dv), rvOn) * inStage;
+  float ringGlow = (exp(-pow((dv - re) / 16.0, 2.0)) + 0.5 * exp(-max(dv - re, 0.0) / 70.0)) * rvOn;
+  vec3 hotV = vec3(0.6, 0.05, 0.07);
+  vec3 col = mix(u_veil, hotV, clamp(ringGlow * veilA * 2.0, 0.0, 1.0));
+  gl_FragColor = vec4(col * veilA, veilA);
 }
 `;
 
@@ -183,6 +224,34 @@ const compile = (gl, type, src) => {
 
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
+// Programa con un triángulo que cubre el viewport: un solo draw call
+const buildProgram = (gl, fragSrc) => {
+  const vs = compile(gl, gl.VERTEX_SHADER, VERT);
+  const fs = compile(gl, gl.FRAGMENT_SHADER, fragSrc);
+  const program = vs && fs && gl.createProgram();
+  if (!program) return null;
+  gl.attachShader(program, vs);
+  gl.attachShader(program, fs);
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return null;
+  gl.useProgram(program);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  const aPos = gl.getAttribLocation(program, 'a_pos');
+  gl.enableVertexAttribArray(aPos);
+  gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+  return program;
+};
+
+const webglContext = (canvas) => canvas.getContext('webgl', {
+  alpha: true,
+  premultipliedAlpha: true,
+  antialias: false,
+  depth: false,
+  stencil: false,
+  powerPreference: 'low-power',
+});
+
 // Humo fijo para el título y las cards. Se enciende con la apertura de los ojos
 // (título) y queda a plena intensidad con las cards. Fuera de la zona no se dibuja.
 export const progressFog = () => {
@@ -193,31 +262,15 @@ export const progressFog = () => {
   const canvas = document.createElement('canvas');
   canvas.className = 'progress-fog';
   canvas.setAttribute('aria-hidden', 'true');
+  const veilCanvas = document.createElement('canvas');
+  veilCanvas.className = 'progress-veil';
+  veilCanvas.setAttribute('aria-hidden', 'true');
 
-  const gl = canvas.getContext('webgl', {
-    alpha: true,
-    premultipliedAlpha: true,
-    antialias: false,
-    depth: false,
-    stencil: false,
-    powerPreference: 'low-power',
-  });
-  const vs = gl && compile(gl, gl.VERTEX_SHADER, VERT);
-  const fs = gl && compile(gl, gl.FRAGMENT_SHADER, FRAG);
-  const program = vs && fs && gl.createProgram();
-  if (!program) return;
-  gl.attachShader(program, vs);
-  gl.attachShader(program, fs);
-  gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return;
-  gl.useProgram(program);
-
-  // Triángulo que cubre el viewport: un solo draw call
-  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-  const aPos = gl.getAttribLocation(program, 'a_pos');
-  gl.enableVertexAttribArray(aPos);
-  gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+  const gl = webglContext(canvas);
+  const veilGl = webglContext(veilCanvas);
+  const program = gl && buildProgram(gl, FRAG);
+  const veilProgram = veilGl && buildProgram(veilGl, VEIL_FRAG);
+  if (!program || !veilProgram) return;
 
   const u = {
     res: gl.getUniformLocation(program, 'u_res'),
@@ -229,34 +282,58 @@ export const progressFog = () => {
     ring: gl.getUniformLocation(program, 'u_ring'),
     absorb: gl.getUniformLocation(program, 'u_absorb'),
     close: gl.getUniformLocation(program, 'u_close'),
+    gone: gl.getUniformLocation(program, 'u_gone'),
     flow: gl.getUniformLocation(program, 'u_flow'),
     inPhase: gl.getUniformLocation(program, 'u_inPhase'),
     light: gl.getUniformLocation(program, 'u_light'),
     lag: gl.getUniformLocation(program, 'u_lag'),
   };
+  const vu = {
+    res: veilGl.getUniformLocation(veilProgram, 'u_res'),
+    view: veilGl.getUniformLocation(veilProgram, 'u_view'),
+    eye: veilGl.getUniformLocation(veilProgram, 'u_eye'),
+    veil: veilGl.getUniformLocation(veilProgram, 'u_veil'),
+    stage: veilGl.getUniformLocation(veilProgram, 'u_stage'),
+    reveal: veilGl.getUniformLocation(veilProgram, 'u_reveal'),
+    revealR: veilGl.getUniformLocation(veilProgram, 'u_revealR'),
+  };
 
-  const veil = document.createElement('div');
-  veil.className = 'progress-veil';
-  veil.setAttribute('aria-hidden', 'true');
+  // Color del velo: el mismo --bg-color que usaba el elemento DOM
+  const probe = document.createElement('div');
+  probe.style.color = 'var(--bg-color)';
+  probe.style.display = 'none';
 
   document.body.prepend(canvas);
-  document.body.append(veil);
+  document.body.append(veilCanvas);
+  document.body.append(probe);
   document.body.classList.add('progress-stage');
+  const veilRGB = [0.03, 0.03, 0.03];
+  const readVeil = () => {
+    const m = getComputedStyle(probe).color.match(/[\d.]+/g);
+    if (m && m.length >= 3) {
+      veilRGB[0] = m[0] / 255;
+      veilRGB[1] = m[1] / 255;
+      veilRGB[2] = m[2] / 255;
+    }
+  };
 
   const resize = () => {
-    const cw = canvas.clientWidth;
-    const ch = canvas.clientHeight;
-    const w = Math.max(1, Math.round(cw * SCALE));
-    const h = Math.max(1, Math.round(ch * SCALE));
+    const w = Math.max(1, Math.round(canvas.clientWidth * SCALE));
+    const h = Math.max(1, Math.round(canvas.clientHeight * SCALE));
     canvas.width = w;
     canvas.height = h;
+    veilCanvas.width = w;
+    veilCanvas.height = h;
     gl.viewport(0, 0, w, h);
     gl.uniform2f(u.res, w, h);
     gl.uniform2f(u.view, window.innerWidth, window.innerHeight);
+    veilGl.viewport(0, 0, w, h);
+    veilGl.uniform2f(vu.res, w, h);
+    veilGl.uniform2f(vu.view, window.innerWidth, window.innerHeight);
   };
   resize();
 
-  // Borde inferior de la zona: el velo y el canvas se recortan con la sección de
+  // Borde inferior de la zona: el velo y el humo se recortan con la sección de
   // cards, así el pie queda tapado exactamente como antes.
   let stageH = -1;
   const updateStage = () => {
@@ -264,8 +341,19 @@ export const progressFog = () => {
     const s = clamp(sec.getBoundingClientRect().bottom, 0, H);
     if (s !== stageH) {
       stageH = s;
-      veil.style.height = `${s}px`;
       canvas.style.clipPath = `inset(0 0 ${H - s}px 0)`;
+    }
+    return s;
+  };
+  // El velo sigue a la sección salvo mientras corre el aro: así el scroll no levanta
+  // el borde y el pie sólo aparece por el aro
+  let veilStageH = -1;
+  const updateVeilStage = (stage, rv) => {
+    const H = window.innerHeight;
+    const s = rv > 0 && rv < 1 ? H : stage;
+    if (s !== veilStageH) {
+      veilStageH = s;
+      veilCanvas.style.clipPath = `inset(0 0 ${H - s}px 0)`;
     }
     return s;
   };
@@ -274,9 +362,6 @@ export const progressFog = () => {
   let last = t0;
   let alpha = 0;
   let raf = 0;
-  // Cierre de los ojos: el velo y el humo se desvanecen y el pie entra en tiempo
-  let hidden = false;
-  let fade = 1;
   let flow = 0;
   let light = 0;
   let speed = 1;
@@ -284,7 +369,7 @@ export const progressFog = () => {
   let inV = 0.1;
   let lag = 0;
 
-  // El loop corre sólo mientras hay humo visible o un fade en curso; el scroll lo
+  // El loop corre sólo mientras hay humo visible o un aro en curso; el scroll lo
   // despierta para que el velo y el recorte sigan a la sección.
   const frame = (now) => {
     raf = 0;
@@ -293,10 +378,33 @@ export const progressFog = () => {
     const stage = updateStage();
     const lit = stage > 0 ? Math.max(progressState.eyes, progressState.p > 0.001 ? 1 : 0) : 0;
     alpha += (lit - alpha) * (1 - Math.exp(-dt * 2.5));
-    const target = hidden ? 0 : 1;
-    fade += (target - fade) * (1 - Math.exp(-dt * 6));
-    veil.style.opacity = String(fade);
-    canvas.style.opacity = String(fade);
+    // Aro del pie: el radio llega más allá de la esquina más lejana, con margen para
+    // el borde ruidoso, así a 1 el velo desaparece del todo
+    const rv = progressState.reveal;
+    const ex = progressState.eyeX;
+    const ey = progressState.eyeY;
+    // El origen del aro se congela mientras corre: los ojos siguen moviéndose y el
+    // footer usa esa misma distancia, así sus elementos no cambian de tiempo
+    if (rv <= 0) {
+      progressState.revealX = ex;
+      progressState.revealY = ey;
+    }
+    const ox = progressState.revealX;
+    const oy = progressState.revealY;
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    const revealMax = Math.hypot(Math.max(ox, W - ox), Math.max(oy, H - oy)) + REVEAL_MARGIN;
+    progressState.revealMax = revealMax;
+
+    readVeil();
+    veilGl.useProgram(veilProgram);
+    veilGl.uniform3f(vu.veil, veilRGB[0], veilRGB[1], veilRGB[2]);
+    veilGl.uniform2f(vu.eye, ox, oy);
+    veilGl.uniform1f(vu.stage, updateVeilStage(stage, rv));
+    veilGl.uniform1f(vu.reveal, rv);
+    veilGl.uniform1f(vu.revealR, rv * revealMax);
+    veilGl.drawArrays(veilGl.TRIANGLES, 0, 3);
+
     const ab = progressState.absorb;
     speed += (1 + 7 * ab * ab - speed) * (1 - Math.exp(-dt * 2.5));
     flow += dt * speed;
@@ -304,38 +412,37 @@ export const progressFog = () => {
     inV += (0.1 + 0.6 * ab * ab * ab - inV) * (1 - Math.exp(-dt * 2.5));
     inPhase = (inPhase + dt * inV) % 1;
     lag += (ab - lag) * (1 - Math.exp(-dt * 0.6));
+    gl.useProgram(program);
     gl.uniform1f(u.time, (now - t0) / 1000);
     gl.uniform1f(u.flow, flow);
     gl.uniform1f(u.inPhase, inPhase);
     gl.uniform1f(u.light, light);
     gl.uniform1f(u.lag, lag);
     gl.uniform1f(u.alpha, alpha);
-    gl.uniform2f(u.eye, progressState.eyeX, progressState.eyeY);
+    gl.uniform2f(u.eye, ex, ey);
     gl.uniform1f(u.eyeAmt, progressState.eyes);
     gl.uniform1f(u.ring, progressState.ring);
     gl.uniform1f(u.absorb, progressState.absorb);
     gl.uniform1f(u.close, progressState.close);
+    const absorbed = clamp((ab - 0.85) / 0.1, 0, 1);
+    gl.uniform1f(u.gone, Math.max(absorbed * absorbed * (3 - 2 * absorbed), rv));
     gl.drawArrays(gl.TRIANGLES, 0, 3);
-    if (lit > 0 || alpha > 0.002 || Math.abs(target - fade) > 0.002) raf = requestAnimationFrame(frame);
+    const revealing = rv > 0 && rv < 1;
+    if (lit > 0 || alpha > 0.002 || revealing) raf = requestAnimationFrame(frame);
   };
   const start = () => {
     if (raf) return;
     last = performance.now();
     raf = requestAnimationFrame(frame);
   };
-  window.addEventListener('eyesClosed', () => {
-    hidden = true;
-    start();
-  });
-  window.addEventListener('eyesOpened', () => {
-    hidden = false;
-    start();
-  });
+  window.addEventListener('eyesClosed', start);
+  window.addEventListener('eyesOpened', start);
 
   window.addEventListener('scroll', start, { passive: true });
   window.addEventListener('resize', () => {
     resize();
     stageH = -1;
+    veilStageH = -1;
     start();
   });
   document.addEventListener('visibilitychange', () => {

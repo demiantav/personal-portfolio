@@ -5,6 +5,9 @@
 // ring: anillo del finale 0→1 (tiempo fijo, disparado al quedar centrados).
 // absorb: absorción del humo 0→1 (scroll, después del anillo).
 // close: cierre de los ojos 0→1 (scroll, al final del pin).
+// reveal: aro que revela el pie 0→1 (tiempo fijo, disparado al cerrarse los ojos).
+// revealMax: radio en px con el que el aro cubre toda la pantalla (lo fija el humo).
+// revealX/revealY: origen del aro, congelado mientras corre (los ojos siguen moviéndose).
 // inhale: escala relativa del ojo durante el finale (anticipación de la succión).
 // eyes: apertura de los ojos 0→1 (bloom); el humo del título arranca con ella.
 // eyeX/eyeY: centro de los ojos en px de viewport.
@@ -15,6 +18,10 @@ export const progressState = {
   ring: 0,
   absorb: 0,
   close: 0,
+  reveal: 0,
+  revealMax: 1,
+  revealX: 0,
+  revealY: 0,
   inhale: 0,
   eyes: 0,
   eyeX: 0,

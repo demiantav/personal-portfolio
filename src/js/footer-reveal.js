@@ -1,6 +1,7 @@
 import { gsap } from 'gsap';
 import ScrollTrigger from 'gsap/ScrollTrigger';
 import SplitText from 'gsap/SplitText';
+import { progressState } from './progressState.js';
 
 gsap.registerPlugin(ScrollTrigger, SplitText);
 
@@ -8,9 +9,9 @@ gsap.registerPlugin(ScrollTrigger, SplitText);
 // oculto tras el lienzo opaco de la sección de proceso. El documento reserva su
 // alto (margin en #hero) como ventana de scroll: al final, el proceso sale
 // revelando el pie sin que este se mueva un pixel.
-// Finale: cuando los ojos cierran (evento eyesClosed) el humo ya fue absorbido,
-// el velo se desvanece y el pie entra como una escena en tiempo, no atado al
-// scroll. Si los ojos se reabren, la escena se revierte.
+// Finale: cuando los ojos cierran (evento eyesClosed) el humo ya fue absorbido y
+// un aro en tiempo fijo revela el pie a través de un agujero del velo (progressFog.js).
+// La escena del pie avanza con ese aro. Si los ojos se reabren, todo se revierte.
 export const footerReveal = () => {
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const progress = document.querySelector('.main__progress-section');
@@ -100,7 +101,6 @@ export const footerReveal = () => {
   };
 
   // Estados iniciales con .set: se aplican SÍ o SÍ al ejecutarse
-  gsap.set(wrapper, { yPercent: 6 });
   gsap.set(titleWords, { yPercent: 110 });
   if (nav) gsap.set(nav, { autoAlpha: 0, y: 24 });
   if (line) gsap.set(line, { scaleX: 0, transformOrigin: 'left center' });
@@ -134,27 +134,54 @@ export const footerReveal = () => {
     ? SplitText.create(locationEl, { type: 'chars', mask: 'chars' }).chars
     : [];
 
-  // Una sola escena en tiempo, disparada por los ojos al cerrarse
-  const scene = gsap.timeline({
-    paused: true,
-    onReverseStart: () => setMasks(false),
-    onComplete: () => setMasks(true),
-  });
-  scene.to(wrapper, { yPercent: 0, duration: 1 }, 0);
-  if (line) scene.to(line, { scaleX: 1, duration: 1.1, ease: 'power3.out' }, 0.1);
-  if (btnChars.length) scene.from(btnChars, { ...burstDNA }, 0.25);
-  if (locationChars.length) scene.from(locationChars, { ...burstDNA }, 0.35);
-  if (bottom) scene.to(bottom, { autoAlpha: 1, y: 0, duration: 0.3 }, 0.3);
-  if (timeUnits.length) scene.from(timeUnits, { ...burstDNA }, 0.45);
-  if (nav) scene.to(nav, { autoAlpha: 1, y: 0, duration: 0.25 }, 0.5);
-  scene.to(titleWords, { yPercent: 0, duration: 0.3, stagger: 0.05, ease: 'power1.out' }, 0.5);
+  // Cada elemento tiene su propia entrada, de duración fija: arranca cuando el agujero
+  // del aro lo alcanza y se revierte si el aro retrocede. Sin scrub: cada entrada
+  // termina con su ease completo
+  const groups = [];
+  const addGroup = (el, build) => {
+    const tl = gsap.timeline({ paused: true });
+    build(tl);
+    groups.push({ el, tl, cx: 0, cy: 0, on: false });
+  };
+  if (line) addGroup(line, (tl) => tl.to(line, { scaleX: 1, duration: 1.1, ease: 'power3.out' }));
+  if (btnChars.length) addGroup(btn, (tl) => tl.from(btnChars, { ...burstDNA }));
+  if (locationChars.length) addGroup(locationEl, (tl) => tl.from(locationChars, { ...burstDNA }));
+  if (bottom) addGroup(bottom, (tl) => tl.to(bottom, { autoAlpha: 1, y: 0, duration: 0.3 }));
+  if (timeUnits.length) addGroup(timeUnits[0], (tl) => tl.from(timeUnits, { ...burstDNA }));
+  if (nav) addGroup(nav, (tl) => tl.to(nav, { autoAlpha: 1, y: 0, duration: 0.25 }));
+  addGroup(titleEl, (tl) => tl.to(titleWords, { yPercent: 0, duration: 0.3, stagger: 0.05, ease: 'power1.out' }));
 
-  // Sin cortina: al cerrar los ojos el velo y el humo se desvanecen (progressFog.js)
-  // y la escena del pie corre en tiempo
-  window.addEventListener('eyesClosed', () => {
-    scene.play();
-  });
-  window.addEventListener('eyesOpened', () => {
-    scene.reverse();
+  const measure = () => {
+    groups.forEach((g) => {
+      const rc = g.el.getBoundingClientRect();
+      g.cx = rc.left + rc.width / 2;
+      g.cy = rc.top + rc.height / 2;
+    });
+  };
+  measure();
+  window.addEventListener('resize', measure);
+
+  // El radio del agujero (r · revealMax) decide cuándo cada elemento arranca o se
+  // revierte. Al completarse el aro, las máscaras se liberan.
+  let lastReveal = -1;
+  let settled = false;
+  gsap.ticker.add(() => {
+    const r = progressState.reveal;
+    if (r === lastReveal) return;
+    lastReveal = r;
+    const ox = progressState.revealX;
+    const oy = progressState.revealY;
+    const radius = r * (progressState.revealMax || 1);
+    groups.forEach((g) => {
+      const on = radius >= Math.hypot(g.cx - ox, g.cy - oy);
+      if (on === g.on) return;
+      g.on = on;
+      if (on) g.tl.play();
+      else g.tl.reverse();
+    });
+    if ((r >= 1) !== settled) {
+      settled = r >= 1;
+      setMasks(settled);
+    }
   });
 };
