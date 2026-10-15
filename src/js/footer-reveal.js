@@ -61,6 +61,11 @@ export const footerReveal = () => {
   const titleSplit = SplitText.create(titleEl, { type: 'chars, words', mask: 'words' });
   const titleWords = titleSplit.words;
   const titleMasks = titleSplit.masks;
+  // SplitText deja las máscaras en `overflow: clip`. Al revertir el reveal hay
+  // que restaurar ESE valor, no `hidden`: `hidden` le da al inline-block su
+  // propia baseline y cambia el alto del título (~60px). Con el space-around
+  // del pie, ese cambio reacomoda todo el resto en vertical.
+  const maskRest = titleMasks[0]?.style.overflow || 'clip';
 
   // Publica las letras: propiedad + evento, así el módulo del imán funciona
   // tanto si se inicializa antes como después del split.
@@ -108,9 +113,10 @@ export const footerReveal = () => {
 
   // Máscaras del título: se liberan cuando el titular ya asentó (para no
   // recortar el imán del cursor) y vuelven a ocultarse al revertir la escena.
+  // Al ocultarlas se restaura el `clip` original, así el layout no se mueve.
   const setMasks = (released) => {
     titleMasks.forEach((m) => {
-      m.style.overflow = released ? 'visible' : 'hidden';
+      m.style.overflow = released ? 'visible' : maskRest;
     });
     // El título ya asentó: el imán recalcula sus bases (ya sin el yPercent del
     // reveal ni las máscaras intermedias).

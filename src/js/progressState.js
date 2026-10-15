@@ -4,7 +4,7 @@
 // center: los ojos se desplazan al centro de la pantalla 0→1 (scroll).
 // ring: anillo del finale 0→1 (tiempo fijo, disparado al quedar centrados).
 // absorb: absorción del humo 0→1 (scroll, después del anillo).
-// close: cierre de los ojos 0→1 (scroll, al final del pin).
+// close: cierre de los ojos 0→1 (tiempo fijo, arranca al terminar la absorción).
 // reveal: aro que revela el pie 0→1 (tiempo fijo, disparado al cerrarse los ojos).
 // revealMax: radio en px con el que el aro cubre toda la pantalla (lo fija el humo).
 // revealX/revealY: origen del aro, congelado mientras corre (los ojos siguen moviéndose).

@@ -106,12 +106,24 @@ void main() {
   float ab = u_absorb;
   float antic = -0.12 * smoothstep(0.0, 0.15, rg) * (1.0 - smoothstep(0.15, 0.3, rg));
   float frontR = RING_R * smoothstep(0.15, 0.85, rg);
+  // Frente de succión: se contrae desde los bordes hacia el ojo. Lo que queda
+  // fuera del frente ya fue absorbido; a absorb = 1 no queda humo
+  float reach = 1.4 * (1.0 - smoothstep(0.0, 0.9, ab));
+  // Banda de tirón. Durante el anillo (aprobado) sale del frente del anillo con su
+  // fuerza 1.6. Al arrancar la absorción se pega al frente que se contrae, pero con
+  // fuerza y ancho que bajan con el radio: así el estirado viaja con el borde visible
+  // sin acelerar el corrimiento del humo (antes la banda estaba lejos del borde)
+  float abBlend = smoothstep(0.0, 0.15, ab);
+  float pullK = clamp(reach / 1.4, 0.0, 1.0);
+  float pullR = mix(frontR, reach, abBlend);
+  float pullW = 0.25 * mix(1.0, max(pullK, 0.3), abBlend);
+  float pullAmp = mix(1.6, 0.45 * pullK, abBlend);
 
   // Mapeo de la fuente: el humo junto al frente se tira hacia el ojo
   vec2 off = vp - u_eye;
   float rad = max(length(off), 1e-4);
   float rEye = rad / u_view.y;
-  float pull = 1.0 + 1.6 * smoothstep(0.15, 0.85, rg) * exp(-pow((rEye - frontR) / 0.25, 2.0));
+  float pull = 1.0 + pullAmp * smoothstep(0.15, 0.85, rg) * exp(-pow((rEye - pullR) / pullW, 2.0));
 
   // Absorción: el humo gira y se estira hacia el ojo, más fuerte cuanto más cerca
   float fa = smoothstep(0.0, 0.6, ab);
@@ -149,9 +161,7 @@ void main() {
   // ese espacio queda abierto para el humo que llega desde afuera
   float edge = (noise(vp / u_view.y * 6.0 + vec2(0.0, t)) - 0.5) * 0.16;
   float eaten = mix(smoothstep(frontR + edge - 0.04, frontR + edge + 0.04, rEye), 1.0, fa);
-  // Frente de succión: se contrae desde los bordes hacia el ojo. Lo que queda
-  // fuera del frente ya fue absorbido; a absorb = 1 no queda humo
-  float reach = 1.4 * (1.0 - smoothstep(0.0, 0.9, ab));
+  // Frente de succión: dentro del frente el humo está disponible; fuera, ya fue absorbido
   float inside = 1.0 - smoothstep(reach - 0.2, reach + 0.05, rEye);
   float sinkR = 0.2 * fa;
   float sink = smoothstep(sinkR - 0.03, sinkR + 0.03, rEye);
