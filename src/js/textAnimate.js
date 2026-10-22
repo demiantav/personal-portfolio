@@ -3,12 +3,16 @@ import SplitText from 'gsap/SplitText';
 import ScrollTrigger from 'gsap/ScrollTrigger';
 import { HeroSmoke } from './heroSmoke.js';
 import { heroSporesFx } from './heroSpores.js';
+import { initHeroPointer } from './heroPointer.js';
 
 gsap.registerPlugin(SplitText, ScrollTrigger);
 
 export const heroFx = new HeroSmoke({
   dom: document.getElementById('webgl'),
 });
+
+// Interacción del hero con el puntero (humo + esporas). Sin reduced motion.
+initHeroPointer();
 
 // La intro (preloader + entrada del hero) monopoliza el main thread. Cualquier
 // refresh de ScrollTrigger agendado desde afuera (load, fonts, imágenes) se

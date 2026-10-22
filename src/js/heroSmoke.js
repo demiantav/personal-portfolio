@@ -1,5 +1,6 @@
 import gsap from 'gsap';
 import { NOISE, buildProgram, webglContext } from './gl.js';
+import { heroPointer } from './heroPointer.js';
 
 // Humo del hero: un canvas WebGL que llena la sección. Reemplaza a las líneas
 // 2D (waves.js) y usa el mismo campo de ruido que el humo del finale, así el
@@ -23,13 +24,6 @@ const SCALE_COMPACT = 0.38;
 // aleatorio da el delay orgánico.
 const FLASH_MIN_GAP = 2.5;
 const FLASH_MAX_GAP = 6;
-const EYE_CHANCE = 0.32; // probabilidad de ojos fugaces por descarga
-
-const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
-const smoothstep = (a, b, t) => {
-  const k = clamp((t - a) / (b - a), 0, 1);
-  return k * k * (3 - 2 * k);
-};
 
 const FRAG = `
 #ifdef GL_FRAGMENT_PRECISION_HIGH
@@ -46,9 +40,8 @@ uniform float u_exit;    // salida hacia la D 0→1 (scroll)
 uniform vec2 u_exitPos;  // centro de la D, px de viewport
 uniform float u_flash;   // luz del relámpago 0→1
 uniform vec2 u_flashPos; // origen del relámpago, px de viewport
-uniform float u_eye;     // ojos fugaces 0→1
-uniform vec2 u_eyePos;   // centro de los ojos, px de viewport
-uniform float u_eyeOpen; // parpadeo de los ojos 0→1
+uniform vec2 u_pointer;  // puntero, px de viewport
+uniform float u_pointerAmt; // interacción 0→1
 ${NOISE}
 
 // Coordenadas de ruido desde px de viewport: el campo queda fijo en la pantalla
@@ -96,7 +89,18 @@ void main() {
   // Salida: el muestreo se pliega hacia la D y el humo se traga (absorción)
   float ex = smoothstep(0.0, 1.0, u_exit);
   vec2 src = mix(vp, u_exitPos + (vp - u_exitPos) * exp(1.1 * ex), ex);
-  float d = fieldAt(src, t);
+
+  // Puntero: la niebla se abre a su paso. El muestreo se corre hacia afuera y la
+  // densidad baja en el centro; el borde se deforma con ruido para que no se lea
+  // como un círculo. Sin luz: sólo desplazamiento.
+  float pr = u_view.y * mix(0.18, 0.16, step(u_view.x, 768.0));
+  vec2 poff = src - u_pointer;
+  float pdist = length(poff);
+  float wobble = (noise(src / u_view.y * 3.2 + vec2(0.0, t * 0.4)) - 0.5) * 0.4;
+  float wake = exp(-pow(pdist / (pr * (1.0 + wobble)), 2.0)) * u_pointerAmt;
+  vec2 pdir = poff / max(pdist, pr * 0.05);
+  vec2 srcField = src + pdir * wake * (pr * 0.34);
+  float d = fieldAt(srcField, t);
 
   // Contrapeso: volutas que caen en la franja superior, así el humo se disipa
   // arriba y no queda una columna uniforme
@@ -107,8 +111,10 @@ void main() {
   d = mix(d, dn, topBand * 0.35);
   // Capa macro: modula la densidad a gran escala después del contrapeso. Es lo
   // que hace que las masas cambien de tamaño y no se repita el mismo patrón.
-  float macro = macroAt(src, t);
+  float macro = macroAt(srcField, t);
   d += (macro - 0.5) * 0.5;
+  // Abertura del puntero: el humo se aparta, no desaparece
+  d -= wake * 0.32;
 
   // Rampa del finale: núcleos definidos, silueta de nube
   float body = bodyAt(d);
@@ -147,26 +153,9 @@ void main() {
   vec3 hot = vec3(0.9, 0.16, 0.16);
   float heat = clamp(lit * 2.0 + u_flash * 0.1 + sky * 0.1, 0.0, 1.0);
 
-  // Ojos fugaces: aparecen dentro del destello y parpadean
-  if (u_eye > 0.001) {
-    float gap = u_view.y * 0.032;
-    float rx = u_view.y * 0.026;
-    float ry = max(rx * 0.55 * u_eyeOpen, 1e-3);
-    for (int i = 0; i < 2; i++) {
-      float s = i == 0 ? -1.0 : 1.0;
-      vec2 c = u_eyePos + vec2(s * gap, 0.0);
-      vec2 e = (vp - c) / vec2(rx, ry);
-      float m = 1.0 - dot(e, e);
-      float eye = smoothstep(0.0, 0.3, m);
-      float glow = exp(-length(vp - c) / (rx * 3.2));
-      float k = u_eye * clamp(eye + glow * 0.5, 0.0, 1.0);
-      density += k * 1.1;
-      heat = clamp(heat + k, 0.0, 1.0);
-    }
-  }
-
   density = clamp(density * (1.0 - ex), 0.0, 1.0);
   vec3 col = mix(tint, hot, heat);
+
   gl_FragColor = vec4(col * density, density);
 }
 `;
@@ -187,13 +176,10 @@ export class HeroSmoke {
     this.flashTarget = 0;
     this.pulses = [];
     this.nextFlashAt = 0;
-    this.eye = 0;
-    this.eyeOpen = 0;
-    this.eyeStart = 0;
-    this.eyeDur = 0;
     this.flashPos = { x: 0, y: 0 };
     this.exitPos = { x: 0, y: 0 };
-    this.eyePos = { x: 0, y: 0 };
+    // Puntero suavizado (viewport px): el humo lo sigue con un lag chico
+    this.pointer = { x: 0, y: 0, amt: 0 };
     this.raf = 0;
     this.last = 0;
 
@@ -231,9 +217,8 @@ export class HeroSmoke {
       exitPos: gl.getUniformLocation(program, 'u_exitPos'),
       flash: gl.getUniformLocation(program, 'u_flash'),
       flashPos: gl.getUniformLocation(program, 'u_flashPos'),
-      eye: gl.getUniformLocation(program, 'u_eye'),
-      eyePos: gl.getUniformLocation(program, 'u_eyePos'),
-      eyeOpen: gl.getUniformLocation(program, 'u_eyeOpen'),
+      pointer: gl.getUniformLocation(program, 'u_pointer'),
+      pointerAmt: gl.getUniformLocation(program, 'u_pointerAmt'),
     };
     this.resize();
     return true;
@@ -304,7 +289,14 @@ export class HeroSmoke {
     this.clock += dt;
     this.flow += dt * (1 + 0.4 * this.exitProgress);
     this.updateFlash(dt);
-    this.updateEye(dt);
+    // Puntero: el humo lo sigue con un lag chico y la interacción entra rápido
+    // y sale lento (así el cierre se siente suave)
+    const pt = this.pointer;
+    const posRate = 1 - Math.exp(-dt * 12);
+    pt.x += (heroPointer.x - pt.x) * posRate;
+    pt.y += (heroPointer.y - pt.y) * posRate;
+    const amtTarget = heroPointer.active ? 1 : 0;
+    pt.amt += (amtTarget - pt.amt) * (1 - Math.exp(-dt * (amtTarget > pt.amt ? 6 : 2.5)));
     this.render();
     this.raf = requestAnimationFrame(this.loop);
   }
@@ -345,41 +337,6 @@ export class HeroSmoke {
       },
     ];
     this.nextFlashAt = this.clock + FLASH_MIN_GAP + Math.random() * (FLASH_MAX_GAP - FLASH_MIN_GAP);
-    if (Math.random() < EYE_CHANCE) this.spawnEye();
-  }
-
-  // Ojos fugaces: aparecen en el humo durante un destello, parpadean y se van
-  spawnEye() {
-    const W = window.innerWidth;
-    const H = window.innerHeight;
-    this.eyePos.x = W * (0.3 + Math.random() * 0.4);
-    this.eyePos.y = H * (0.28 + Math.random() * 0.3);
-    this.eyeStart = this.clock;
-    this.eyeDur = 1.5 + Math.random() * 0.8;
-  }
-
-  updateEye() {
-    if (!this.eyeStart) {
-      this.eye = 0;
-      this.eyeOpen = 0;
-      return;
-    }
-    const tt = this.clock - this.eyeStart;
-    if (tt > this.eyeDur) {
-      this.eyeStart = 0;
-      this.eye = 0;
-      this.eyeOpen = 0;
-      return;
-    }
-    const inK = smoothstep(0, 0.14, tt);
-    const outK = 1 - smoothstep(this.eyeDur - 0.4, this.eyeDur, tt);
-    // Dos parpadeos breves
-    const blink =
-      1 -
-      0.92 * Math.exp(-Math.pow((tt - 0.45) / 0.035, 2)) -
-      0.92 * Math.exp(-Math.pow((tt - 0.95) / 0.035, 2));
-    this.eye = inK * outK;
-    this.eyeOpen = clamp(blink, 0, 1);
   }
 
   render() {
@@ -392,9 +349,10 @@ export class HeroSmoke {
     gl.uniform2f(this.u.exitPos, this.exitPos.x, this.exitPos.y);
     gl.uniform1f(this.u.flash, this.flash);
     gl.uniform2f(this.u.flashPos, this.flashPos.x, this.flashPos.y);
-    gl.uniform1f(this.u.eye, this.eye);
-    gl.uniform2f(this.u.eyePos, this.eyePos.x, this.eyePos.y);
-    gl.uniform1f(this.u.eyeOpen, this.eyeOpen);
+    // El puntero va en las mismas coordenadas que vp: relativas al canvas
+    const rect = this.canvas.getBoundingClientRect();
+    gl.uniform2f(this.u.pointer, this.pointer.x - rect.left, this.pointer.y - rect.top);
+    gl.uniform1f(this.u.pointerAmt, this.pointer.amt);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
 }
