@@ -81,6 +81,9 @@ html::-webkit-scrollbar {
   text-align: end;
   min-height: 35dvh;
   color: var(--primary-color);
+  /* El titular va por encima del humo del hero (#webgl) */
+  position: relative;
+  z-index: 1;
 }
 
 .zoom-effect {
@@ -95,7 +98,34 @@ html::-webkit-scrollbar {
   grid-area: 1 / 1;
   min-height: 100dvh;
   background-color: var(--bg-color);
+  /* Base sutil del hero: queda detrás del humo (canvas transparente) y también
+     sirve de respaldo cuando no hay WebGL. */
+  background-image: radial-gradient(120% 80% at 50% 100%, rgba(243, 80, 95, 0.1), transparent 62%);
+  /* El canvas es absoluto y cubre la sección (inset:0 = padding box). El titular
+     conserva su altura con padding, que no colapsa como sí haría un margen. */
+  padding-block-start: 50dvh;
+  position: relative;
   overflow: clip;
+}
+
+/* Humo del hero (heroSmoke.js): fondo completo de la sección, detrás del titular */
+#webgl {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+/* Esporas del hero (heroSpores.js): polvo rojo entre el humo y el titular. Va
+   después de #webgl en el DOM, así se pinta encima con el mismo z-index. */
+.hero-spores {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
 }
 
 /*Header*/

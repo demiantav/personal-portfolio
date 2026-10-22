@@ -1,7 +1,8 @@
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import SplitText from 'gsap/SplitText';
-import { waves } from './textAnimate.js';
+import { heroFx } from './textAnimate.js';
+import { heroSporesFx } from './heroSpores.js';
 
 gsap.registerPlugin(ScrollTrigger, SplitText);
 
@@ -37,8 +38,8 @@ export function initHeroZoomTransition() {
     },
   });
 
-  // Fase 1 (0% → 28%): las waves se cortan una por una hacia la derecha
-  tl.to(waves, { exitProgress: 1, duration: 0.28 }, 0)
+  // Fase 1 (0% → 28%): el humo y las esporas se pliegan hacia la D y se tragan
+  tl.to([heroFx, heroSporesFx], { exitProgress: 1, duration: 0.28 }, 0)
     // Cada letra sale en cascada: whip hacia la derecha con deriva y giro aleatorio
     .to(
       h4Chars,

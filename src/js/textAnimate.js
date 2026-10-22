@@ -1,11 +1,12 @@
 import gsap from 'gsap';
 import SplitText from 'gsap/SplitText';
 import ScrollTrigger from 'gsap/ScrollTrigger';
-import { Waves } from './waves';
+import { HeroSmoke } from './heroSmoke.js';
+import { heroSporesFx } from './heroSpores.js';
 
 gsap.registerPlugin(SplitText, ScrollTrigger);
 
-export const waves = new Waves({
+export const heroFx = new HeroSmoke({
   dom: document.getElementById('webgl'),
 });
 
@@ -196,9 +197,16 @@ export const pageLoad = ({ onReady } = {}) => {
       },
       titleFly.startTime() + 0.95,
     );
-    // 3️⃣ WAVES: el entorno se materializa al terminar el titular, así el
-    // redibujo full-width del canvas no compite con la última parte del vuelo
-    tl.call(() => waves.start(), [], titleFly.endTime());
+    // 3️⃣ HUMO + ESPORAS: el entorno se materializa al terminar el titular, así el
+    // primer frame del shader no compite con la última parte del vuelo
+    tl.call(
+      () => {
+        heroFx.start();
+        heroSporesFx.start();
+      },
+      [],
+      titleFly.endTime(),
+    );
   };
 
   if (reduceMotion) {
