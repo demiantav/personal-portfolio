@@ -1,9 +1,12 @@
-# Hero: humo y relámpagos
+# Hero: humo, relámpagos y los ojos del subtítulo
 
 Reemplazo de las líneas 2D del hero (`waves.js`) por humo WebGL con relámpagos
 rojos aleatorios, en la dirección visual de Stranger Things. El humo iluminado
 usa el mismo lenguaje que el finale de la sección de proceso, así el hero y el
 cierre comparten técnica.
+
+La interacción principal del hero es otra: el subtítulo se despierta y se pliega
+en dos ojos de brasas que miran al cursor. El humo y las esporas quedan de fondo.
 
 ## Piezas
 
@@ -15,6 +18,11 @@ cierre comparten técnica.
   `buildProgram` (triángulo que cubre el viewport, un solo draw call) y
   `webglContext`. `progressFog.js` también los usa: antes duplicaba el ruido y el
   compilador.
+- **`src/js/heroSubtitleEyes.js`**: la interacción del subtítulo. Canvas 2D
+  pegado al bloque, partículas muestreadas del texto real, párpados con resortes
+  y mirada al cursor.
+- **`src/js/eyeEmotions.js`**: tabla compartida de emociones (neutral, enojo,
+  pícara, sueño, parpadeo) entre los ojos del hero y los del finale.
 
 ## Campo: nube + capa macro
 
@@ -52,10 +60,71 @@ humo y por debajo del texto (mismo `z-index: 0`, orden del DOM).
 - Reduced motion: un cuadro estático. `IntersectionObserver` pausa el loop
   cuando el hero sale de pantalla.
 
+## Los ojos del subtítulo (`heroSubtitleEyes.js`)
+
+La interacción principal del hero es el subtítulo. Los dos `h4` son la forma
+dormida de la criatura que aparece en el finale: al entrar al bloque, el texto se
+despierta, se pliega en dos ojos de brasas y mira al cursor. Al salir (o a los
+6 s de inactividad) los ojos se cierran, las brasas vuelven a sus glifos y el
+texto reaparece. En mobile el disparador es un tap; en `prefers-reduced-motion`
+no existe.
+
+### Rig de partículas
+
+- **Sin tocar el DOM.** El texto no se splitea para el efecto: se renderiza con
+  la fuente computada en un canvas offscreen y se muestrean los píxeles opacos.
+  El `SplitText` de la salida (`hero-zoom-transition.js`) queda intacto y el
+  subtítulo sigue siendo texto real para lectores de pantalla.
+- **Presupuesto.** 560 brasas en desktop y 380 en mobile, en un canvas 2D que
+  cubre sólo el bloque del subtítulo + 30 px de aire por lado. DPR máximo 2.
+  Sprites radiales pre-renderizados y `globalCompositeOperation = 'lighter'`;
+  el loop se apaga en reposo.
+- **El pliegue.** La línea de arriba se convierte en los párpados superiores y
+  la de abajo en los inferiores. La banda central de cada mitad se condensa en
+  la pupila; los extremos del texto, en las comisuras. Las partículas se
+  reparten por rango de píxeles (no por punto medio geométrico) para que los dos
+  ojos tengan la misma densidad aunque el subtítulo esté alineado a la derecha.
+- **La almendra.** Cada ojo es una curva asimétrica tipo cat-eye; el párpado
+  superior y el inferior comparten el mismo parámetro `t` (comisura interna 0 →
+  externa 1), así el cierre y la media luna funcionan con una sola pose. La
+  pupila se recorta contra la abertura real del ojo.
+- **Vuelo.** Las brasas salen del glifo con un bezier de dos tramos (levantan y
+  se abren antes de entrar al ojo). El ojo derecho llega ~40 ms más tarde, como
+  en el finale.
+
+### Coreografía
+
+- **Trigger.** Sólo al entrar al subtítulo (con 8 px de tolerancia) o con un tap
+  en mobile. Una vez despierto, la mirada sigue al cursor mientras siga dentro
+  del bloque de título + 24 px.
+- **Despertar.** El ojo nace en rendija (`upPos 0.55`), abre a los ~0.46 s y
+  queda abierto. El primer despertar de la carga regala una medialuna pícara a
+  los ~1.25 s, una sola vez.
+- **Emociones.** Se comparten con el finale vía `eyeEmotions.js`: neutral,
+  enojo (swipe rápido), pícara (cursor quieto), sueño (6 s de inactividad) y
+  parpadeo. Prioridad: enojo > pícara > sueño > neutral. La mirada usa resortes
+  con microsacádicas; el parpadeo y los tiempos salen de la misma tabla.
+- **Retorno.** Al salir del bloque de título (260 ms de gracia), a los 6 s de
+  inactividad, al scrollear, al redimensionar, al ocultar la pestaña o con un
+  segundo tap en mobile. El ojo se cierra en 160 ms; a los 170 ms las brasas
+  vuelven a los glifos y el texto entra a los 320 ms. El texto del DOM siempre
+  vuelve a `opacity: 1`; si hay scroll, se restaura en el mismo frame en que
+  empieza la salida.
+- **Re-armado.** Sólo saliendo y volviendo a entrar al subtítulo. El primer
+  despertar no se repite por carga. En mobile el sueño también se ve: llega a
+  los 6 s y devuelve a los ~6.9 s; el auto-retorno de seguridad es a los 7 s y
+  el tap devuelve antes.
+- **Accesibilidad.** El canvas es `aria-hidden`; el texto sigue en el DOM; el
+  aro custom se oculta sobre el subtítulo y el cursor nativo (flecha) es el que
+  los ojos miran. `prefers-reduced-motion` no monta el efecto; el CSS también
+  oculta `.hero-eyes`.
+
 ## Interacción
 
-No hay interacción con el cursor: el humo y las esporas son ambientales. El aro
-custom del sitio sigue existiendo, pero no modifica el hero.
+La interacción principal es el subtítulo: objeto-céntrica, sin un efecto global
+de cursor. El humo y las esporas quedan ambientales; el aro custom sigue
+existiendo para el resto del sitio, pero sobre el subtítulo se oculta y el
+cursor nativo es el que los ojos leen.
 
 ## Relámpagos
 
@@ -76,11 +145,19 @@ del pin. El muestreo del campo se pliega hacia el centro de la D
 (`.d-anchor`) y la densidad cae a 0, así el humo desaparece antes del zoom. La
 idea es la misma que la absorción del finale.
 
+Antes de que el zoom empiece, `heroSubtitleEyes.js` escucha el scroll: si el
+subtítulo está despierto, cierra los ojos y restaura el texto en el mismo frame
+(`cancelInstant`). El canvas de los ojos queda limpio y el `SplitText` de los
+`h4` sigue su curso.
+
 ## Rendimiento y fallbacks
 
 - Media resolución: escala 0.5 en desktop y 0.38 en mobile (el humo es de baja
   frecuencia, no se nota). El loop se pausa con `IntersectionObserver` cuando el
   hero sale de pantalla.
+- **Ojos del subtítulo**: 560/380 brasas en un canvas 2D del tamaño del bloque
+  (no del viewport), DPR ≤ 2, sprites pre-renderizados y loop apagado en reposo.
+  El muestreo del texto corre una vez por build (carga y resize), no por frame.
 - **Reduced motion**: sin relámpagos ni bucle; se dibuja un solo frame estático
   (verificado: `reduce = true`, sin errores).
 - **Sin WebGL**: el canvas queda vacío y se ve el degradado de respaldo de
@@ -93,22 +170,39 @@ idea es la misma que la absorción del finale.
 `overflow: clip`). `#webgl` es `position: absolute; inset: 0`, así cubre toda la
 sección sin empujar el layout; el titular queda por encima con `z-index: 1`.
 
+`.hero-subtitle` es un bloque `width: fit-content` alineado a la derecha;
+contiene los dos `h4` y el canvas `.hero-eyes` (`position: absolute`,
+`pointer-events: none`). El canvas se mide contra ese bloque y no contra el
+hero, así el presupuesto de píxeles queda chico.
+
 ## Archivos
 
 - `src/js/heroSmoke.js`: humo (shader) y relámpagos.
 - `src/js/heroSpores.js`: esporas en canvas 2D, con parallax y salida hacia la D.
+- `src/js/heroSubtitleEyes.js`: el subtítulo que se pliega en ojos.
+- `src/js/eyeEmotions.js`: emociones compartidas con `processEyes.js`.
 - `src/js/gl.js`: helpers y ruido compartidos.
-- `src/js/textAnimate.js`: instancia el humo y las esporas (`heroFx`, `heroSporesFx`)
-  y llama `start()` a los dos al terminar el titular.
+- `src/js/textAnimate.js`: instancia el humo y las esporas (`heroFx`, `heroSporesFx`),
+  llama `start()` a los dos al terminar el titular y expone `whenIntroDone`.
 - `src/js/hero-zoom-transition.js`: tweenea `exitProgress` en la salida.
-- `src/style.css`: `.hero-pin`, `#webgl` y `.hero-spores`.
+- `index.html`: el wrapper `.hero-subtitle` alrededor de los dos `h4`.
+- `src/index.js`: inicializa los ojos después de la intro, junto al cursor.
+- `src/js/cursor.js`: oculta el aro custom sobre `.hero-subtitle`.
+- `src/style.css`: `.hero-pin`, `#webgl`, `.hero-spores`, `.hero-subtitle` y
+  `.hero-eyes`.
 - `src/js/waves.js`: eliminado.
 
 ## Pendiente
 
-- Compartir un solo contexto WebGL entre el hero y el finale (hoy hay cinco
-  canvas en la página: humo y esporas del hero; humo, velo y ojos del finale).
-- Medir FPS en un dispositivo real, sobre todo mobile, con las esporas.
+- Compartir un solo contexto WebGL entre el hero y el finale (hoy hay seis
+  canvas en la página: humo, esporas y ojos del hero; humo, velo y ojos del
+  finale).
+- Medir FPS en un dispositivo real, sobre todo mobile, con las esporas y los
+  ojos.
+- Validar el tap de los ojos en un teléfono real: tamaño del target, selección
+  de texto y retorno automático.
 - Validar la magnitud del destello contra la pauta WCAG si se sube la intensidad.
 - Comparar en movimiento la nube del hero contra la sección de los ojos. Si hace
   falta, subir/bajar la amplitud macro (`0.5`) o el ambiente (`0.55`).
+- El portal D interactivo (más allá de la absorción de la salida) quedó para otra
+  iteración.

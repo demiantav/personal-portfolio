@@ -10,7 +10,7 @@ const LIGHT_SECTIONS = '.main__about-me-section, .main__skills-section, .project
 const INTERACTIVE = 'a, button, [role="button"], summary, label, [tabindex]:not([tabindex="-1"])';
 const EXPLICIT = '[data-cursor]';
 const HIDE_RING =
-  '.back-to-top, .contact-section__btn-contact, .contact-section__nav-links-wrapper ul a';
+  '.hero-subtitle, .back-to-top, .contact-section__btn-contact, .contact-section__nav-links-wrapper ul a';
 const MARQUEE_TEXT = 'See more → ';
 
 export const initCursor = () => {

@@ -1,0 +1,886 @@
+import gsap from 'gsap';
+import { createNoise2D } from 'simplex-noise';
+import { EMOTIONS, FLAT, GEST_KEYS, TILT } from './eyeEmotions.js';
+
+// Los ojos del subtítulo. El texto no "desaparece": se pliega. La línea de
+// arriba se convierte en los párpados superiores, la de abajo en los inferiores
+// y la banda central de cada mitad se condensa en la pupila. Todo son brasas
+// del propio coral del subtítulo, en un canvas 2D chico pegado al bloque.
+//
+// Reglas:
+//  · aparece sólo al entrar al subtítulo; una vez despierto mira al cursor
+//    mientras el puntero siga dentro del bloque de título;
+//  · al alejarse (o a los 6 s de inactividad) se duerme y vuelve al texto;
+//  · mobile: tap para despertar, tap para volver, auto-retorno de seguridad a
+//    los 7 s (el sueño llega a los 6 s y devuelve antes);
+//  · reduced motion: no existe;
+//  · cualquier scroll > 2 px cancela en el mismo frame y restaura el texto
+//    antes de que el SplitText de salida empiece a moverlo.
+const REDUCE = '(prefers-reduced-motion: reduce)';
+const COARSE = '(hover: none)';
+const PAD = 30; // aire del canvas para que los arcos no se recorten
+const N_FINE = 560;
+const N_COARSE = 380;
+const HIT_PAD = 8;
+const ZONE_PAD = 24;
+const INIT_UP = 0.55; // el ojo nace en rendija
+const OPEN_AT = 0.46; // s desde el engage hasta que empieza a abrir
+const OPEN_DUR = 0.26;
+const FLIGHT = 0.46;
+const FLIGHT_DELAY = 0.19;
+const CLOSE_MS = 160;
+const RETURN_DELAY = 170; // ms de cierre antes de que las brasas caigan
+const RETURN_DUR = 0.3;
+const RETURN_TOTAL = 640;
+const IDLE_MS = 6000;
+const SLEEP_HOLD = 900;
+const PLAY_STILL = 2200;
+const AWAY_HOLD = 260;
+const ANGRY_MS = 1400;
+const COARSE_HOLD = 7000;
+const HELLO_AT = 1250;
+
+const PUPIL_SCALE = {
+  neutral: 1,
+  scan: 0.92,
+  angry: 0.74,
+  playful: 1.16,
+  sleepy: 0.85,
+};
+
+// Almendra asimétrica (cat-eye), en unidades de rx/ry. Las dos curvas van de la
+// comisura interna a la externa; así el mismo t sirve para el párpado de arriba
+// y el de abajo.
+const A = {
+  inner: [-0.95, 0.1],
+  outer: [1.0, -0.28],
+  up1: [-0.55, -1.3],
+  up2: [0.3, -1.5],
+  lo1: [0.45, 0.85],
+  lo2: [-0.4, 1.05],
+};
+
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const mix = (a, b, t) => a + (b - a) * t;
+const smoothstep = (a, b, t) => {
+  const x = clamp((t - a) / (b - a), 0, 1);
+  return x * x * (3 - 2 * x);
+};
+const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const rand = (a, b) => a + Math.random() * (b - a);
+const bez = (a, b, c, d, t) => {
+  const u = 1 - t;
+  return u * u * u * a + 3 * u * u * t * b + 3 * u * t * t * c + t * t * t * d;
+};
+
+// Resorte amortiguado (mismo integrador que processEyes)
+const mkSpring = (settle, zeta) => {
+  const w = (2 * Math.PI) / settle;
+  return { k: w * w, c: 2 * zeta * w };
+};
+const integrate = (s, target, sp, dt) => {
+  const n = Math.ceil(dt * 120);
+  const h = dt / n;
+  for (let i = 0; i < n; i++) {
+    s.vel += ((target - s.v) * sp.k - s.vel * sp.c) * h;
+    s.v += s.vel * h;
+  }
+  return s.v;
+};
+
+// Sprite de brasa: núcleo caliente + halo. Se dibuja una vez y se reusa con
+// drawImage; nada de crear gradientes por partícula.
+const makeSprite = (core, mid, edge) => {
+  const S = 32;
+  const c = document.createElement('canvas');
+  c.width = c.height = S;
+  const g = c.getContext('2d');
+  if (!g) return c;
+  const r = S / 2;
+  const grd = g.createRadialGradient(r, r, 0, r, r, r);
+  grd.addColorStop(0, core);
+  grd.addColorStop(0.22, mid);
+  grd.addColorStop(0.55, edge);
+  grd.addColorStop(1, 'rgba(255, 36, 56, 0)');
+  g.fillStyle = grd;
+  g.fillRect(0, 0, S, S);
+  return c;
+};
+
+const cornerY = (x) =>
+  A.inner[1] + ((x - A.inner[0]) / (A.outer[0] - A.inner[0])) * (A.outer[1] - A.inner[1]);
+
+export const initHeroSubtitleEyes = () => {
+  if (window.matchMedia(REDUCE).matches) return;
+
+  const wrap = document.querySelector('.hero-subtitle');
+  const titles = document.querySelector('.main__container-titles');
+  if (!wrap || !titles) return;
+  const h4s = [...wrap.querySelectorAll('h4')];
+  if (h4s.length !== 2) return;
+
+  const canvas = document.createElement('canvas');
+  canvas.className = 'hero-eyes';
+  canvas.setAttribute('aria-hidden', 'true');
+  wrap.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  const coarse = window.matchMedia(COARSE).matches;
+  const reduceMq = window.matchMedia(REDUCE);
+  const noise = createNoise2D();
+  const sprites = [
+    makeSprite('rgba(255, 214, 206, 0.95)', 'rgba(255, 86, 98, 0.72)', 'rgba(255, 40, 60, 0.16)'), // 0: párpado
+    makeSprite('rgba(255, 176, 170, 0.78)', 'rgba(255, 56, 76, 0.5)', 'rgba(255, 30, 50, 0.1)'), // 1: inferior
+    makeSprite('rgba(255, 250, 245, 1)', 'rgba(255, 150, 142, 0.9)', 'rgba(255, 52, 72, 0.24)'), // 2: pupila
+  ];
+
+  // ─── Medidas ────────────────────────────────────────────────────────
+  let W = 0;
+  let H = 0;
+  let CW = 0;
+  let CH = 0;
+  let dpr = 1;
+  let wrapRect = wrap.getBoundingClientRect();
+  let zoneRect = titles.getBoundingClientRect();
+  let rx = 1;
+  let ry = 1;
+  let eyeCy = 0;
+  let eyeCx = [0, 0];
+  let eyeDir = [-1, 1];
+  let particles = [];
+  let armed = false;
+  let disabled = false;
+
+  const measure = () => {
+    wrapRect = wrap.getBoundingClientRect();
+    zoneRect = titles.getBoundingClientRect();
+    W = Math.max(1, Math.round(wrapRect.width));
+    H = Math.max(1, Math.round(wrapRect.height));
+    CW = W + PAD * 2;
+    CH = H + PAD * 2;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.style.left = `${-PAD}px`;
+    canvas.style.top = `${-PAD}px`;
+    canvas.style.width = `${CW}px`;
+    canvas.style.height = `${CH}px`;
+    canvas.width = Math.max(1, Math.round(CW * dpr));
+    canvas.height = Math.max(1, Math.round(CH * dpr));
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const eyeW = clamp(W * 0.3, 40, 54);
+    const eyeH = eyeW * 0.49;
+    const gap = eyeW * 0.26;
+    rx = eyeW / 2;
+    ry = eyeH / 2.55;
+    const pairCx = PAD + W / 2;
+    const pairCy = PAD + H / 2;
+    eyeCx = [pairCx - (eyeW + gap) / 2, pairCx + (eyeW + gap) / 2];
+    // La almendra no es simétrica en y (-1.5ry .. +1.05ry): correr el origen
+    // local para que la caja visible quede centrada en el bloque.
+    eyeCy = pairCy + ry * 0.225;
+  };
+
+  // ─── Muestreo del texto ─────────────────────────────────────────────
+  // Se renderiza el texto real con la fuente computada en un canvas offscreen y
+  // se toman píxeles opacos. No se toca el DOM: el SplitText de salida sigue
+  // intacto y el subtítulo permanece accesible para lectores de pantalla.
+  const sampleText = () => {
+    const off = document.createElement('canvas');
+    off.width = W;
+    off.height = H;
+    const g = off.getContext('2d', { willReadFrequently: true });
+    if (!g) return [];
+    g.clearRect(0, 0, W, H);
+    g.fillStyle = '#fff';
+    g.textAlign = 'right';
+    g.textBaseline = 'middle';
+    const rects = h4s.map((h) => {
+      const r = h.getBoundingClientRect();
+      return { top: r.top - wrapRect.top, right: r.right - wrapRect.left, h: r.height };
+    });
+    h4s.forEach((h, i) => {
+      const cs = getComputedStyle(h);
+      g.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+      if ('letterSpacing' in g) {
+        g.letterSpacing = cs.letterSpacing === 'normal' ? '0px' : cs.letterSpacing;
+      }
+      const text = (h.textContent || '').replace(/\s+/g, ' ').trim();
+      g.fillText(text, rects[i].right - 0.5, rects[i].top + rects[i].h / 2);
+    });
+    const data = g.getImageData(0, 0, off.width, off.height).data;
+    const splitY = Math.max(1, rects[1].top);
+    const pts = [];
+    for (let y = 0; y < off.height; y++) {
+      for (let x = 0; x < off.width; x++) {
+        if (data[(y * off.width + x) * 4 + 3] > 110) {
+          pts.push({ x, y, line: y < splitY ? 0 : 1 });
+        }
+      }
+    }
+    return pts;
+  };
+
+  const build = () => {
+    const cand = sampleText();
+    if (!cand.length) {
+      particles = [];
+      return;
+    }
+    const n = coarse ? N_COARSE : N_FINE;
+    let pick = cand;
+    if (cand.length > n) {
+      pick = cand.slice();
+      for (let i = pick.length - 1; i > 0; i--) {
+        const j = (Math.random() * (i + 1)) | 0;
+        [pick[i], pick[j]] = [pick[j], pick[i]];
+      }
+      pick = pick.slice(0, n);
+    }
+    // El subtítulo está alineado a la derecha: la mitad derecha tiene más
+    // glifos. Si repartiéramos por punto medio geométrico, el ojo derecho
+    // quedaría más denso. Partimos por cantidad de píxeles: cada ojo recibe la
+    // misma cantidad de brasas y la mitad izquierda/derecha real del texto.
+    pick = pick.slice().sort((a, b) => a.x - b.x || a.y - b.y);
+    const half = Math.ceil(pick.length / 2);
+    const groups = [pick.slice(0, half), pick.slice(half)];
+    const sizeScale = coarse ? 0.82 : 1;
+    particles = [];
+    for (let eye = 0; eye < 2; eye++) {
+      const group = groups[eye];
+      if (!group.length) continue;
+      const nGroup = group.length;
+      for (let gi = 0; gi < nGroup; gi++) {
+        const c = group[gi];
+        // u por rango, no por píxel: reparte las brasas en partes iguales a lo
+        // largo de la tapa (y de la pupila) aunque el texto sea más denso de
+        // un lado. El origen sigue siendo el píxel real del glifo.
+        const u = (gi + 0.5) / nGroup;
+        let role;
+        let param = 0;
+        if (u > 0.36 && u < 0.64) {
+          role = 2; // pupila
+        } else {
+          role = c.line === 0 ? 0 : 1;
+          // t=0 comisura interna, t=1 externa. El borde externo del texto es
+          // la comisura externa; el borde que mira al centro, la interna. La
+          // banda central (pupila) se saltea y la tapa se reparte en las dos
+          // mitades, así el párpado queda continuo incluso en el medio.
+          if (eye === 0) {
+            param =
+              u < 0.36 ? 1 - (u / 0.36) * 0.5 : 0.5 - ((u - 0.64) / 0.36) * 0.5;
+          } else {
+            param =
+              u < 0.36 ? (u / 0.36) * 0.5 : 0.5 + ((u - 0.64) / 0.36) * 0.5;
+          }
+          param = clamp(param + rand(-0.018, 0.018), 0, 1);
+        }
+        const size =
+          (role === 2
+            ? rand(4.8, 7.0)
+            : role === 0
+              ? rand(4.0, 6.2)
+              : rand(3.4, 5.2)) * sizeScale;
+        const aBase =
+          role === 2 ? rand(0.6, 0.84) : role === 0 ? rand(0.42, 0.68) : rand(0.32, 0.52);
+        particles.push({
+          sx: c.x + PAD + rand(-0.4, 0.4),
+          sy: c.y + PAD + rand(-0.4, 0.4),
+          eye,
+          role,
+          t: param,
+          ang: Math.random() * Math.PI * 2,
+          rad: Math.sqrt(Math.random()) * 0.92,
+          pick: Math.random(),
+          seed: Math.random() * 10,
+          size,
+          s0: size * 1.45,
+          aBase,
+          sprite: sprites[role],
+          x: c.x + PAD,
+          y: c.y + PAD,
+          alpha: 0,
+          sizeNow: size * 1.45,
+          delay: 0,
+          c1x: 0,
+          c1y: 0,
+          lat: 0,
+          lift: 0,
+          ret: false,
+        });
+      }
+    }
+  };
+
+  // ─── Estado ─────────────────────────────────────────────────────────
+  let state = 'idle'; // idle | waking | awake | returning
+  let curState = 'neutral';
+  let engagedAt = 0;
+  let openStart = 0;
+  let openEnd = 0;
+  let returnAt = 0;
+  let returnStarted = false;
+  let returnStartAt = 0;
+  let helloAt = Infinity;
+  let helloPlayed = false;
+  let lastMoveAt = 0;
+  let lastPX = 0;
+  let lastPY = 0;
+  let lastMoveT = 0;
+  let angryUntil = 0;
+  let playUntil = 0;
+  let sleepySince = 0;
+  let awayAt = 0;
+  let wasInside = false;
+  let cooldownUntil = 0;
+  let raf = 0;
+  let lastT = 0;
+  let blinkStart = -1;
+  let nextBlink = 0;
+  let nextMicro = 0;
+  let microX = 0;
+  let microY = 0;
+  const pointer = { x: 0, y: 0 };
+  const gaze = { x: 0, y: 0 };
+  const sGx = { v: 0, vel: 0 };
+  const sGy = { v: 0, vel: 0 };
+  const S_LID = mkSpring(0.18, 1);
+  const S_GAZE = mkSpring(0.2, 0.95);
+  const gest = Object.fromEntries(
+    GEST_KEYS.map((k) => [k, { v: k === 'upPos' ? INIT_UP : 0, vel: 0 }]),
+  );
+  const eyePose = [0, 1].map(() =>
+    Object.fromEntries(GEST_KEYS.map((k) => [k, k === 'upPos' ? INIT_UP : 0])),
+  );
+  const eyeFrame = [{}, {}];
+
+  // ─── Curvas del ojo ─────────────────────────────────────────────────
+  const upperPoint = (t, pose, time, k) => {
+    const u = clamp(pose.upPos, 0, 1);
+    const brow = -pose.upRot * 0.85;
+    const tr =
+      pose.tremor *
+      (noise(time * 5.2, k * 11 + 1.3) * 0.06 + noise(time * 11, k * 11 + 7.7) * 0.025);
+    const c1y = mix(A.up1[1], cornerY(A.up1[0]), u) + brow + tr;
+    const c2y = mix(A.up2[1], cornerY(A.up2[0]), u) + brow * 0.18 + tr * 0.6;
+    return {
+      x: bez(A.inner[0], A.up1[0], A.up2[0], A.outer[0], t),
+      y: bez(A.inner[1], c1y, c2y, A.outer[1], t),
+    };
+  };
+
+  const lowerPoint = (t, pose, time, k) => {
+    const u = clamp(pose.loPos, 0, 1);
+    const bow = pose.bow;
+    const tr =
+      pose.tremor *
+      (noise(time * 5.2, k * 11 + 4.1) * 0.04 + noise(time * 9, k * 11 + 2.2) * 0.02);
+    const c1y = mix(A.lo2[1], cornerY(A.lo2[0]), u) - bow * 0.5 + tr;
+    const c2y = mix(A.lo1[1], cornerY(A.lo1[0]), u) - bow * 0.5 + tr;
+    return {
+      x: bez(A.inner[0], A.lo2[0], A.lo1[0], A.outer[0], t),
+      y: bez(A.inner[1], c1y, c2y, A.outer[1], t),
+    };
+  };
+
+  const curveY = (fn, x, pose, time, k) => {
+    let prev = fn(0, pose, time, k);
+    for (let i = 1; i <= 12; i++) {
+      const p = fn(i / 12, pose, time, k);
+      if ((prev.x <= x && p.x >= x) || (prev.x >= x && p.x <= x)) {
+        const d = p.x - prev.x;
+        const f = d === 0 ? 0 : (x - prev.x) / d;
+        return prev.y + (p.y - prev.y) * f;
+      }
+      prev = p;
+    }
+    return prev.y;
+  };
+
+  const buildFrames = (time, pupilScale, pupilWake) => {
+    for (let k = 0; k < 2; k++) {
+      const pose = eyePose[k];
+      const open = clamp(1 - pose.upPos * 1.05, 0, 1);
+      const localX = clamp(gaze.x * 0.34 * eyeDir[k], -0.9, 0.95);
+      const top = curveY(upperPoint, localX, pose, time, k);
+      const bottom = curveY(lowerPoint, localX, pose, time, k);
+      const aperture = Math.max(0.2, bottom - top);
+      const center = (top + bottom) / 2 + gaze.y * aperture * 0.22;
+      const scale = pupilScale * (0.5 + 0.5 * open) * pupilWake;
+      const base = ry * 0.62 * scale;
+      eyeFrame[k] = {
+        open,
+        cx: gaze.x * rx * 0.34,
+        cy: center * ry,
+        prx: Math.max(0.6, Math.min(base * 1.05, rx * 0.36)),
+        pry: Math.max(0.6, Math.min(base, aperture * ry * 0.42)),
+        vis: open,
+      };
+    }
+  };
+
+  const targetFor = (p, time) => {
+    const k = p.eye;
+    const frame = eyeFrame[k];
+    const bodyX = gaze.x * 1.7;
+    const bodyY = gaze.y * 0.9;
+    const jitterY = Math.sin(time * 1.15 + p.seed * 2.3) * 0.22;
+    if (p.role === 2) {
+      return {
+        x: eyeCx[k] + frame.cx + Math.cos(p.ang) * p.rad * frame.prx + bodyX,
+        y: eyeCy + frame.cy + Math.sin(p.ang) * p.rad * frame.pry + bodyY + jitterY * 0.4,
+        a: p.aBase * frame.vis,
+      };
+    }
+    const pt =
+      p.role === 0
+        ? upperPoint(p.t, eyePose[k], time, k)
+        : lowerPoint(p.t, eyePose[k], time, k);
+    const lx = pt.x * rx;
+    const ly = pt.y * ry;
+    const ca = Math.cos(-TILT);
+    const sa = Math.sin(-TILT);
+    const rxr = lx * ca - ly * sa;
+    const ryr = lx * sa + ly * ca;
+    const lowerFade =
+      p.role === 1 ? 1 - smoothstep(0.8, 1, eyePose[k].upPos) : 1;
+    return {
+      x: eyeCx[k] + eyeDir[k] * rxr + bodyX,
+      y: eyeCy + ryr + bodyY + jitterY,
+      a: p.aBase * lowerFade,
+    };
+  };
+
+  // ─── Emociones y párpados ───────────────────────────────────────────
+  const blinkLevel = (now) => {
+    if (state !== 'awake') return 0;
+    const cfg = EMOTIONS[curState] || EMOTIONS.neutral;
+    if (blinkStart < 0 && now >= nextBlink) blinkStart = now;
+    if (blinkStart < 0) return 0;
+    const ph = (now - blinkStart) / cfg.blinkMs;
+    if (ph >= 1) {
+      blinkStart = -1;
+      nextBlink = now + rand(...cfg.blinkGap);
+      return 0;
+    }
+    return Math.sin(ph * Math.PI);
+  };
+
+  const updatePose = (now, dt) => {
+    let target;
+    if (state === 'waking') {
+      const e = smoothstep(openStart, openEnd, now);
+      target = {
+        upPos: INIT_UP * (1 - e),
+        upRot: 0,
+        loPos: 0,
+        loRot: 0,
+        bow: 0,
+        tremor: 0,
+      };
+    } else if (state === 'awake') {
+      target = FLAT[curState];
+    } else {
+      target = FLAT.neutral;
+    }
+    const g = {};
+    for (const key of GEST_KEYS) g[key] = integrate(gest[key], target[key], S_LID, dt);
+
+    const blink = blinkLevel(now);
+    const closeAmt =
+      state === 'returning' ? smoothstep(returnAt, returnAt + CLOSE_MS, now) : 0;
+    for (let k = 0; k < 2; k++) {
+      const up = clamp(Math.max(g.upPos, blink, closeAmt), 0, 1);
+      const lo = clamp(Math.max(g.loPos, closeAmt, blink * 0.6), 0, 1);
+      const f = k === 1 ? 1 - Math.exp(-dt / 0.04) : 1;
+      const pose = eyePose[k];
+      pose.upPos += (up - pose.upPos) * f;
+      pose.upRot += (g.upRot - pose.upRot) * f;
+      pose.loPos += (lo - pose.loPos) * f;
+      pose.loRot += (g.loRot - pose.loRot) * f;
+      pose.bow += (g.bow - pose.bow) * f;
+      pose.tremor = g.tremor;
+    }
+
+    const wakeT =
+      state === 'waking' ? smoothstep(engagedAt + 180, engagedAt + 520, now) : 1;
+    const pupilState = state === 'awake' ? curState : 'neutral';
+    buildFrames(now / 1000, PUPIL_SCALE[pupilState] || 1, mix(1.5, 1, wakeT));
+  };
+
+  // ─── Mirada ─────────────────────────────────────────────────────────
+  const updateGaze = (now, dt) => {
+    if (state === 'returning') return;
+    const eyePageX = wrapRect.left + W / 2;
+    const eyePageY = wrapRect.top + H / 2;
+    // El subtítulo vive a la derecha: si usáramos un rango simétrico, la mirada
+    // a la derecha no llegaría nunca al borde. Normalizamos por el espacio
+    // disponible de cada lado.
+    const dxPage = pointer.x - eyePageX;
+    const rangeX =
+      dxPage >= 0
+        ? Math.max(140, window.innerWidth - eyePageX - 16)
+        : Math.max(300, eyePageX * 0.55);
+    const rangeY = Math.max(170, window.innerHeight * 0.3);
+    let tx = clamp(dxPage / rangeX, -1, 1);
+    let ty = clamp((pointer.y - eyePageY) / rangeY, -1, 1) * 0.7;
+    tx = Math.sign(tx) * Math.pow(Math.abs(tx), 0.9);
+    ty = Math.sign(ty) * Math.pow(Math.abs(ty), 0.9);
+    if (state === 'awake' && now >= nextMicro) {
+      const cfg = EMOTIONS[curState] || EMOTIONS.neutral;
+      microX = rand(-0.03, 0.03) * cfg.micro;
+      microY = rand(-0.018, 0.018) * cfg.micro;
+      nextMicro = now + rand(...cfg.microGap);
+    }
+    gaze.x = integrate(sGx, tx + microX, S_GAZE, dt);
+    gaze.y = integrate(sGy, ty + microY, S_GAZE, dt);
+  };
+
+  // ─── Estado de la interacción ───────────────────────────────────────
+  const startLoop = () => {
+    if (raf || disabled) return;
+    lastT = performance.now();
+    raf = requestAnimationFrame(loop);
+  };
+  const stopLoop = () => {
+    if (raf) cancelAnimationFrame(raf);
+    raf = 0;
+  };
+
+  const engage = (px, py) => {
+    if (disabled) return;
+    if (!particles.length) {
+      measure();
+      build();
+    }
+    if (!particles.length) return;
+    const now = performance.now();
+    state = 'waking';
+    curState = 'neutral';
+    engagedAt = now;
+    openStart = now + OPEN_AT * 1000;
+    openEnd = openStart + OPEN_DUR * 1000;
+    helloAt = helloPlayed ? Infinity : now + HELLO_AT;
+    lastMoveAt = now;
+    lastPX = px;
+    lastPY = py;
+    lastMoveT = now;
+    pointer.x = px;
+    pointer.y = py;
+    awayAt = 0;
+    sleepySince = 0;
+    angryUntil = 0;
+    playUntil = 0;
+    blinkStart = -1;
+    nextBlink = openEnd + 320 + rand(0, 220);
+    nextMicro = now + 700;
+    microX = 0;
+    microY = 0;
+    sGx.v = 0;
+    sGx.vel = 0;
+    sGy.v = 0;
+    sGy.vel = 0;
+    for (const key of GEST_KEYS) {
+      gest[key].v = key === 'upPos' ? INIT_UP : 0;
+      gest[key].vel = 0;
+      for (let k = 0; k < 2; k++) {
+        eyePose[k][key] = key === 'upPos' ? INIT_UP : 0;
+      }
+    }
+    const ex = px - wrapRect.left + PAD;
+    const ey = py - wrapRect.top + PAD;
+    const diag = Math.max(1, Math.hypot(CW, CH));
+    for (const p of particles) {
+      p.x = p.sx;
+      p.y = p.sy;
+      p.alpha = 0;
+      p.sizeNow = p.s0;
+      p.delay = clamp((Math.hypot(p.sx - ex, p.sy - ey) / diag) * 0.14 + p.pick * 0.05, 0, FLIGHT_DELAY);
+      p.lat = rand(-9, 9);
+      p.lift = p.role === 1 ? rand(5, 14) : rand(8, 22);
+      p.c1x = p.sx + p.lat * 0.55;
+      p.c1y = p.sy - p.lift;
+      p.ret = false;
+    }
+    gsap.killTweensOf(h4s);
+    gsap.to(h4s, {
+      opacity: 0,
+      duration: 0.12,
+      delay: 0.06,
+      ease: 'none',
+      overwrite: true,
+    });
+    startLoop();
+  };
+
+  const release = (reason) => {
+    if (state !== 'waking' && state !== 'awake') return;
+    state = 'returning';
+    returnAt = performance.now();
+    returnStarted = false;
+    returnStartAt = 0;
+    awayAt = 0;
+    gsap.killTweensOf(h4s);
+    gsap.to(h4s, {
+      opacity: 1,
+      duration: 0.16,
+      delay: 0.32,
+      ease: 'none',
+      overwrite: true,
+    });
+  };
+
+  const cancelInstant = () => {
+    const wasActive = state !== 'idle';
+    state = 'idle';
+    stopLoop();
+    if (wasActive) {
+      gsap.killTweensOf(h4s);
+      gsap.set(h4s, { clearProps: 'opacity' });
+      cooldownUntil = performance.now() + 320;
+      wasInside = false;
+    }
+    ctx.clearRect(0, 0, CW, CH);
+  };
+
+  const finishReturn = (now) => {
+    state = 'idle';
+    stopLoop();
+    ctx.clearRect(0, 0, CW, CH);
+    gsap.killTweensOf(h4s);
+    gsap.set(h4s, { clearProps: 'opacity' });
+    cooldownUntil = now + 160;
+    // Si el puntero quedó adentro, hay que salir y volver a entrar para
+    // despertarlos de nuevo (wasInside se actualiza en el próximo move).
+  };
+
+  const updateAwake = (now) => {
+    if (now >= helloAt && !helloPlayed) {
+      helloPlayed = true;
+      helloAt = Infinity;
+      playUntil = now + 380;
+    }
+    const stillFor = now - lastMoveAt;
+    curState =
+      now < angryUntil
+        ? 'angry'
+        : now < playUntil || (stillFor > PLAY_STILL && stillFor < IDLE_MS)
+          ? 'playful'
+          : stillFor >= IDLE_MS
+            ? 'sleepy'
+            : 'neutral';
+    if (curState === 'sleepy') {
+      if (!sleepySince) sleepySince = now;
+      else if (now - sleepySince > SLEEP_HOLD) release('idle');
+    } else {
+      sleepySince = 0;
+    }
+    if (coarse && now - engagedAt > COARSE_HOLD) release('timeout');
+    if (awayAt && now - awayAt > AWAY_HOLD) release('away');
+  };
+
+  // ─── Partículas ─────────────────────────────────────────────────────
+  const updateParticles = (now, dt) => {
+    const tSec = (now - engagedAt) / 1000;
+    const kFollow = 1 - Math.exp(-dt * 22);
+    const time = now / 1000;
+    for (const p of particles) {
+      if (state === 'returning' && returnStarted) {
+        const rp = clamp(((now - returnStartAt) / 1000 - p.rdelay) / RETURN_DUR, 0, 1);
+        if (rp <= 0) continue;
+        const e = easeInOutCubic(rp);
+        p.x = bez(p.rx0, p.rx0 + p.rout, p.sx + p.rout * 0.35, p.sx, e);
+        p.y = bez(p.ry0, p.ry0 + p.rup, p.sy - p.rup * 0.4, p.sy, e);
+        p.alpha = p.aRet * (1 - smoothstep(0.55, 1, e));
+        p.sizeNow = p.size * (1 - 0.35 * e);
+        continue;
+      }
+      const fp = clamp((tSec - p.delay) / FLIGHT, 0, 1);
+      const T = targetFor(p, time);
+      if (fp <= 0) {
+        p.x = p.sx;
+        p.y = p.sy;
+        p.alpha = 0;
+        p.sizeNow = p.s0;
+      } else if (fp < 1) {
+        const e = easeOutCubic(fp);
+        const c2x = T.x + p.lat * 0.6;
+        const c2y = T.y - p.lift * 0.3;
+        p.x = bez(p.sx, p.c1x, c2x, T.x, e);
+        p.y = bez(p.sy, p.c1y, c2y, T.y, e);
+        p.alpha = mix(0.95, T.a, smoothstep(0, 0.75, e));
+        p.sizeNow = mix(p.s0, p.size, smoothstep(0, 0.85, e));
+      } else {
+        p.x += (T.x - p.x) * kFollow;
+        p.y += (T.y - p.y) * kFollow;
+        p.alpha += (T.a - p.alpha) * kFollow;
+        p.sizeNow += (p.size - p.sizeNow) * kFollow;
+      }
+    }
+  };
+
+  const draw = () => {
+    ctx.clearRect(0, 0, CW, CH);
+    ctx.globalCompositeOperation = 'lighter';
+    for (const p of particles) {
+      if (p.alpha <= 0.004) continue;
+      ctx.globalAlpha = p.alpha;
+      const s = p.sizeNow;
+      ctx.drawImage(p.sprite, p.x - s / 2, p.y - s / 2, s, s);
+    }
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+  };
+
+  const loop = (now) => {
+    raf = 0;
+    if (state === 'idle' || disabled || document.hidden) return;
+    const dt = clamp((now - lastT) / 1000, 0.001, 0.033);
+    lastT = now;
+
+    if (state === 'returning' && !returnStarted && now - returnAt >= RETURN_DELAY) {
+      returnStarted = true;
+      returnStartAt = now;
+      for (const p of particles) {
+        p.rx0 = p.x;
+        p.ry0 = p.y;
+        p.aRet = p.alpha; // el párpado ya está cerrado: no revivir pupilas
+        p.rout = (p.x - eyeCx[p.eye]) * 0.18 + rand(-3, 3);
+        p.rup = rand(2, 9);
+        p.rdelay = rand(0, 0.07);
+      }
+    }
+
+    if (state === 'waking' && now >= openEnd) state = 'awake';
+    if (state === 'awake') updateAwake(now);
+    if (state === 'returning' && now >= returnAt + RETURN_TOTAL) {
+      finishReturn(now);
+      return;
+    }
+
+    updatePose(now, dt);
+    updateGaze(now, dt);
+    updateParticles(now, dt);
+    draw();
+    if (state !== 'idle') raf = requestAnimationFrame(loop);
+  };
+
+  // ─── Puntero / tap ──────────────────────────────────────────────────
+  const insideRect = (x, y, r, pad) =>
+    x >= r.left - pad && x <= r.right + pad && y >= r.top - pad && y <= r.bottom + pad;
+
+  const onMove = (e) => {
+    if (disabled || coarse) return;
+    const now = performance.now();
+    const x = e.clientX;
+    const y = e.clientY;
+    if (state === 'idle') {
+      const inside = insideRect(x, y, wrapRect, HIT_PAD);
+      if (inside && !wasInside && now > cooldownUntil && window.scrollY < 2) {
+        engage(x, y);
+      }
+      wasInside = inside;
+      return;
+    }
+    if (state === 'returning') {
+      wasInside = insideRect(x, y, wrapRect, HIT_PAD);
+      return;
+    }
+    const dtm = Math.max(1, now - lastMoveT);
+    const dx = x - lastPX;
+    const dy = y - lastPY;
+    const dist = Math.hypot(dx, dy);
+    if (dist > 4) {
+      lastMoveAt = now;
+      microX = 0;
+      microY = 0;
+      nextMicro = now + 700;
+    }
+    // Gesto de enojo: un swipe corto y rápido, no un salto después de una
+    // pausa (dtm filtra los teleports del cursor).
+    if (state === 'awake' && now - engagedAt > 700 && dist > 15 && dtm < 100) {
+      const speed = dist / (dtm / 1000);
+      if (speed > 2800) angryUntil = now + ANGRY_MS;
+    }
+    lastPX = x;
+    lastPY = y;
+    lastMoveT = now;
+    pointer.x = x;
+    pointer.y = y;
+    const inZone = insideRect(x, y, zoneRect, ZONE_PAD);
+    if (inZone) awayAt = 0;
+    else if (!awayAt) awayAt = now;
+    wasInside = insideRect(x, y, wrapRect, HIT_PAD);
+  };
+
+  const onDown = (e) => {
+    if (disabled || !coarse) return;
+    const now = performance.now();
+    if (state === 'idle') {
+      if (now < cooldownUntil || window.scrollY > 2) return;
+      engage(e.clientX, e.clientY);
+    } else if (state === 'waking' || state === 'awake') {
+      release('tap');
+    }
+  };
+
+  const onLeave = () => {
+    wasInside = false;
+    if (state === 'waking' || state === 'awake') release('away');
+  };
+
+  const onScroll = () => {
+    if (window.scrollY > 2) {
+      cancelInstant();
+      wasInside = false;
+    }
+  };
+
+  let resizeTimer = 0;
+  const onResize = () => {
+    cancelInstant();
+    cooldownUntil = 0;
+    clearTimeout(resizeTimer);
+    particles = [];
+    measure();
+    ctx.clearRect(0, 0, CW, CH);
+    resizeTimer = setTimeout(() => {
+      if (state !== 'idle') return;
+      build();
+      wasInside = false;
+    }, 180);
+  };
+
+  const onVisibility = () => {
+    if (document.hidden) cancelInstant();
+  };
+
+  const onReduceChange = (e) => {
+    if (!e.matches) return;
+    cancelInstant();
+    disabled = true;
+    canvas.style.display = 'none';
+  };
+
+  const arm = () => {
+    if (armed) return;
+    armed = true;
+    window.addEventListener('pointermove', onMove, { passive: true });
+    document.documentElement.addEventListener('mouseleave', onLeave);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onResize);
+    document.addEventListener('visibilitychange', onVisibility);
+    if (coarse) wrap.addEventListener('pointerdown', onDown, { passive: true });
+    reduceMq.addEventListener?.('change', onReduceChange);
+  };
+
+  // Arranca recién con la intro terminada y las fuentes listas: así el muestreo
+  // toma el subtítulo en su posición final y nunca compite con el preloader.
+  const fontsReady = document.fonts?.ready ?? Promise.resolve();
+  fontsReady.then(() => {
+    measure();
+    build();
+    arm();
+  });
+};

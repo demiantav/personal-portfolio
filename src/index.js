@@ -13,6 +13,7 @@ import { footerReveal } from './js/footer-reveal.js';
 import { initHeroZoomTransition } from './js/hero-zoom-transition.js';
 import { headerTheme } from './js/headerTheme.js';
 import { initCursor } from './js/cursor.js';
+import { initHeroSubtitleEyes } from './js/heroSubtitleEyes.js';
 import { initSkillsMarquee } from './js/skillsMarquee.js';
 import { initFooterTitleMagnet } from './js/footerTitleMagnet.js';
 import { initProjectDialog } from './js/projectDialog.js';
@@ -82,5 +83,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initFooterTitleMagnet();
   initProjectDialog();
   // recién terminada la intro: antes el cursor nativo sigue siendo el ref
-  whenIntroDone(initCursor);
+  whenIntroDone(() => {
+    initCursor();
+    initHeroSubtitleEyes();
+  });
 });

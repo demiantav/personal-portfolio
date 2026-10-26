@@ -1,6 +1,6 @@
 ========================================
-LINKEDIN — HERO ATMOSPHERE + MENU LETTER-ROLL
-(smoke + lightning + spores)
+LINKEDIN — SUBTITLE EYES + NAVBAR
+(the hero subtitle folds into two eyes)
 ========================================
 
 
@@ -8,52 +8,69 @@ LINKEDIN — HERO ATMOSPHERE + MENU LETTER-ROLL
 EN — VERSIÓN PRINCIPAL
 ----------------------------------------
 
-Just reworked my portfolio hero around two details I can't stop coming back to.
+The detail I keep coming back to in my portfolio is a line of text that turns into eyes.
 
-The hero isn't a video. It's a WebGL smoke field: fbm noise with two-step domain warping, lit by random red lightning. Red spores drift in front, and on scroll everything folds into the D of the title. It doesn't need the cursor — it breathes on its own.
+The subtitle "+5 years of experience / Available worldwide" isn't static. Hover it and the letters break into embers, fold into two small eyes, and the eyes follow your cursor. They blink. Stay still and they squint. Swipe fast and they get annoyed. Wait long enough and they get sleepy, close, and the text comes back.
 
-The menu is the opposite of loud. Each letter is two stacked copies inside a mask. On hover the top one leaves and a coral one rolls in — one letter at a time, 35ms apart. Barely a movement. Exactly enough.
+No video, no 3D model: ~560 Canvas 2D particles sampled from the real text, spring-driven lids, and an emotion table shared with the eyes at the end of the page. The DOM text is never split for the effect, so it stays accessible. On mobile it's a tap. Reduced motion opts out.
 
-I keep re-learning the same thing: the best microinteractions are felt, not seen. The moment you notice the technique, I probably overdid it. Restraint is the feature.
+Behind it, the hero breathes with WebGL smoke and red lightning. It stays ambient.
 
-The hero pauses off-screen and respects reduced-motion.
+The navbar is the quieter counterpoint: two masked copies per letter, a coral roll on hover, a cursor ring that magnetizes to the item you're on, and a View Transition bubble that glides between links.
 
-Built with GSAP, WebGL and a little canvas maths.
+The best microinteractions are felt before they're understood. Which would you try first — the eyes or the navbar?
 
-Hero or letters — which one catches your eye first? Link in the comments 👇
+Built with Canvas 2D, GSAP, WebGL and the View Transitions API.
 
-#webdevelopment #gsap #frontend #uiux #microinteractions #webgl
+#webdevelopment #gsap #frontend #uiux #microinteractions #canvas #webgl #viewtransitions
 
 
 ----------------------------------------
 EN — VERSIÓN CORTA
 ----------------------------------------
 
-Microinteractions are felt, not seen.
+A line of text that turns into eyes.
 
-My hero is a WebGL smoke field lit by red lightning, with spores drifting in front — and it folds into the D on scroll. No cursor needed. My menu letters are two masked copies: the coral one rolls in on hover, 35ms apart.
+Hover the subtitle and the letters break into embers, fold into two small eyes, and follow your cursor. They blink, squint when you stay, get angry on a fast swipe, get sleepy if you wait, then close and the text returns. Mobile: tap. Reduced motion: no morph. The DOM text stays accessible.
 
-The hero respects reduced-motion and pauses off-screen. Small details, big feel.
+The navbar is the quiet counterpoint: masked letter rolls, a magnetic cursor ring, a View Transition bubble.
 
-Which one do you notice first? 👇
+Built with Canvas 2D, GSAP and the View Transitions API.
 
-#webdevelopment #gsap #frontend #uiux #webgl
+#webdevelopment #gsap #frontend #uiux #canvas #viewtransitions
 
 
 ----------------------------------------
 ES — VERSIÓN PRINCIPAL
 ----------------------------------------
 
-Rehíce el hero de mi portfolio alrededor de dos detalles a los que no puedo parar de volver.
+El detalle de mi portfolio al que vuelvo una y otra vez es una línea de texto que se convierte en ojos.
 
-El hero no es un video: es un campo de humo en WebGL, ruido fbm con domain warping en dos pasos, iluminado por relámpagos rojos aleatorios. Delante flotan esporas rojas, y al scrollear todo se pliega hacia la D del titular. No necesita el cursor: respira solo.
+El subtítulo "+5 years of experience / Available worldwide" no es estático. Al hover, las letras se deshacen en brasas, se pliegan en dos ojos chiquitos y los ojos siguen al cursor. Parpadean. Si te quedás, entrecierran. Si hacés un swipe rápido, se enojan. Si esperás, se duermen, cierran y el texto vuelve.
 
-El menú es lo opuesto a lo ruidoso: cada letra son dos copias apiladas dentro de una máscara. Al hover, la de arriba se va y entra una coral, una letra por vez, con 35ms de separación. Apenas un movimiento. Justo lo necesario.
+Sin video ni modelo 3D: ~560 partículas en Canvas 2D muestreadas del texto real, párpados con resortes y una tabla de emociones compartida con los ojos del finale. El texto del DOM no se parte para el efecto: sigue accesible. En mobile es un tap. Con reduced motion no existe.
 
-Sigo recordando lo mismo: las mejores microinteracciones se sienten, no se ven. El día que notás la técnica, probablemente me pasé. La restricción es la feature.
+Detrás, el hero respira con humo WebGL y relámpagos rojos. Queda de fondo.
 
-El hero se pausa fuera de pantalla y respeta reduced-motion.
+El navbar es el contrapunto silencioso: dos copias enmascaradas por letra, roll coral al hover, un aro de cursor que se imanta al ítem donde estás y una burbuja con View Transition que se desliza entre links.
 
-¿Cuál te llama primero, el hero o las letras? Link en comentarios 👇
+Las mejores microinteracciones se sienten antes de entenderse. ¿Cuál probarías primero, los ojos o el navbar?
 
-#webdevelopment #gsap #frontend #uiux #microinteractions #webgl
+Hecho con Canvas 2D, GSAP, WebGL y la View Transitions API.
+
+#webdevelopment #gsap #frontend #uiux #microinteractions #canvas #webgl #viewtransitions
+
+
+----------------------------------------
+ES — VERSIÓN CORTA
+----------------------------------------
+
+Una línea de texto que se convierte en ojos.
+
+Al hover, las letras se deshacen en brasas, se pliegan en dos ojos chiquitos y siguen al cursor. Parpadean, entrecierran si te quedás, se enojan con un swipe rápido, se duermen si esperás; después cierran y el texto vuelve. En mobile es un tap. Con reduced motion no hay morph. El texto del DOM sigue accesible.
+
+El navbar es el contrapunto silencioso: letras enmascaradas, aro imán y burbuja con View Transition.
+
+Hecho con Canvas 2D, GSAP y la View Transitions API.
+
+#webdevelopment #gsap #frontend #uiux #canvas #viewtransitions

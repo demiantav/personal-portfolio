@@ -86,6 +86,32 @@ html::-webkit-scrollbar {
   z-index: 1;
 }
 
+/* Subtítulo del hero: bloque que se pliega en dos ojos de brasas
+   (heroSubtitleEyes.js). width:fit-content lo achica al texto y lo mantiene
+   alineado a la derecha; el canvas se posiciona contra este bloque, no contra
+   todo el hero. */
+.hero-subtitle {
+  position: relative;
+  width: fit-content;
+  margin-inline-start: auto;
+  text-align: end;
+  cursor: default;
+}
+
+/* Lienzo de los ojos del subtítulo. El JS le fija left/top/width/height; acá
+   sólo viven la capa y el modo de interacción. */
+.hero-eyes {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-eyes {
+    display: none;
+  }
+}
+
 .zoom-effect {
   /* una línea siempre: la coreografía del zoom hacia la D exige la misma
      composición en todos los breakpoints; escala calibrada al ancho */

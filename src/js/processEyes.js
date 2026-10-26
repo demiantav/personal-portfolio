@@ -1,6 +1,7 @@
 import gsap from 'gsap';
 import { createNoise2D } from 'simplex-noise';
 import { progressState } from './progressState.js';
+import { EMOTIONS, FLAT, GEST_KEYS, NEUTRAL, TILT } from './eyeEmotions.js';
 
 // Dos ojos ROJOS durante la fase de proceso. Todo va atado al scroll real del
 // holder (.progress-reveal, skillsProgressReveal.js), sin ScrollTrigger propio.
@@ -20,8 +21,6 @@ import { progressState } from './progressState.js';
 const REDUCE = '(prefers-reduced-motion: reduce)';
 const COARSE = '(hover: none)';
 const RED = '#ff0000';
-const DEG = Math.PI / 180;
-const TILT = 0.1; // inclinación cat-eye (rad)
 const EYE_TOP = 0.3; // reposo de los ojos tras el pin (fracción de H): cards y finale
 const OPEN_FROM = 0.6; // progreso del pin en que empiezan a entrar (título ya salió)
 const OPEN_TO = 1; // y en que terminan de abrir
@@ -62,58 +61,6 @@ const BEATS = ['neutral', 'scan', 'playful', 'angry'];
 // lo maneja el tween del finale (progressCards3D), por eso el umbral es el final del tween.
 const CLOSE_AT = 0.999;
 
-// Estados del rig de párpados. Ángulos en grados (rotación de la tapa en la
-// referencia local del ojo; mismo signo en ambos ojos). pos = cobertura de la
-// tapa (0 = retirada, 1 = cubre todo el ojo). bow = curvatura hacia arriba del
-// borde inferior (media luna, sonrisa).
-const NEUTRAL = {
-  up: { rot: 0, pos: 0 },
-  lo: { rot: 0, pos: 0 },
-  bow: 0,
-  tremor: 0,
-  sac: [40, 90], // duración de sacádicos (ms)
-  micro: 1, // multiplicador de amplitud de microsacádicas
-  microGap: [400, 1500], // separación entre microsacádicas (ms)
-  blinkMs: 120, // duración de un parpadeo
-  blinkGap: [3000, 6000], // separación entre parpadeos (ms)
-};
-const EMOTIONS = {
-  neutral: NEUTRAL,
-  // Escaneo: entrecerrado, sin gesto de tapa
-  scan: { ...NEUTRAL, up: { rot: 0, pos: 0.5 }, sac: [40, 70], blinkGap: [4000, 7000] },
-  // Enojo: canto interno del párpado superior baja (-25° en referencia local)
-  angry: {
-    ...NEUTRAL,
-    up: { rot: -25, pos: 0.4 },
-    tremor: 1,
-    sac: [30, 50],
-    blinkMs: 90,
-    blinkGap: [1800, 3000],
-  },
-  // Pícara: párpado inferior sube en media luna
-  playful: { ...NEUTRAL, lo: { rot: 0, pos: 0.45 }, bow: 0.6, sac: [50, 80] },
-  // Sueño: párpado superior pesado, cubre el 45%
-  sleepy: {
-    ...NEUTRAL,
-    up: { rot: 0, pos: 0.45 },
-    sac: [160, 240],
-    micro: 0.4,
-    microGap: [2500, 4500],
-    blinkMs: 260,
-    blinkGap: [2000, 3500],
-  },
-};
-// Valores planos en radianes/fracciones para integrar con resortes
-const flatten = (s) => ({
-  upPos: s.up.pos,
-  upRot: s.up.rot * DEG,
-  loPos: s.lo.pos,
-  loRot: s.lo.rot * DEG,
-  bow: s.bow,
-  tremor: s.tremor,
-});
-const FLAT = Object.fromEntries(Object.entries(EMOTIONS).map(([k, v]) => [k, flatten(v)]));
-const GEST_KEYS = ['upPos', 'upRot', 'loPos', 'loRot', 'bow', 'tremor'];
 const ENTER_POS = 0.5; // tapas a mitad al entrar (ojos cerrados)
 
 const noise = createNoise2D();
