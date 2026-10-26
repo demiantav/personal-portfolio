@@ -1,6 +1,6 @@
 ========================================
-LINKEDIN — HERO MICROINTERACTIONS
-(waves + menu letter-roll)
+LINKEDIN — HERO ATMOSPHERE + MENU LETTER-ROLL
+(smoke + lightning + spores)
 ========================================
 
 
@@ -8,21 +8,21 @@ LINKEDIN — HERO MICROINTERACTIONS
 EN — VERSIÓN PRINCIPAL
 ----------------------------------------
 
-Just reworked my portfolio hero around two microinteractions I can't stop playing with.
+Just reworked my portfolio hero around two details I can't stop coming back to.
 
-The waves aren't a video. They're ten lines of simplex noise on a canvas — drawn point by point, every frame. Move your cursor and the lines part around it, like water remembering where you've been. Scroll, and they get sliced away, one by one.
+The hero isn't a video. It's a WebGL smoke field: fbm noise with two-step domain warping, lit by random red lightning. Red spores drift in front, and on scroll everything folds into the D of the title. It doesn't need the cursor — it breathes on its own.
 
 The menu is the opposite of loud. Each letter is two stacked copies inside a mask. On hover the top one leaves and a coral one rolls in — one letter at a time, 35ms apart. Barely a movement. Exactly enough.
 
 I keep re-learning the same thing: the best microinteractions are felt, not seen. The moment you notice the technique, I probably overdid it. Restraint is the feature.
 
-Both pause when they leave the viewport and respect reduced-motion.
+The hero pauses off-screen and respects reduced-motion.
 
-Built with GSAP and a little canvas maths.
+Built with GSAP, WebGL and a little canvas maths.
 
-Waves or letters — which one catches your eye first? Link in the comments 👇
+Hero or letters — which one catches your eye first? Link in the comments 👇
 
-#webdevelopment #gsap #frontend #uiux #microinteractions
+#webdevelopment #gsap #frontend #uiux #microinteractions #webgl
 
 
 ----------------------------------------
@@ -31,29 +31,29 @@ EN — VERSIÓN CORTA
 
 Microinteractions are felt, not seen.
 
-My hero waves are ten lines of simplex noise on a canvas — and they part around your cursor. My menu letters are two masked copies: the coral one rolls in on hover, 35ms apart.
+My hero is a WebGL smoke field lit by red lightning, with spores drifting in front — and it folds into the D on scroll. No cursor needed. My menu letters are two masked copies: the coral one rolls in on hover, 35ms apart.
 
-Both pause off-screen and respect reduced-motion. Small details, big feel.
+The hero respects reduced-motion and pauses off-screen. Small details, big feel.
 
 Which one do you notice first? 👇
 
-#webdevelopment #gsap #frontend #uiux
+#webdevelopment #gsap #frontend #uiux #webgl
 
 
 ----------------------------------------
 ES — VERSIÓN PRINCIPAL
 ----------------------------------------
 
-Rehíce el hero de mi portfolio alrededor de dos microinteracciones con las que no puedo parar de jugar.
+Rehíce el hero de mi portfolio alrededor de dos detalles a los que no puedo parar de volver.
 
-Las waves no son un video: son diez líneas de simplex noise en canvas, dibujadas punto por punto, frame a frame. Movés el cursor y las líneas se abren a su alrededor, como agua que recuerda por dónde pasaste. Scrolleás y se cortan una por una.
+El hero no es un video: es un campo de humo en WebGL, ruido fbm con domain warping en dos pasos, iluminado por relámpagos rojos aleatorios. Delante flotan esporas rojas, y al scrollear todo se pliega hacia la D del titular. No necesita el cursor: respira solo.
 
 El menú es lo opuesto a lo ruidoso: cada letra son dos copias apiladas dentro de una máscara. Al hover, la de arriba se va y entra una coral, una letra por vez, con 35ms de separación. Apenas un movimiento. Justo lo necesario.
 
 Sigo recordando lo mismo: las mejores microinteracciones se sienten, no se ven. El día que notás la técnica, probablemente me pasé. La restricción es la feature.
 
-Ambas se pausan fuera de pantalla y respetan reduced-motion.
+El hero se pausa fuera de pantalla y respeta reduced-motion.
 
-¿Cuál te llama primero, las waves o las letras? Link en comentarios 👇
+¿Cuál te llama primero, el hero o las letras? Link en comentarios 👇
 
-#webdevelopment #gsap #frontend #uiux #microinteractions
+#webdevelopment #gsap #frontend #uiux #microinteractions #webgl

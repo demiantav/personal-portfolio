@@ -52,29 +52,10 @@ humo y por debajo del texto (mismo `z-index: 0`, orden del DOM).
 - Reduced motion: un cuadro estático. `IntersectionObserver` pausa el loop
   cuando el hero sale de pantalla.
 
-## Interacción con el cursor
+## Interacción
 
-El hero reacciona al puntero sin agregar luz ni otro evento: **la niebla se abre a
-su paso y las esporas se apartan y vuelven**.
-
-- **Apertura del humo**: el muestreo del campo se corre hacia afuera alrededor del
-  puntero y la densidad baja hasta un 32 % en el centro. El borde es irregular
-  (ruido de baja frecuencia), así no se lee como un círculo. Radio `0.18·H` en
-  desktop y `0.16·H` en mobile; desplazamiento `0.34·r`.
-- **Esporas**: cada una guarda un offset; el empuje máximo es ~18 % del radio y
-  escala con la profundidad. Vuelven con una constante más lenta (~2.2/s) que la
-  ida (~8/s), así el retorno es elástico.
-- **Sin luz**: no hay halo ni `heat` extra; el relámpago sigue siendo el único
-  evento brillante.
-- **Puntero**: `heroPointer.js` (singleton) escucha `pointermove/down/up/cancel`
-  con listeners pasivos; se apaga sobre links/botones y al salir del hero.
-- **Mobile**: el dedo hace de puntero mientras se arrastra; el gesto no bloquea
-  el scroll y `pointercancel` cierra la interacción.
-- **Reduced motion**: no se inicializa; la escena queda estática.
-
-Implementación: `heroSmoke.js` suma `u_pointer`/`u_pointerAmt` (suavizado a 12/s y
-fade 6/2.5 por segundo); `heroSpores.js` suma el offset por partícula. No hay
-canvas, loop ni contexto nuevos.
+No hay interacción con el cursor: el humo y las esporas son ambientales. El aro
+custom del sitio sigue existiendo, pero no modifica el hero.
 
 ## Relámpagos
 
@@ -114,13 +95,11 @@ sección sin empujar el layout; el titular queda por encima con `z-index: 1`.
 
 ## Archivos
 
-- `src/js/heroSmoke.js`: humo (shader) y relámpagos; usa el puntero del hero.
-- `src/js/heroSpores.js`: esporas en canvas 2D, con parallax, repulsión del
-  puntero y salida hacia la D.
-- `src/js/heroPointer.js`: estado del puntero compartido por humo y esporas.
+- `src/js/heroSmoke.js`: humo (shader) y relámpagos.
+- `src/js/heroSpores.js`: esporas en canvas 2D, con parallax y salida hacia la D.
 - `src/js/gl.js`: helpers y ruido compartidos.
-- `src/js/textAnimate.js`: instancia el humo y las esporas (`heroFx`, `heroSporesFx`),
-  inicializa el puntero del hero y llama `start()` a los dos al terminar el titular.
+- `src/js/textAnimate.js`: instancia el humo y las esporas (`heroFx`, `heroSporesFx`)
+  y llama `start()` a los dos al terminar el titular.
 - `src/js/hero-zoom-transition.js`: tweenea `exitProgress` en la salida.
 - `src/style.css`: `.hero-pin`, `#webgl` y `.hero-spores`.
 - `src/js/waves.js`: eliminado.
@@ -130,8 +109,6 @@ sección sin empujar el layout; el titular queda por encima con `z-index: 1`.
 - Compartir un solo contexto WebGL entre el hero y el finale (hoy hay cinco
   canvas en la página: humo y esporas del hero; humo, velo y ojos del finale).
 - Medir FPS en un dispositivo real, sobre todo mobile, con las esporas.
-- Probar la interacción del cursor en un dispositivo real: que la abertura del
-  humo y el retorno de las esporas se sientan bien en touch y no traben el scroll.
 - Validar la magnitud del destello contra la pauta WCAG si se sube la intensidad.
 - Comparar en movimiento la nube del hero contra la sección de los ojos. Si hace
   falta, subir/bajar la amplitud macro (`0.5`) o el ambiente (`0.55`).

@@ -1,5 +1,3 @@
-import { heroPointer } from './heroPointer.js';
-
 // Esporas del hero: polvo rojo que flota entre el humo y el titular, en dos planos
 // de profundidad (lejos: chico, lento y tenue; cerca: más grande y rápido). Es un
 // canvas 2D: el humo ya es WebGL y sumar un tercer contexto no aportaba nada.
@@ -60,7 +58,6 @@ export class HeroSpores {
     this.dpr = 1;
     this.exitX = 0;
     this.exitY = 0;
-    this.pointerAmt = 0; // interacción con el puntero 0→1
     this.sprite = makeSprite();
     this.particles = [];
     this.loop = this.loop.bind(this);
@@ -88,10 +85,7 @@ export class HeroSpores {
       particles.push({
         x: Math.random(),
         y: Math.random(),
-        depth, // 0 = lejos, 1 = cerca: tamaño, velocidad y empuje
-        // Offset por la repulsión del puntero (px): se aparta y vuelve
-        ox: 0,
-        oy: 0,
+        depth, // 0 = lejos, 1 = cerca: tamaño, velocidad y parallax
         size: (2.4 + depth * 5.2 + Math.random() * 2.4) * (this.compact.matches ? 0.8 : 1),
         alpha: 0.1 + depth * 0.2 + Math.random() * 0.12,
         // fracción de la altura por segundo: las de cerca suben más rápido
@@ -174,15 +168,11 @@ export class HeroSpores {
     this.clock += dt;
     // Entrada al mismo ritmo que el humo (1.6 s)
     this.alpha += (1 - this.alpha) * (1 - Math.exp(-dt * 1.6));
-    // El puntero entra rápido y sale lento, igual que en el humo
-    const amtTarget = heroPointer.active ? 1 : 0;
-    this.pointerAmt +=
-      (amtTarget - this.pointerAmt) * (1 - Math.exp(-dt * (amtTarget > this.pointerAmt ? 6 : 2.5)));
-    this.render(dt);
+    this.render();
     this.raf = requestAnimationFrame(this.loop);
   }
 
-  render(dt = 0) {
+  render() {
     const ctx = this.ctx;
     const W = this.w;
     const H = this.h;
@@ -198,14 +188,6 @@ export class HeroSpores {
     const scroll = window.scrollY;
     const t = this.clock;
 
-    // Puntero en coordenadas del canvas; el mismo radio que la abertura del humo
-    const cr = this.canvas.getBoundingClientRect();
-    const ptrX = heroPointer.x - cr.left;
-    const ptrY = heroPointer.y - cr.top;
-    const pr = H * (this.compact.matches ? 0.15 : 0.17);
-    const pr2 = pr * pr;
-    const interacting = this.pointerAmt > 0.001;
-
     for (let i = 0; i < this.particles.length; i++) {
       const p = this.particles[i];
       // Deriva hacia arriba + parallax por scroll. Rango extendido (-0.06 → 1.06)
@@ -216,25 +198,6 @@ export class HeroSpores {
 
       let px = x * W;
       let py = y * H;
-
-      // Repulsión: se aparta del puntero y vuelve con una constante más lenta
-      if (interacting) {
-        const dxp = px - ptrX;
-        const dyp = py - ptrY;
-        const d2 = dxp * dxp + dyp * dyp;
-        const dd = Math.max(Math.sqrt(d2), 1);
-        const fall = Math.exp(-d2 / pr2) * this.pointerAmt;
-        const push = fall * pr * 0.18 * (0.7 + 0.5 * p.depth);
-        const ease = 1 - Math.exp(-dt * (fall > 0.01 ? 8 : 2.2));
-        p.ox += ((dxp / dd) * push - p.ox) * ease;
-        p.oy += ((dyp / dd) * push - p.oy) * ease;
-      } else if (p.ox !== 0 || p.oy !== 0) {
-        const ease = 1 - Math.exp(-dt * 2.2);
-        p.ox += (0 - p.ox) * ease;
-        p.oy += (0 - p.oy) * ease;
-      }
-      px += p.ox;
-      py += p.oy;
 
       if (pull > 0) {
         px = mix(px, this.exitX, pull);

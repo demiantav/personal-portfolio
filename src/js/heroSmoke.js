@@ -1,6 +1,5 @@
 import gsap from 'gsap';
 import { NOISE, buildProgram, webglContext } from './gl.js';
-import { heroPointer } from './heroPointer.js';
 
 // Humo del hero: un canvas WebGL que llena la sección. Reemplaza a las líneas
 // 2D (waves.js) y usa el mismo campo de ruido que el humo del finale, así el
@@ -40,8 +39,6 @@ uniform float u_exit;    // salida hacia la D 0→1 (scroll)
 uniform vec2 u_exitPos;  // centro de la D, px de viewport
 uniform float u_flash;   // luz del relámpago 0→1
 uniform vec2 u_flashPos; // origen del relámpago, px de viewport
-uniform vec2 u_pointer;  // puntero, px de viewport
-uniform float u_pointerAmt; // interacción 0→1
 ${NOISE}
 
 // Coordenadas de ruido desde px de viewport: el campo queda fijo en la pantalla
@@ -90,17 +87,7 @@ void main() {
   float ex = smoothstep(0.0, 1.0, u_exit);
   vec2 src = mix(vp, u_exitPos + (vp - u_exitPos) * exp(1.1 * ex), ex);
 
-  // Puntero: la niebla se abre a su paso. El muestreo se corre hacia afuera y la
-  // densidad baja en el centro; el borde se deforma con ruido para que no se lea
-  // como un círculo. Sin luz: sólo desplazamiento.
-  float pr = u_view.y * mix(0.18, 0.16, step(u_view.x, 768.0));
-  vec2 poff = src - u_pointer;
-  float pdist = length(poff);
-  float wobble = (noise(src / u_view.y * 3.2 + vec2(0.0, t * 0.4)) - 0.5) * 0.4;
-  float wake = exp(-pow(pdist / (pr * (1.0 + wobble)), 2.0)) * u_pointerAmt;
-  vec2 pdir = poff / max(pdist, pr * 0.05);
-  vec2 srcField = src + pdir * wake * (pr * 0.34);
-  float d = fieldAt(srcField, t);
+  float d = fieldAt(src, t);
 
   // Contrapeso: volutas que caen en la franja superior, así el humo se disipa
   // arriba y no queda una columna uniforme
@@ -111,10 +98,8 @@ void main() {
   d = mix(d, dn, topBand * 0.35);
   // Capa macro: modula la densidad a gran escala después del contrapeso. Es lo
   // que hace que las masas cambien de tamaño y no se repita el mismo patrón.
-  float macro = macroAt(srcField, t);
+  float macro = macroAt(src, t);
   d += (macro - 0.5) * 0.5;
-  // Abertura del puntero: el humo se aparta, no desaparece
-  d -= wake * 0.32;
 
   // Rampa del finale: núcleos definidos, silueta de nube
   float body = bodyAt(d);
@@ -178,8 +163,6 @@ export class HeroSmoke {
     this.nextFlashAt = 0;
     this.flashPos = { x: 0, y: 0 };
     this.exitPos = { x: 0, y: 0 };
-    // Puntero suavizado (viewport px): el humo lo sigue con un lag chico
-    this.pointer = { x: 0, y: 0, amt: 0 };
     this.raf = 0;
     this.last = 0;
 
@@ -217,8 +200,6 @@ export class HeroSmoke {
       exitPos: gl.getUniformLocation(program, 'u_exitPos'),
       flash: gl.getUniformLocation(program, 'u_flash'),
       flashPos: gl.getUniformLocation(program, 'u_flashPos'),
-      pointer: gl.getUniformLocation(program, 'u_pointer'),
-      pointerAmt: gl.getUniformLocation(program, 'u_pointerAmt'),
     };
     this.resize();
     return true;
@@ -289,14 +270,6 @@ export class HeroSmoke {
     this.clock += dt;
     this.flow += dt * (1 + 0.4 * this.exitProgress);
     this.updateFlash(dt);
-    // Puntero: el humo lo sigue con un lag chico y la interacción entra rápido
-    // y sale lento (así el cierre se siente suave)
-    const pt = this.pointer;
-    const posRate = 1 - Math.exp(-dt * 12);
-    pt.x += (heroPointer.x - pt.x) * posRate;
-    pt.y += (heroPointer.y - pt.y) * posRate;
-    const amtTarget = heroPointer.active ? 1 : 0;
-    pt.amt += (amtTarget - pt.amt) * (1 - Math.exp(-dt * (amtTarget > pt.amt ? 6 : 2.5)));
     this.render();
     this.raf = requestAnimationFrame(this.loop);
   }
@@ -349,10 +322,6 @@ export class HeroSmoke {
     gl.uniform2f(this.u.exitPos, this.exitPos.x, this.exitPos.y);
     gl.uniform1f(this.u.flash, this.flash);
     gl.uniform2f(this.u.flashPos, this.flashPos.x, this.flashPos.y);
-    // El puntero va en las mismas coordenadas que vp: relativas al canvas
-    const rect = this.canvas.getBoundingClientRect();
-    gl.uniform2f(this.u.pointer, this.pointer.x - rect.left, this.pointer.y - rect.top);
-    gl.uniform1f(this.u.pointerAmt, this.pointer.amt);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
 }
