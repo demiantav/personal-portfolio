@@ -4,8 +4,9 @@ import { EMOTIONS, FLAT, GEST_KEYS, TILT } from './eyeEmotions.js';
 
 // Los ojos del subtítulo. El texto no "desaparece": se pliega. La línea de
 // arriba se convierte en los párpados superiores, la de abajo en los inferiores
-// y la banda central de cada mitad se condensa en la pupila. Todo son brasas
-// del propio coral del subtítulo, en un canvas 2D chico pegado al bloque.
+// y la banda central de cada mitad se reparte por el cuerpo de la almendra.
+// Todo son brasas rojas, sin pupila: la misma criatura del finale, hecha de
+// partículas, en un canvas 2D chico pegado al bloque.
 //
 // Reglas:
 //  · aparece sólo al entrar al subtítulo; una vez despierto mira al cursor
@@ -19,8 +20,8 @@ import { EMOTIONS, FLAT, GEST_KEYS, TILT } from './eyeEmotions.js';
 const REDUCE = '(prefers-reduced-motion: reduce)';
 const COARSE = '(hover: none)';
 const PAD = 30; // aire del canvas para que los arcos no se recorten
-const N_FINE = 560;
-const N_COARSE = 380;
+const N_FINE = 800;
+const N_COARSE = 520;
 const HIT_PAD = 8;
 const ZONE_PAD = 24;
 const INIT_UP = 0.55; // el ojo nace en rendija
@@ -39,14 +40,9 @@ const AWAY_HOLD = 260;
 const ANGRY_MS = 1400;
 const COARSE_HOLD = 7000;
 const HELLO_AT = 1250;
-
-const PUPIL_SCALE = {
-  neutral: 1,
-  scan: 0.92,
-  angry: 0.74,
-  playful: 1.16,
-  sleepy: 0.85,
-};
+// La banda central del texto no es pupila: es masa para el cuerpo del ojo.
+const BODY_FROM = 0.25;
+const BODY_TO = 0.75;
 
 // Almendra asimétrica (cat-eye), en unidades de rx/ry. Las dos curvas van de la
 // comisura interna a la externa; así el mismo t sirve para el párpado de arriba
@@ -102,7 +98,7 @@ const makeSprite = (core, mid, edge) => {
   grd.addColorStop(0, core);
   grd.addColorStop(0.22, mid);
   grd.addColorStop(0.55, edge);
-  grd.addColorStop(1, 'rgba(255, 36, 56, 0)');
+  grd.addColorStop(1, 'rgba(255, 0, 0, 0)');
   g.fillStyle = grd;
   g.fillRect(0, 0, S, S);
   return c;
@@ -131,9 +127,11 @@ export const initHeroSubtitleEyes = () => {
   const reduceMq = window.matchMedia(REDUCE);
   const noise = createNoise2D();
   const sprites = [
-    makeSprite('rgba(255, 214, 206, 0.95)', 'rgba(255, 86, 98, 0.72)', 'rgba(255, 40, 60, 0.16)'), // 0: párpado
-    makeSprite('rgba(255, 176, 170, 0.78)', 'rgba(255, 56, 76, 0.5)', 'rgba(255, 30, 50, 0.1)'), // 1: inferior
-    makeSprite('rgba(255, 250, 245, 1)', 'rgba(255, 150, 142, 0.9)', 'rgba(255, 52, 72, 0.24)'), // 2: pupila
+    // Sólo rojo: el cuerpo del ojo del finale es #ff0000. Sin núcleos blancos
+    // ni durazno, así la suma aditiva nunca puede virar a blanco.
+    makeSprite('rgba(255, 0, 0, 0.92)', 'rgba(255, 0, 0, 0.58)', 'rgba(255, 0, 0, 0.12)'), // 0: párpado
+    makeSprite('rgba(255, 0, 0, 0.82)', 'rgba(255, 0, 0, 0.46)', 'rgba(255, 0, 0, 0.1)'), // 1: inferior
+    makeSprite('rgba(255, 0, 0, 0.62)', 'rgba(255, 0, 0, 0.32)', 'rgba(255, 0, 0, 0.08)'), // 2: cuerpo
   ];
 
   // ─── Medidas ────────────────────────────────────────────────────────
@@ -170,10 +168,10 @@ export const initHeroSubtitleEyes = () => {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const eyeW = clamp(W * 0.3, 40, 54);
-    const eyeH = eyeW * 0.49;
     const gap = eyeW * 0.26;
     rx = eyeW / 2;
-    ry = eyeH / 2.55;
+    // Misma proporción que la almendra del finale (rx = 1.9R, ry = 0.82R).
+    ry = rx * (0.82 / 1.9);
     const pairCx = PAD + W / 2;
     const pairCy = PAD + H / 2;
     eyeCx = [pairCx - (eyeW + gap) / 2, pairCx + (eyeW + gap) / 2];
@@ -254,44 +252,50 @@ export const initHeroSubtitleEyes = () => {
       for (let gi = 0; gi < nGroup; gi++) {
         const c = group[gi];
         // u por rango, no por píxel: reparte las brasas en partes iguales a lo
-        // largo de la tapa (y de la pupila) aunque el texto sea más denso de
-        // un lado. El origen sigue siendo el píxel real del glifo.
+        // largo de la tapa y del cuerpo aunque el texto sea más denso de un
+        // lado. El origen sigue siendo el píxel real del glifo.
         const u = (gi + 0.5) / nGroup;
         let role;
         let param = 0;
-        if (u > 0.36 && u < 0.64) {
-          role = 2; // pupila
+        let bt = 0;
+        let bv = 0;
+        if (u >= BODY_FROM && u <= BODY_TO) {
+          // La banda central no es pupila: se dispersa por toda la almendra
+          // para darle cuerpo rojo, sin crear un punto brillante en el centro.
+          role = 2;
+          bt = rand(0.06, 0.94);
+          bv = rand(0.08, 0.92);
         } else {
           role = c.line === 0 ? 0 : 1;
           // t=0 comisura interna, t=1 externa. El borde externo del texto es
           // la comisura externa; el borde que mira al centro, la interna. La
-          // banda central (pupila) se saltea y la tapa se reparte en las dos
+          // banda central (cuerpo) se saltea y la tapa se reparte en las dos
           // mitades, así el párpado queda continuo incluso en el medio.
+          const edge =
+            u < BODY_FROM ? u / BODY_FROM : (u - BODY_TO) / (1 - BODY_TO);
           if (eye === 0) {
-            param =
-              u < 0.36 ? 1 - (u / 0.36) * 0.5 : 0.5 - ((u - 0.64) / 0.36) * 0.5;
+            param = u < BODY_FROM ? 1 - edge * 0.5 : 0.5 - edge * 0.5;
           } else {
-            param =
-              u < 0.36 ? (u / 0.36) * 0.5 : 0.5 + ((u - 0.64) / 0.36) * 0.5;
+            param = u < BODY_FROM ? edge * 0.5 : 0.5 + edge * 0.5;
           }
           param = clamp(param + rand(-0.018, 0.018), 0, 1);
         }
         const size =
           (role === 2
-            ? rand(4.8, 7.0)
+            ? rand(4.0, 5.8)
             : role === 0
-              ? rand(4.0, 6.2)
-              : rand(3.4, 5.2)) * sizeScale;
+              ? rand(3.8, 5.8)
+              : rand(3.2, 5.2)) * sizeScale;
         const aBase =
-          role === 2 ? rand(0.6, 0.84) : role === 0 ? rand(0.42, 0.68) : rand(0.32, 0.52);
+          role === 2 ? rand(0.4, 0.58) : role === 0 ? rand(0.26, 0.42) : rand(0.22, 0.36);
         particles.push({
           sx: c.x + PAD + rand(-0.4, 0.4),
           sy: c.y + PAD + rand(-0.4, 0.4),
           eye,
           role,
           t: param,
-          ang: Math.random() * Math.PI * 2,
-          rad: Math.sqrt(Math.random()) * 0.92,
+          bt,
+          bv,
           pick: Math.random(),
           seed: Math.random() * 10,
           size,
@@ -398,49 +402,57 @@ export const initHeroSubtitleEyes = () => {
     return prev.y;
   };
 
-  const buildFrames = (time, pupilScale, pupilWake) => {
+  const buildFrames = (time) => {
     for (let k = 0; k < 2; k++) {
       const pose = eyePose[k];
-      const open = clamp(1 - pose.upPos * 1.05, 0, 1);
       const localX = clamp(gaze.x * 0.34 * eyeDir[k], -0.9, 0.95);
       const top = curveY(upperPoint, localX, pose, time, k);
       const bottom = curveY(lowerPoint, localX, pose, time, k);
-      const aperture = Math.max(0.2, bottom - top);
-      const center = (top + bottom) / 2 + gaze.y * aperture * 0.22;
-      const scale = pupilScale * (0.5 + 0.5 * open) * pupilWake;
-      const base = ry * 0.62 * scale;
-      eyeFrame[k] = {
-        open,
-        cx: gaze.x * rx * 0.34,
-        cy: center * ry,
-        prx: Math.max(0.6, Math.min(base * 1.05, rx * 0.36)),
-        pry: Math.max(0.6, Math.min(base, aperture * ry * 0.42)),
-        vis: open,
-      };
+      const aperture = Math.max(0, bottom - top);
+      // Sin máscara, el cuerpo se apaga a medida que las tapas lo cierran:
+      // así no quedan brasas rojas flotando sobre el ojo cerrado.
+      const bodyVis = smoothstep(0.04, 0.72, aperture);
+      eyeFrame[k] = { bodyVis };
     }
   };
 
   const targetFor = (p, time) => {
     const k = p.eye;
     const frame = eyeFrame[k];
-    const bodyX = gaze.x * 1.7;
-    const bodyY = gaze.y * 0.9;
+    const bodyX = gaze.x * rx * 0.22;
+    const bodyY = gaze.y * ry * 0.14;
     const jitterY = Math.sin(time * 1.15 + p.seed * 2.3) * 0.22;
+    const ca = Math.cos(-TILT);
+    const sa = Math.sin(-TILT);
     if (p.role === 2) {
+      // Cuerpo: se reparte entre la tapa de arriba y la de abajo. No hay
+      // centro ni pupila; la densidad hace que se lea como una sola almendra.
+      const top = upperPoint(p.bt, eyePose[k], time, k);
+      const bottom = lowerPoint(p.bt, eyePose[k], time, k);
+      const lx = mix(top.x, bottom.x, p.bv) * rx;
+      const ly = mix(top.y, bottom.y, p.bv) * ry;
+      const rxr = lx * ca - ly * sa;
+      const ryr = lx * sa + ly * ca;
       return {
-        x: eyeCx[k] + frame.cx + Math.cos(p.ang) * p.rad * frame.prx + bodyX,
-        y: eyeCy + frame.cy + Math.sin(p.ang) * p.rad * frame.pry + bodyY + jitterY * 0.4,
-        a: p.aBase * frame.vis,
+        x: eyeCx[k] + eyeDir[k] * rxr + bodyX,
+        y: eyeCy + ryr + bodyY + jitterY * 0.35,
+        a: p.aBase * frame.bodyVis,
       };
     }
     const pt =
       p.role === 0
         ? upperPoint(p.t, eyePose[k], time, k)
         : lowerPoint(p.t, eyePose[k], time, k);
-    const lx = pt.x * rx;
-    const ly = pt.y * ry;
-    const ca = Math.cos(-TILT);
-    const sa = Math.sin(-TILT);
+    let lx = pt.x * rx;
+    let ly = pt.y * ry;
+    // Mirada lateral: las tapas se inclinan como en el finale. Sin pupila, este
+    // gesto (más el desplazamiento del cuerpo) es lo que hace legible la mirada.
+    const lookRot = gaze.x * (p.role === 0 ? -0.12 : 0.12);
+    const lc = Math.cos(lookRot);
+    const ls = Math.sin(lookRot);
+    const ltx = lx * lc - ly * ls;
+    ly = lx * ls + ly * lc;
+    lx = ltx;
     const rxr = lx * ca - ly * sa;
     const ryr = lx * sa + ly * ca;
     const lowerFade =
@@ -503,10 +515,7 @@ export const initHeroSubtitleEyes = () => {
       pose.tremor = g.tremor;
     }
 
-    const wakeT =
-      state === 'waking' ? smoothstep(engagedAt + 180, engagedAt + 520, now) : 1;
-    const pupilState = state === 'awake' ? curState : 'neutral';
-    buildFrames(now / 1000, PUPIL_SCALE[pupilState] || 1, mix(1.5, 1, wakeT));
+    buildFrames(now / 1000);
   };
 
   // ─── Mirada ─────────────────────────────────────────────────────────
@@ -745,7 +754,7 @@ export const initHeroSubtitleEyes = () => {
       for (const p of particles) {
         p.rx0 = p.x;
         p.ry0 = p.y;
-        p.aRet = p.alpha; // el párpado ya está cerrado: no revivir pupilas
+        p.aRet = p.alpha; // el párpado ya está cerrado: no revivir el cuerpo
         p.rout = (p.x - eyeCx[p.eye]) * 0.18 + rand(-3, 3);
         p.rup = rand(2, 9);
         p.rdelay = rand(0, 0.07);

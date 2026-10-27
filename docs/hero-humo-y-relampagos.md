@@ -75,19 +75,26 @@ no existe.
   la fuente computada en un canvas offscreen y se muestrean los píxeles opacos.
   El `SplitText` de la salida (`hero-zoom-transition.js`) queda intacto y el
   subtítulo sigue siendo texto real para lectores de pantalla.
-- **Presupuesto.** 560 brasas en desktop y 380 en mobile, en un canvas 2D que
+- **Presupuesto.** 800 brasas en desktop y 520 en mobile, en un canvas 2D que
   cubre sólo el bloque del subtítulo + 30 px de aire por lado. DPR máximo 2.
   Sprites radiales pre-renderizados y `globalCompositeOperation = 'lighter'`;
-  el loop se apaga en reposo.
+  el loop se apaga en reposo. Todos los sprites son rojo puro, sin núcleos
+  blancos: la suma aditiva nunca puede virar a blanco.
 - **El pliegue.** La línea de arriba se convierte en los párpados superiores y
-  la de abajo en los inferiores. La banda central de cada mitad se condensa en
-  la pupila; los extremos del texto, en las comisuras. Las partículas se
-  reparten por rango de píxeles (no por punto medio geométrico) para que los dos
-  ojos tengan la misma densidad aunque el subtítulo esté alineado a la derecha.
-- **La almendra.** Cada ojo es una curva asimétrica tipo cat-eye; el párpado
-  superior y el inferior comparten el mismo parámetro `t` (comisura interna 0 →
-  externa 1), así el cierre y la media luna funcionan con una sola pose. La
-  pupila se recorta contra la abertura real del ojo.
+  la de abajo en los inferiores. La banda central de cada mitad no se condensa
+  en una pupila: se dispersa por el cuerpo de la almendra. Los extremos del
+  texto, en las comisuras. Las partículas se reparten por rango de píxeles (no
+  por punto medio geométrico) para que los dos ojos tengan la misma densidad
+  aunque el subtítulo esté alineado a la derecha.
+- **La almendra.** Cada ojo usa la proporción y el `TILT` del finale, con una
+  curva asimétrica tipo cat-eye; el párpado superior y el inferior comparten el
+  mismo parámetro `t` (comisura interna 0 → externa 1), así el cierre y la media
+  luna funcionan con una sola pose. El cuerpo se reparte entre las dos tapas y
+  se apaga con la abertura real del ojo: sin máscara, al cerrar no quedan brasas
+  rojas flotando sobre el párpado.
+- **Sin pupila.** El ojo es rojo puro y no tiene centro brillante. La mirada la
+  hace el cuerpo completo, como el ojo del finale, con resortes, microsacádicas
+  y la inclinación de las tapas.
 - **Vuelo.** Las brasas salen del glifo con un bezier de dos tramos (levantan y
   se abren antes de entrar al ojo). El ojo derecho llega ~40 ms más tarde, como
   en el finale.
@@ -155,7 +162,7 @@ subtítulo está despierto, cierra los ojos y restaura el texto en el mismo fram
 - Media resolución: escala 0.5 en desktop y 0.38 en mobile (el humo es de baja
   frecuencia, no se nota). El loop se pausa con `IntersectionObserver` cuando el
   hero sale de pantalla.
-- **Ojos del subtítulo**: 560/380 brasas en un canvas 2D del tamaño del bloque
+- **Ojos del subtítulo**: 800/520 brasas en un canvas 2D del tamaño del bloque
   (no del viewport), DPR ≤ 2, sprites pre-renderizados y loop apagado en reposo.
   El muestreo del texto corre una vez por build (carga y resize), no por frame.
 - **Reduced motion**: sin relámpagos ni bucle; se dibuja un solo frame estático

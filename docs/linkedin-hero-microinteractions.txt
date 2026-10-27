@@ -12,7 +12,7 @@ The detail I keep coming back to in my portfolio is a line of text that turns in
 
 The subtitle "+5 years of experience / Available worldwide" isn't static. Hover it and the letters break into embers, fold into two small eyes, and the eyes follow your cursor. They blink. Stay still and they squint. Swipe fast and they get annoyed. Wait long enough and they get sleepy, close, and the text comes back.
 
-No video, no 3D model: ~560 Canvas 2D particles sampled from the real text, spring-driven lids, and an emotion table shared with the eyes at the end of the page. The DOM text is never split for the effect, so it stays accessible. On mobile it's a tap. Reduced motion opts out.
+No video, no 3D model: ~800 Canvas 2D particles sampled from the real text, spring-driven lids, and an emotion table shared with the eyes at the end of the page. The DOM text is never split for the effect, so it stays accessible. On mobile it's a tap. Reduced motion opts out.
 
 Behind it, the hero breathes with WebGL smoke and red lightning. It stays ambient.
 
@@ -48,7 +48,7 @@ El detalle de mi portfolio al que vuelvo una y otra vez es una línea de texto q
 
 El subtítulo "+5 years of experience / Available worldwide" no es estático. Al hover, las letras se deshacen en brasas, se pliegan en dos ojos chiquitos y los ojos siguen al cursor. Parpadean. Si te quedás, entrecierran. Si hacés un swipe rápido, se enojan. Si esperás, se duermen, cierran y el texto vuelve.
 
-Sin video ni modelo 3D: ~560 partículas en Canvas 2D muestreadas del texto real, párpados con resortes y una tabla de emociones compartida con los ojos del finale. El texto del DOM no se parte para el efecto: sigue accesible. En mobile es un tap. Con reduced motion no existe.
+Sin video ni modelo 3D: ~800 partículas en Canvas 2D muestreadas del texto real, párpados con resortes y una tabla de emociones compartida con los ojos del finale. El texto del DOM no se parte para el efecto: sigue accesible. En mobile es un tap. Con reduced motion no existe.
 
 Detrás, el hero respira con humo WebGL y relámpagos rojos. Queda de fondo.
 
