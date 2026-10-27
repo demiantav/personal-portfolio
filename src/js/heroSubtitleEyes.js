@@ -3,12 +3,13 @@ import { createNoise2D } from 'simplex-noise';
 import { EMOTIONS, FLAT, GEST_KEYS, TILT } from './eyeEmotions.js';
 import { drawEye } from './eyeRender.js';
 
-// Los ojos del subtítulo. El texto no "desaparece": se pliega. La línea de
-// arriba se convierte en los párpados superiores, la de abajo en los inferiores
-// y la banda central de cada mitad se reparte por el cuerpo de la almendra.
-// El ojo despierto es la almendra sólida del finale; las brasas coral del
-// subtítulo son su textura y su estado anterior. Dos capas, una sola materia:
-// la almendra es el cuerpo, las brasas se condensan en ella y vuelven a salir.
+// Los ojos del subtítulo. El texto no "desaparece": se rompe en fragmentos que
+// son el propio texto. La línea de arriba se convierte en los párpados
+// superiores, la de abajo en los inferiores y la banda central de cada mitad se
+// reparte por el cuerpo de la almendra. El ojo despierto es la almendra sólida
+// del finale; las brasas coral del subtítulo son su textura y su estado
+// anterior. Dos capas, una sola materia: la almendra es el cuerpo, las brasas
+// se condensan en ella y vuelven a salir como los glifos que eran.
 //
 // Reglas:
 //  · aparece sólo al entrar al subtítulo; una vez despierto mira al cursor
@@ -26,13 +27,11 @@ const N_FINE = 800;
 const N_COARSE = 520;
 const HIT_PAD = 8;
 const ZONE_PAD = 24;
+const PATCH = 10; // recorte de texto que lleva cada brasa al posarse
 const INIT_UP = 0.55; // el ojo nace en rendija
 const OPEN_AT = 0.42; // s desde el engage hasta que la rendija despierta
 const OPEN_DUR = 0.24;
 const FLIGHT = 0.32;
-const ENTER_TEXT_DELAY = 0.04;
-const ENTER_TEXT_DUR = 0.18;
-const ENTER_TEXT_STAGGER = 0.035;
 const ENTER_SOLID_AT = 0.385; // la última brasa ya aterrizó
 const ENTER_SOLID_DUR = 0.035;
 const ENTER_IGNITE_DUR = 0.09; // el ojo ya abrió en coral y se enciende el rojo
@@ -44,12 +43,6 @@ const RETURN_SOLID_FADE_END = 0.18;
 const RETURN_FLIGHT_AT = 0.1; // las brasas arrancan mientras la almendra cede
 const RETURN_DUR = 0.38;
 const RETURN_TOTAL = 0.8;
-const RETURN_TEXT_AT = 0.56;
-const RETURN_TEXT_DUR = 0.18;
-const RETURN_TEXT_STAGGER = 0.05;
-// La brasa de cada línea se apaga exactamente mientras su texto termina de
-// aparecer: no hay un frame sin texto ni un texto que aparezca solo.
-const RETURN_FUSE_DUR = RETURN_TEXT_DUR;
 const IDLE_MS = 7400;
 const SLEEP_HOLD = 1100;
 const AWAY_HOLD = 140;
@@ -186,10 +179,13 @@ export const initHeroSubtitleEyes = () => {
   let eyeCx = [0, 0];
   let eyeDir = [-1, 1];
   let particles = [];
+  let textAtlas = null;
+  let textVisible = false;
   let armed = false;
   let disabled = false;
 
   const measure = () => {
+    textAtlas = null;
     wrapRect = wrap.getBoundingClientRect();
     zoneRect = titles.getBoundingClientRect();
     W = Math.max(1, Math.round(wrapRect.width));
@@ -262,7 +258,101 @@ export const initHeroSubtitleEyes = () => {
     return pts;
   };
 
+  // Atlas de texto para los fragmentos. Se renderiza a DPR para que los
+  // recortes que lleva cada brasa mantengan la tipografía nítida.
+  const makeTextAtlas = () => {
+    textAtlas = null;
+    if (!W || !H) return;
+    const atlas = document.createElement('canvas');
+    // Margen de un patch por lado: los recortes de los glifos que tocan el
+    // borde del bloque no se cortan ni se reescalan.
+    atlas.width = Math.max(1, Math.round((W + PATCH * 2) * dpr));
+    atlas.height = Math.max(1, Math.round((H + PATCH * 2) * dpr));
+    const g = atlas.getContext('2d');
+    if (!g) return;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, W + PATCH * 2, H + PATCH * 2);
+    g.fillStyle = getComputedStyle(h4s[0]).color || '#f3505f';
+    g.textAlign = 'right';
+    g.textBaseline = 'middle';
+    const rects = h4s.map((h) => {
+      const r = h.getBoundingClientRect();
+      return { top: r.top - wrapRect.top, right: r.right - wrapRect.left, h: r.height };
+    });
+    h4s.forEach((h, i) => {
+      const cs = getComputedStyle(h);
+      g.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+      if ('letterSpacing' in g) {
+        g.letterSpacing = cs.letterSpacing === 'normal' ? '0px' : cs.letterSpacing;
+      }
+      const text = (h.textContent || '').replace(/\s+/g, ' ').trim();
+      g.fillText(
+        text,
+        PATCH + rects[i].right - 0.5,
+        PATCH + rects[i].top + rects[i].h / 2,
+      );
+    });
+    textAtlas = atlas;
+  };
+
+  // Cada partícula recibe un recorte propio del atlas. Los píxeles del glifo
+  // se reparten por cercanía, sin solaparse: en reposo la suma de fragmentos
+  // reproduce el texto exacto, no una versión más gruesa por transparencias.
+  const buildTextPatches = () => {
+    if (!textAtlas || !particles.length) return;
+    const patchPx = Math.max(1, Math.round(PATCH * dpr));
+    const atlasCtx = textAtlas.getContext('2d', { willReadFrequently: true });
+    if (!atlasCtx) return;
+    const src = atlasCtx.getImageData(0, 0, textAtlas.width, textAtlas.height).data;
+    for (const p of particles) {
+      p.patchCanvas = document.createElement('canvas');
+      p.patchCanvas.width = patchPx;
+      p.patchCanvas.height = patchPx;
+      p.patchCtx = p.patchCanvas.getContext('2d');
+      if (!p.patchCtx) {
+        p.patchCanvas = null;
+        continue;
+      }
+      p.patchData = p.patchCtx.createImageData(patchPx, patchPx);
+      p.patchSx = Math.round((p.tx - PATCH / 2) * dpr);
+      p.patchSy = Math.round((p.ty - PATCH / 2) * dpr);
+    }
+    for (let y = 0; y < textAtlas.height; y++) {
+      for (let x = 0; x < textAtlas.width; x++) {
+        const si = (y * textAtlas.width + x) * 4;
+        if (src[si + 3] <= 0) continue;
+        const cssX = (x + 0.5) / dpr;
+        const cssY = (y + 0.5) / dpr;
+        let best = null;
+        let bestD = Infinity;
+        for (const p of particles) {
+          const dx = p.tx - cssX;
+          const dy = p.ty - cssY;
+          const d = dx * dx + dy * dy;
+          if (d < bestD) {
+            bestD = d;
+            best = p;
+          }
+        }
+        if (!best || !best.patchData) continue;
+        const rx = x - best.patchSx;
+        const ry = y - best.patchSy;
+        if (rx < 0 || ry < 0 || rx >= patchPx || ry >= patchPx) continue;
+        const di = (ry * patchPx + rx) * 4;
+        best.patchData.data[di] = src[si];
+        best.patchData.data[di + 1] = src[si + 1];
+        best.patchData.data[di + 2] = src[si + 2];
+        best.patchData.data[di + 3] = src[si + 3];
+      }
+    }
+    for (const p of particles) {
+      if (p.patchCtx && p.patchData) p.patchCtx.putImageData(p.patchData, 0, 0);
+      p.patchData = null;
+    }
+  };
+
   const build = () => {
+    makeTextAtlas();
     const cand = sampleText();
     if (!cand.length) {
       particles = [];
@@ -330,9 +420,16 @@ export const initHeroSubtitleEyes = () => {
               : rand(3.2, 5.2)) * sizeScale;
         const aBase =
           role === 2 ? rand(0.4, 0.58) : role === 0 ? rand(0.26, 0.42) : rand(0.22, 0.36);
+        // Sin jitter en reposo: cada fragmento cae exactamente sobre el píxel
+        // del glifo. El temblor empieza recién cuando la brasa despega.
+        const sx = c.x + PAD;
+        const sy = c.y + PAD;
         particles.push({
-          sx: c.x + PAD + rand(-0.4, 0.4),
-          sy: c.y + PAD + rand(-0.4, 0.4),
+          sx,
+          sy,
+          tx: c.x + PATCH,
+          ty: c.y + PATCH,
+          patchCanvas: null,
           eye,
           role,
           line: c.line,
@@ -345,9 +442,10 @@ export const initHeroSubtitleEyes = () => {
           s0: size * 1.45,
           aBase,
           sprite: sprites[role],
-          x: c.x + PAD,
-          y: c.y + PAD,
+          x: sx,
+          y: sy,
           alpha: 0,
+          textAlpha: 0,
           sizeNow: size * 1.45,
           delay: 0,
           c1x: 0,
@@ -358,6 +456,7 @@ export const initHeroSubtitleEyes = () => {
         });
       }
     }
+    buildTextPatches();
   };
 
   // ─── Estado ─────────────────────────────────────────────────────────
@@ -794,6 +893,7 @@ export const initHeroSubtitleEyes = () => {
       p.x = p.sx;
       p.y = p.sy;
       p.alpha = 0;
+      p.textAlpha = 1;
       p.sizeNow = p.s0;
       // Onda coherente por línea: la brasa no llega por azar, se pliega desde
       // el texto como una cortina. La línea de arriba inicia primero. El último
@@ -807,15 +907,12 @@ export const initHeroSubtitleEyes = () => {
       p.c1y = p.sy - p.lift;
       p.ret = false;
     }
-    gsap.killTweensOf(h4s);
-    gsap.to(h4s, {
-      opacity: 0,
-      duration: ENTER_TEXT_DUR,
-      delay: ENTER_TEXT_DELAY,
-      stagger: ENTER_TEXT_STAGGER,
-      ease: 'none',
-      overwrite: true,
-    });
+    // El DOM se oculta recién después de que los fragmentos ya están dibujados
+    // encima. No hay fade de texto: el texto es la misma materia que va a volar.
+    if (!showParticleText()) {
+      cancelInstant();
+      return;
+    }
     startLoop();
   };
 
@@ -841,27 +938,26 @@ export const initHeroSubtitleEyes = () => {
     // que subirlos: el coral es la textura visible cuando la almendra cede.
     for (const p of particles) {
       p.aRet = Math.min(0.98, Math.max(0.68, p.aBase * 2.3));
+      p.textAlpha = 0;
     }
+    // El texto que vuelve ya no es el h4: es la unión de los recortes que
+    // aterrizan. El DOM sigue oculto para que no haya crossfade entre capas.
+    textVisible = true;
     returnAt = performance.now();
     returnStarted = false;
     returnStartAt = 0;
     awayAt = 0;
     slowBlinkStart = -1;
-    gsap.killTweensOf(h4s);
-    gsap.to(h4s, {
-      opacity: 1,
-      duration: RETURN_TEXT_DUR,
-      delay: RETURN_TEXT_AT,
-      stagger: RETURN_TEXT_STAGGER,
-      ease: 'none',
-      overwrite: true,
-    });
   };
 
   const cancelInstant = () => {
-    const wasActive = state !== 'idle';
+    // Aunque el estado ya sea idle, puede haber texto en partículas: hay que
+    // devolver el DOM antes de que el scroll lo entregue al SplitText de salida.
+    const wasActive = state !== 'idle' || textVisible;
     state = 'idle';
     stopLoop();
+    textVisible = false;
+    for (const p of particles) p.textAlpha = 0;
     if (wasActive) {
       gsap.killTweensOf(h4s);
       gsap.set(h4s, { clearProps: 'opacity' });
@@ -878,11 +974,20 @@ export const initHeroSubtitleEyes = () => {
     state = 'idle';
     solidMix = 0;
     particleMix = 0;
+    textVisible = true;
     stopLoop();
+    for (const p of particles) {
+      p.x = p.sx;
+      p.y = p.sy;
+      p.alpha = 0;
+      p.textAlpha = 1;
+    }
     ctx.clearRect(0, 0, CW, CH);
     solidCtx.clearRect(0, 0, CW, CH);
-    gsap.killTweensOf(h4s);
-    gsap.set(h4s, { clearProps: 'opacity' });
+    // El subtítulo queda como fragmentos de texto. El h4 sigue en el DOM para
+    // lectores de pantalla, pero no participa del dibujo ni de ningún fade.
+    drawTextParticles();
+    gsap.set(h4s, { opacity: 0 });
     cooldownUntil = now + 160;
     // Si el puntero quedó adentro, hay que salir y volver a entrar para
     // despertarlos de nuevo (wasInside se actualiza en el próximo move).
@@ -936,18 +1041,21 @@ export const initHeroSubtitleEyes = () => {
     const time = now / 1000;
     for (const p of particles) {
       if (state === 'returning' && returnStarted) {
-        const rt = (now - returnAt) / 1000;
         const flightT = (now - returnStartAt) / 1000;
         const rp = clamp((flightT - p.rdelay) / RETURN_DUR, 0, 1);
-        if (rp <= 0) continue;
+        if (rp <= 0) {
+          p.textAlpha = 0;
+          continue;
+        }
         const e = easeInOutCubic(rp);
         p.x = bez(p.rx0, p.rc1x, p.rc2x, p.sx, e);
         p.y = bez(p.ry0, p.rc1y, p.rc2y, p.sy, e);
-        // La brasa llega al glifo con todo su cuerpo y se apaga recién cuando
-        // el texto de su línea empieza a aparecer: así se funde, no desaparece.
-        const textAt = RETURN_TEXT_AT + p.line * RETURN_TEXT_STAGGER;
-        p.alpha =
-          p.aRet * (1 - smoothstep(textAt, textAt + RETURN_FUSE_DUR, rt));
+        // Cada brasa lleva su recorte del texto: al acercarse al glifo deja de
+        // ser brasa y vuelve a ser la letra que le corresponde. No hay una
+        // segunda capa de texto apareciendo por detrás.
+        const textIn = smoothstep(0.58, 0.95, e);
+        p.textAlpha = textIn;
+        p.alpha = p.aRet * (1 - textIn);
         p.sizeNow = mix(p.sizeRet, p.size, smoothstep(0, 0.9, e));
         continue;
       }
@@ -955,6 +1063,7 @@ export const initHeroSubtitleEyes = () => {
         // Antes del vuelo las brasas ya están en la pose del ojo, ocultas
         // debajo de la almendra. No forman una segunda silueta visible.
         p.alpha = p.aRet;
+        p.textAlpha = 0;
         continue;
       }
       const fp = clamp((tSec - p.delay) / FLIGHT, 0, 1);
@@ -963,6 +1072,7 @@ export const initHeroSubtitleEyes = () => {
         p.x = p.sx;
         p.y = p.sy;
         p.alpha = 0;
+        p.textAlpha = 1;
         p.sizeNow = p.s0;
       } else if (fp < 1) {
         const e = easeOutCubic(fp);
@@ -970,12 +1080,18 @@ export const initHeroSubtitleEyes = () => {
         const c2y = T.y - p.lift * 0.3;
         p.x = bez(p.sx, p.c1x, c2x, T.x, e);
         p.y = bez(p.sy, p.c1y, c2y, T.y, e);
-        p.alpha = mix(0.95, T.a, smoothstep(0, 0.75, e));
+        // El recorte se apaga a medida que la brasa despega: el texto se
+        // deshace en la misma materia, no se desvanece debajo de ella.
+        p.textAlpha = 1 - smoothstep(0.04, 0.3, e);
+        p.alpha =
+          mix(0.95, T.a, smoothstep(0, 0.75, e)) *
+          smoothstep(0, 0.3, e);
         p.sizeNow = mix(p.s0, p.size, smoothstep(0, 0.85, e));
       } else {
         p.x += (T.x - p.x) * kFollow;
         p.y += (T.y - p.y) * kFollow;
         p.alpha += (T.a - p.alpha) * kFollow;
+        p.textAlpha = 0;
         p.sizeNow += (p.size - p.sizeNow) * kFollow;
       }
     }
@@ -1059,6 +1175,45 @@ export const initHeroSubtitleEyes = () => {
     ctx.globalAlpha = 1;
   };
 
+  // Texto compuesto por los mismos fragmentos que vuelan. No hay un h4
+  // apareciendo por detrás: cada brasa lleva su recorte y lo devuelve al
+  // posarse. En reposo, la unión de los recortes es el subtítulo.
+  const drawTextParticles = () => {
+    if (!textVisible) return;
+    ctx.globalCompositeOperation = 'source-over';
+    for (const p of particles) {
+      if (p.textAlpha <= 0.004 || !p.patchCanvas) continue;
+      ctx.globalAlpha = p.textAlpha;
+      ctx.drawImage(
+        p.patchCanvas,
+        p.x - PATCH / 2,
+        p.y - PATCH / 2,
+        PATCH,
+        PATCH,
+      );
+    }
+    ctx.globalAlpha = 1;
+  };
+
+  const showParticleText = () => {
+    if (!textAtlas || !particles.length || !particles.some((p) => p.patchCanvas)) {
+      return false;
+    }
+    for (const p of particles) {
+      p.x = p.sx;
+      p.y = p.sy;
+      p.textAlpha = 1;
+    }
+    textVisible = true;
+    // Primero se dibuja el texto de fragmentos y sólo después se oculta el
+    // h4: el intercambio ocurre en el mismo frame, sin hueco ni fundido.
+    ctx.clearRect(0, 0, CW, CH);
+    drawTextParticles();
+    gsap.killTweensOf(h4s);
+    gsap.set(h4s, { opacity: 0 });
+    return true;
+  };
+
   const drawSolidLayer = () => {
     if (solidMix <= 0.004) return;
     drawSolid();
@@ -1074,11 +1229,13 @@ export const initHeroSubtitleEyes = () => {
       // encima como textura hasta que el ojo abre y el coral se enciende.
       drawSolidLayer();
       drawParticles();
+      drawTextParticles();
     } else {
       // En la salida la almendra cubre a las brasas y cede opacidad: así el
       // coral aparece como textura del mismo ojo, no como una segunda silueta.
       drawParticles();
       drawSolidLayer();
+      drawTextParticles();
     }
     ctx.globalCompositeOperation = 'source-over';
   };

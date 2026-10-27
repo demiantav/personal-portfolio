@@ -20,8 +20,8 @@ y las esporas quedan de fondo.
   `webglContext`. `progressFog.js` también los usa: antes duplicaba el ruido y el
   compilador.
 - **`src/js/heroSubtitleEyes.js`**: la interacción del subtítulo. Canvas 2D
-  pegado al bloque, partículas muestreadas del texto real, almendra sólida al
-  despertar, párpados con resortes y mirada al cursor.
+  pegado al bloque, partículas que llevan fragmentos del texto real, almendra
+  sólida al despertar, párpados con resortes y mirada al cursor.
 - **`src/js/eyeRender.js`**: renderer compartido de la almendra del finale. El
   ojo del hero y los ojos de `processEyes.js` dibujan exactamente la misma forma.
 - **`src/js/eyeEmotions.js`**: tabla compartida de emociones. El finale usa
@@ -76,18 +76,27 @@ y reconstruyen el texto. En mobile el disparador es un tap; en
 
 ### Rig híbrido: brasas + almendra
 
-- **Sin tocar el DOM.** El texto no se splitea para el efecto: se renderiza con
+- **Sin splitear el DOM.** El texto no se parte para el efecto: se renderiza con
   la fuente computada en un canvas offscreen y se muestrean los píxeles opacos.
   El `SplitText` de la salida (`hero-zoom-transition.js`) queda intacto y el
-  subtítulo sigue siendo texto real para lectores de pantalla.
+  subtítulo sigue siendo texto real para lectores de pantalla. La primera vez
+  se ve el `h4`; desde el primer morph el subtítulo visible es la unión de los
+  fragmentos. El `h4` sigue en el DOM con `opacity: 0`.
+- **Partículas-fragmento.** Cada partícula lleva un recorte de 10 px del texto,
+  no un punto genérico. Un atlas a DPR renderiza los dos `h4`; después cada
+  píxel del glifo se asigna a la partícula más cercana, sin solaparse, y se
+  hornea en un canvas pequeño por partícula. En reposo la unión reproduce el
+  texto exacto (sin engrosarlo por alfa acumulada); al despegar, el recorte se
+  convierte en brasa; al aterrizar, vuelve a ser su letra. No hay un `h4`
+  apareciendo por detrás ni un crossfade entre dos representaciones.
 - **Presupuesto.** 800 brasas coral en desktop y 520 en mobile para el pliegue y
-  el retorno. El ojo despierto no usa partículas: usa la almendra sólida del
-  finale. El canvas cubre sólo el bloque + 30 px de aire por lado y el DPR
-  máximo es 2.
+  el retorno, más sus recortes pre-horneados. El ojo despierto no usa partículas:
+  usa la almendra sólida del finale. El canvas cubre sólo el bloque + 30 px de
+  aire por lado y el DPR máximo es 2.
 - **Brasas coral.** Los sprites radiales heredan el coral del subtítulo
   (`#f3505f`), con el último stop transparente del mismo color. Se dibujan con
   `source-over` (no aditivo) para que la superposición no vire a blanco. El loop
-  se apaga en reposo.
+  se apaga en reposo; el texto ya asentado queda dibujado en el canvas.
 - **Almendra sólida.** Se dibuja en un canvas offscreen del mismo tamaño con
   `drawEye` de `eyeRender.js`: misma silueta, proporción, `TILT`, tapas y
   emociones que el finale. Acepta un color opcional: el hero la enciende desde
@@ -122,13 +131,15 @@ y reconstruyen el texto. En mobile el disparador es un tap; en
 - **Trigger.** Sólo al entrar al subtítulo (con 8 px de tolerancia) o con un tap
   en mobile. Una vez despierto, la mirada sigue al cursor mientras siga dentro
   del bloque de título + 24 px.
-- **Despertar.** El texto se desprende por líneas entre 0.04 y 0.26 s; no
-  desaparece de golpe. Las brasas pliegan en una onda por línea y aterrizan a
-  los ~0.385 s. La rendija se condensa en la almendra coral entre 0.385 y 0.42 s
-  y el ojo abre entre 0.42 y 0.66 s; las brasas siguen encima durante toda la
-  apertura y el rojo se enciende al completar la cobertura (0.66–0.75 s). Queda
-  en `hooded`. El primer despertar de la carga regala un parpadeo lento de saludo
-  a los ~1.35 s, una sola vez.
+- **Despertar.** El `h4` se oculta en el mismo frame en que los fragmentos ya
+  están dibujados: no hay fade de texto por detrás. Cada fragmento conserva su
+  recorte mientras despega y se convierte en brasa sobre la marcha. Las brasas
+  pliegan en una onda por línea y aterrizan a los ~0.385 s. La rendija se
+  condensa en la almendra coral entre 0.385 y 0.42 s y el ojo abre entre 0.42 y
+  0.66 s; las brasas siguen encima durante toda la apertura y el rojo se
+  enciende al completar la cobertura (0.66–0.75 s). Queda en `hooded`. El primer
+  despertar de la carga regala un parpadeo lento de saludo a los ~1.35 s, una
+  sola vez.
 - **Emociones.** Tres bases: `hooded`, `focus` (a los ~3 s si el cursor se
   quedó quieto) y `sleepy` (a los ~7,4 s). El enojo es un impulso de ~0,9 s con
   cooldown de 2,2 s después de un swipe rápido; la desconfianza es una capa
@@ -141,21 +152,24 @@ y reconstruyen el texto. En mobile el disparador es un tap; en
   inactividad, al scrollear, al redimensionar, al ocultar la pestaña o con un
   segundo tap en mobile. La almendra no se cierra: primero se enfría de rojo a
   coral entre 0 y 80 ms, después cede opacidad entre 60 y 180 ms, y las brasas
-  arrancan a los 100 ms. Aterrizan completas en los glifos a los ~545 ms; no se
-  apagan en el aire. El texto entra desde los 560 ms, línea por línea, con 50 ms
-  de diferencia, y las brasas de cada línea se funden con su texto entre 560–740
-  ms y 610–790 ms. El retorno total dura ~800 ms. El texto del DOM siempre vuelve
-  a `opacity: 1`; si hay scroll, se restaura en el mismo frame en que empieza la
-  salida.
+  arrancan a los 100 ms. Cada brasa viaja con su recorte y lo vuelve a encender
+  al acercarse al glifo: el texto se reconstruye desde los fragmentos, sin que
+  un `h4` haga fade por debajo. A los ~545 ms todas las piezas aterrizaron; el
+  retorno total dura ~800 ms y termina con el texto ya dibujado en el canvas.
+  El `h4` sigue oculto hasta que un scroll, resize, pestaña oculta o
+  `prefers-reduced-motion` devuelve el DOM.
 - **Re-armado.** Sólo saliendo y volviendo a entrar al subtítulo. El primer
   despertar no se repite por carga. En mobile el sueño también se ve: llega a
   los ~7,4 s y devuelve a los ~8,5 s; el auto-retorno de seguridad es a los
   ~9 s, el texto empieza a volver cerca de 9,1 s y termina cerca de 9,3 s. El
-  tap devuelve antes.
-- **Accesibilidad.** El canvas es `aria-hidden`; el texto sigue en el DOM; el
-  aro custom se oculta sobre el subtítulo y el cursor nativo (flecha) es el que
-  los ojos miran. `prefers-reduced-motion` no monta el efecto; el CSS también
-  oculta `.hero-eyes`.
+  tap devuelve antes. Al volver a entrar, las partículas-fragmento arrancan
+  desde el texto ya asentado.
+- **Accesibilidad.** El canvas es `aria-hidden`; el texto sigue en el DOM (con
+  `opacity: 0` mientras manda el canvas) y el aro custom se oculta sobre el
+  subtítulo para que el cursor nativo sea el que los ojos miran.
+  `prefers-reduced-motion` no monta el efecto; el CSS también oculta
+  `.hero-eyes`. El scroll devuelve el `h4` visible en el mismo frame para que el
+  `SplitText` de salida no herede una capa oculta.
 
 ## Interacción
 
@@ -183,10 +197,10 @@ del pin. El muestreo del campo se pliega hacia el centro de la D
 (`.d-anchor`) y la densidad cae a 0, así el humo desaparece antes del zoom. La
 idea es la misma que la absorción del finale.
 
-Antes de que el zoom empiece, `heroSubtitleEyes.js` escucha el scroll: si el
-subtítulo está despierto, lo deshace y restaura el texto en el mismo frame
-(`cancelInstant`). El canvas de los ojos queda limpio y el `SplitText` de los
-`h4` sigue su curso.
+Antes de que el zoom empiece, `heroSubtitleEyes.js` escucha el scroll: si hay
+un morph activo o el subtítulo quedó como fragmentos, lo deshace y devuelve el
+`h4` visible en el mismo frame (`cancelInstant`). El canvas queda limpio y el
+`SplitText` de los `h4` sigue su curso.
 
 ## Rendimiento y fallbacks
 
@@ -196,8 +210,10 @@ subtítulo está despierto, lo deshace y restaura el texto en el mismo frame
 - **Ojos del subtítulo**: 800/520 brasas sólo durante el pliegue y el retorno;
   el ojo despierto es una almendra sólida en un canvas offscreen del tamaño del
   bloque (no del viewport), DPR ≤ 2, sprites pre-renderizados y loop apagado en
-  reposo. El muestreo del texto corre una vez por build (carga y resize), no por
-  frame.
+  reposo. El muestreo del texto y el horneado de los recortes corren una vez por
+  build (carga y resize), no por frame. En reposo, el texto asentado queda
+  dibujado una sola vez en el canvas; no se redibuja hasta la próxima
+  interacción.
 - **Reduced motion**: sin relámpagos ni bucle; se dibuja un solo frame estático
   (verificado: `reduce = true`, sin errores).
 - **Sin WebGL**: el canvas queda vacío y se ve el degradado de respaldo de
