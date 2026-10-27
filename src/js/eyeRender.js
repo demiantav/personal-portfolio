@@ -4,6 +4,8 @@ import { TILT } from './eyeEmotions.js';
 // sólido que enciende la transición de partículas; processEyes lo usa para sus
 // ojos rojos. El cuerpo es fijo: sólo se dibujan las tapas encima, recortadas
 // al ojo. Tapas transparentes: el párpado cerrado deja ver el humo de fondo.
+// El color es opcional para que el hero pueda encender la almendra desde el
+// coral sin tocar el rojo puro del finale.
 const EYE_RED = '#ff0000';
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -19,7 +21,7 @@ const almond = (ctx, rx, ry) => {
 // Tapa superior: su borde está en y = -1.3ry + pos·2.6ry (pos 0 = retirada,
 // 1 = cubre todo). Rotación positiva = canto interno (x<0 local) sube.
 // Tapa inferior: su borde sube con pos, y `bow` lo curva hacia arriba.
-export const drawEye = (ctx, eye, cx, cy, R, look = {}) => {
+export const drawEye = (ctx, eye, cx, cy, R, look = {}, color = EYE_RED) => {
   const rx = R * 1.9;
   const ry = R * 0.82;
   const s = eye.s;
@@ -30,8 +32,8 @@ export const drawEye = (ctx, eye, cx, cy, R, look = {}) => {
   ctx.scale(eye.dir, 1); // el ojo izquierdo es espejo: canto externo hacia fuera
   ctx.rotate(-TILT); // cat-eye: canto externo elevado
 
-  // Cuerpo: almendra roja plana, sin glow. No escala nunca.
-  ctx.fillStyle = EYE_RED;
+  // Cuerpo: almendra plana, sin glow. No escala nunca.
+  ctx.fillStyle = color;
   almond(ctx, rx, ry);
   ctx.fill();
 

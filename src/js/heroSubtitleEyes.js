@@ -7,7 +7,8 @@ import { drawEye } from './eyeRender.js';
 // arriba se convierte en los párpados superiores, la de abajo en los inferiores
 // y la banda central de cada mitad se reparte por el cuerpo de la almendra.
 // El ojo despierto es la almendra sólida del finale; las brasas coral del
-// subtítulo son el encendido y el retorno. Dos capas, una sola criatura.
+// subtítulo son su textura y su estado anterior. Dos capas, una sola materia:
+// la almendra es el cuerpo, las brasas se condensan en ella y vuelven a salir.
 //
 // Reglas:
 //  · aparece sólo al entrar al subtítulo; una vez despierto mira al cursor
@@ -26,21 +27,29 @@ const N_COARSE = 520;
 const HIT_PAD = 8;
 const ZONE_PAD = 24;
 const INIT_UP = 0.55; // el ojo nace en rendija
-const OPEN_AT = 0.5; // s desde el engage hasta que la rendija despierta
-const OPEN_DUR = 0.22;
-const FLIGHT = 0.38;
+const OPEN_AT = 0.42; // s desde el engage hasta que la rendija despierta
+const OPEN_DUR = 0.24;
+const FLIGHT = 0.32;
 const ENTER_TEXT_DELAY = 0.04;
 const ENTER_TEXT_DUR = 0.18;
 const ENTER_TEXT_STAGGER = 0.035;
-const ENTER_SOLID_AT = 0.3;
-const ENTER_SOLID_DUR = 0.2;
-const RETURN_MIX = 0.14; // la almendra se deshace en brasas
-const RETURN_FLIGHT_AT = 0.22; // después de un micro-hold coral
+const ENTER_SOLID_AT = 0.385; // la última brasa ya aterrizó
+const ENTER_SOLID_DUR = 0.035;
+const ENTER_IGNITE_DUR = 0.09; // el ojo ya abrió en coral y se enciende el rojo
+const ENTER_GLOW = 1.45; // la rendija coral necesita más cuerpo que el ojo despierto
+const RETURN_COLOR_OUT = 0.08; // rojo → coral antes de deshacerse
+const RETURN_PARTICLE_IN = 0.035; // las brasas recién se encienden con el coral
+const RETURN_SOLID_FADE_AT = 0.06;
+const RETURN_SOLID_FADE_END = 0.18;
+const RETURN_FLIGHT_AT = 0.1; // las brasas arrancan mientras la almendra cede
 const RETURN_DUR = 0.38;
-const RETURN_TOTAL = 0.82;
-const RETURN_TEXT_AT = 0.58;
+const RETURN_TOTAL = 0.8;
+const RETURN_TEXT_AT = 0.56;
 const RETURN_TEXT_DUR = 0.18;
 const RETURN_TEXT_STAGGER = 0.05;
+// La brasa de cada línea se apaga exactamente mientras su texto termina de
+// aparecer: no hay un frame sin texto ni un texto que aparezca solo.
+const RETURN_FUSE_DUR = RETURN_TEXT_DUR;
 const IDLE_MS = 7400;
 const SLEEP_HOLD = 1100;
 const AWAY_HOLD = 140;
@@ -60,6 +69,11 @@ const SACCADE_GAP = 420;
 // La banda central del texto no es pupila: es masa para el cuerpo del ojo.
 const BODY_FROM = 0.25;
 const BODY_TO = 0.75;
+
+// El coral del subtítulo y el rojo puro del finale. La almendra interpola entre
+// ambos: el rojo sólo se enciende a medida que el ojo termina de abrir.
+const CORAL_RGB = [243, 80, 95];
+const RED_RGB = [255, 0, 0];
 
 // Almendra asimétrica (cat-eye), en unidades de rx/ry. Las dos curvas van de la
 // comisura interna a la externa; así el mismo t sirve para el párpado de arriba
@@ -350,6 +364,7 @@ export const initHeroSubtitleEyes = () => {
   let state = 'idle'; // idle | waking | awake | returning
   let solidMix = 0;
   let particleMix = 0;
+  let solidColorMix = 1;
   let curState = 'hooded';
   let engagedAt = 0;
   let openStart = 0;
@@ -461,10 +476,12 @@ export const initHeroSubtitleEyes = () => {
     const k = p.eye;
     const frame = eyeFrame[k];
     const gz = gaze[k];
-    // La almendra sólida se cierra, pero las brasas conservan la pose que
-    // tenían al soltar: así el coral aparece como un ojo completo, no como una
-    // rendija, y recién después vuela al texto.
+    // En la salida, las brasas conservan la pose congelada del ojo: la
+    // almendra es la que cede y las deja ver, sin abrir un ojo de puntos.
     const pose = state === 'returning' ? returnPose[k] : eyePose[k];
+    // Antes de que la almendra tome el relevo, la rendija de brasas necesita
+    // algo más de cuerpo para leerse como una sola materia coral.
+    const glow = state === 'waking' ? ENTER_GLOW : 1;
     const bodyX = gz.x * rx * 0.22;
     const bodyY = gz.y * ry * 0.14;
     const jitterY = Math.sin(time * 1.15 + p.seed * 2.3) * 0.22;
@@ -482,7 +499,7 @@ export const initHeroSubtitleEyes = () => {
       return {
         x: eyeCx[k] + eyeDir[k] * rxr + bodyX,
         y: eyeCy + ryr + bodyY + jitterY * 0.35,
-        a: p.aBase * frame.bodyVis,
+        a: p.aBase * frame.bodyVis * glow,
       };
     }
     const pt =
@@ -506,7 +523,7 @@ export const initHeroSubtitleEyes = () => {
     return {
       x: eyeCx[k] + eyeDir[k] * rxr + bodyX,
       y: eyeCy + ryr + bodyY + jitterY,
-      a: p.aBase * lowerFade,
+      a: p.aBase * lowerFade * glow,
     };
   };
 
@@ -737,6 +754,7 @@ export const initHeroSubtitleEyes = () => {
     state = 'waking';
     solidMix = 0;
     particleMix = 1;
+    solidColorMix = 0;
     curState = 'hooded';
     engagedAt = now;
     openStart = now + OPEN_AT * 1000;
@@ -778,10 +796,11 @@ export const initHeroSubtitleEyes = () => {
       p.alpha = 0;
       p.sizeNow = p.s0;
       // Onda coherente por línea: la brasa no llega por azar, se pliega desde
-      // el texto como una cortina. La línea de arriba inicia primero.
+      // el texto como una cortina. La línea de arriba inicia primero. El último
+      // delay deja todas las brasas apoyadas antes de que aparezca la almendra.
       const xNorm = clamp((p.sx - PAD) / Math.max(1, W), 0, 1);
       p.delay =
-        (p.line === 0 ? 0 : 0.028) + xNorm * 0.055 + p.pick * 0.012;
+        (p.line === 0 ? 0 : 0.02) + xNorm * 0.035 + p.pick * 0.01;
       p.lat = rand(-9, 9);
       p.lift = p.role === 1 ? rand(5, 14) : rand(8, 22);
       p.c1x = p.sx + p.lat * 0.55;
@@ -809,13 +828,17 @@ export const initHeroSubtitleEyes = () => {
     }
     if (state !== 'awake') return;
     state = 'returning';
-    // La almendra no se cierra: se deshace en el ojo coral que ya está debajo,
-    // con la misma pose. Así no hay hueco negro ni reapertura.
+    // La almendra no se cierra: primero se enfría a coral y después cede su
+    // opacidad. Las brasas ya están debajo, con la misma pose, así que el ojo
+    // se deshace sin aparecer como una segunda silueta.
     for (let k = 0; k < 2; k++) {
       returnPose[k] = { ...eyePose[k] };
     }
+    solidMix = 1;
+    particleMix = 0;
+    solidColorMix = 1;
     // El ojo despierto usa alphas bajos para leerse como brasa. Al soltar hay
-    // que subirlos: el coral es la materia visible del crossfade, no un residuo.
+    // que subirlos: el coral es la textura visible cuando la almendra cede.
     for (const p of particles) {
       p.aRet = Math.min(0.98, Math.max(0.68, p.aBase * 2.3));
     }
@@ -913,18 +936,24 @@ export const initHeroSubtitleEyes = () => {
     const time = now / 1000;
     for (const p of particles) {
       if (state === 'returning' && returnStarted) {
-        const rp = clamp(((now - returnStartAt) / 1000 - p.rdelay) / RETURN_DUR, 0, 1);
+        const rt = (now - returnAt) / 1000;
+        const flightT = (now - returnStartAt) / 1000;
+        const rp = clamp((flightT - p.rdelay) / RETURN_DUR, 0, 1);
         if (rp <= 0) continue;
         const e = easeInOutCubic(rp);
         p.x = bez(p.rx0, p.rc1x, p.rc2x, p.sx, e);
         p.y = bez(p.ry0, p.rc1y, p.rc2y, p.sy, e);
-        p.alpha = p.aRet * (1 - smoothstep(0.86, 1, e));
+        // La brasa llega al glifo con todo su cuerpo y se apaga recién cuando
+        // el texto de su línea empieza a aparecer: así se funde, no desaparece.
+        const textAt = RETURN_TEXT_AT + p.line * RETURN_TEXT_STAGGER;
+        p.alpha =
+          p.aRet * (1 - smoothstep(textAt, textAt + RETURN_FUSE_DUR, rt));
         p.sizeNow = mix(p.sizeRet, p.size, smoothstep(0, 0.9, e));
         continue;
       }
       if (state === 'returning') {
-        // Antes del vuelo el ojo coral ya está formado debajo de la almendra:
-        // el crossfade es de materia, no de posición.
+        // Antes del vuelo las brasas ya están en la pose del ojo, ocultas
+        // debajo de la almendra. No forman una segunda silueta visible.
         p.alpha = p.aRet;
         continue;
       }
@@ -955,27 +984,46 @@ export const initHeroSubtitleEyes = () => {
   const updateMix = (now) => {
     if (state === 'waking') {
       const t = (now - engagedAt) / 1000;
-      // La rendija de brasas se enciende en rojo y la almendra toma el relevo
-      // antes de abrir. Un solo crossfade, sin capas encimadas.
+      // Las brasas aterrizaron. La almendra se condensa en coral debajo y se
+      // abre sin que las partículas se apaguen: el reveal sigue siendo coral.
       solidMix = smoothstep(ENTER_SOLID_AT, ENTER_SOLID_AT + ENTER_SOLID_DUR, t);
-      particleMix = 1 - solidMix;
+      const igniteEnd = openEnd + ENTER_IGNITE_DUR * 1000;
+      particleMix = 1 - smoothstep(openEnd, igniteEnd, now);
+      // El rojo recién aparece cuando el ojo terminó de cubrirse; no antes.
+      solidColorMix = smoothstep(openEnd, igniteEnd, now);
     } else if (state === 'awake') {
       solidMix = 1;
       particleMix = 0;
+      solidColorMix = 1;
     } else if (state === 'returning') {
       const rt = (now - returnAt) / 1000;
-      // El ojo no se cierra: la almendra se deshace en las brasas que ya están
-      // debajo. Después hay un micro-hold y recién ahí arranca el vuelo.
-      solidMix = 1 - smoothstep(0, RETURN_MIX, rt);
-      particleMix = 1 - solidMix;
+      // El ojo se enfría de rojo a coral y después cede opacidad. Las brasas
+      // recién se encienden debajo cuando el coral ya reemplazó al rojo.
+      solidColorMix = 1 - smoothstep(0, RETURN_COLOR_OUT, rt);
+      solidMix =
+        1 - smoothstep(RETURN_SOLID_FADE_AT, RETURN_SOLID_FADE_END, rt);
+      particleMix = smoothstep(
+        RETURN_COLOR_OUT,
+        RETURN_COLOR_OUT + RETURN_PARTICLE_IN,
+        rt,
+      );
     } else {
       solidMix = 0;
       particleMix = 0;
     }
   };
 
+  const solidColor = () => {
+    const m = clamp(solidColorMix, 0, 1);
+    const r = Math.round(mix(CORAL_RGB[0], RED_RGB[0], m));
+    const g = Math.round(mix(CORAL_RGB[1], RED_RGB[1], m));
+    const b = Math.round(mix(CORAL_RGB[2], RED_RGB[2], m));
+    return `rgb(${r}, ${g}, ${b})`;
+  };
+
   const drawSolid = () => {
     solidCtx.clearRect(0, 0, CW, CH);
+    const color = solidColor();
     for (let k = 0; k < 2; k++) {
       const gz = gaze[k];
       const look = {
@@ -991,32 +1039,48 @@ export const initHeroSubtitleEyes = () => {
         eyeCy,
         eyeR,
         look,
+        color,
       );
     }
   };
 
-  const draw = () => {
-    ctx.clearRect(0, 0, CW, CH);
-    if (particleMix > 0.004) {
-      // source-over: las brasas coral mantienen su matiz aunque se superpongan;
-      // con 'lighter' la suma de G/B podía virar a blanco.
-      ctx.globalCompositeOperation = 'source-over';
-      for (const p of particles) {
-        const a = p.alpha * particleMix;
-        if (a <= 0.004) continue;
-        ctx.globalAlpha = a;
-        const s = p.sizeNow;
-        ctx.drawImage(p.sprite, p.x - s / 2, p.y - s / 2, s, s);
-      }
+  const drawParticles = () => {
+    if (particleMix <= 0.004) return;
+    // source-over: las brasas coral mantienen su matiz aunque se superpongan;
+    // con 'lighter' la suma de G/B podía virar a blanco.
+    ctx.globalCompositeOperation = 'source-over';
+    for (const p of particles) {
+      const a = p.alpha * particleMix;
+      if (a <= 0.004) continue;
+      ctx.globalAlpha = a;
+      const s = p.sizeNow;
+      ctx.drawImage(p.sprite, p.x - s / 2, p.y - s / 2, s, s);
     }
     ctx.globalAlpha = 1;
-    ctx.globalCompositeOperation = 'source-over';
-    if (solidMix > 0.004) {
-      drawSolid();
-      ctx.globalAlpha = solidMix;
-      ctx.drawImage(solidCanvas, 0, 0, CW, CH);
-      ctx.globalAlpha = 1;
+  };
+
+  const drawSolidLayer = () => {
+    if (solidMix <= 0.004) return;
+    drawSolid();
+    ctx.globalAlpha = solidMix;
+    ctx.drawImage(solidCanvas, 0, 0, CW, CH);
+    ctx.globalAlpha = 1;
+  };
+
+  const draw = () => {
+    ctx.clearRect(0, 0, CW, CH);
+    if (state === 'waking') {
+      // La almendra es el cuerpo que se condensa debajo; las brasas quedan
+      // encima como textura hasta que el ojo abre y el coral se enciende.
+      drawSolidLayer();
+      drawParticles();
+    } else {
+      // En la salida la almendra cubre a las brasas y cede opacidad: así el
+      // coral aparece como textura del mismo ojo, no como una segunda silueta.
+      drawParticles();
+      drawSolidLayer();
     }
+    ctx.globalCompositeOperation = 'source-over';
   };
 
   const loop = (now) => {
@@ -1048,7 +1112,11 @@ export const initHeroSubtitleEyes = () => {
       }
     }
 
-    if (state === 'waking' && now >= openEnd) state = 'awake';
+    // La cobertura termina con la apertura. El rojo recién se enciende al
+    // completar el coral: el reveal sigue en las brasas hasta ese momento.
+    if (state === 'waking' && now >= openEnd + ENTER_IGNITE_DUR * 1000) {
+      state = 'awake';
+    }
     if (state === 'awake') updateAwake(now);
     // Si el puntero se va antes de que el ojo abra, no vale la pena completar
     // la entrada para volver: se restaura el texto en el mismo frame.

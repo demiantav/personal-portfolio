@@ -6,8 +6,8 @@ usa el mismo lenguaje que el finale de la sección de proceso, así el hero y el
 cierre comparten técnica.
 
 La interacción principal del hero es otra: el subtítulo se despierta, las brasas
-coral se pliegan en dos ojos y encienden la almendra roja del finale. El humo y
-las esporas quedan de fondo.
+coral se condensan en dos ojos y encienden la almendra roja del finale. El humo
+y las esporas quedan de fondo.
 
 ## Piezas
 
@@ -68,10 +68,11 @@ humo y por debajo del texto (mismo `z-index: 0`, orden del DOM).
 
 La interacción principal del hero es el subtítulo. Los dos `h4` son la forma
 dormida de la criatura que aparece en el finale: al entrar al bloque, el texto se
-despierta, las brasas coral se pliegan en dos ojos y la almendra se enciende en
-rojo. Al salir (o a los ~8,5 s de inactividad) el ojo sólido se deshace en las
-brasas, que vuelven a sus glifos y reconstruyen el texto. En mobile el
-disparador es un tap; en `prefers-reduced-motion` no existe.
+despierta, las brasas coral se condensan en dos ojos y la almendra se enciende
+en rojo cuando termina de abrirse. Al salir (o a los ~8,5 s de inactividad) el
+ojo sólido se enfría a coral, cede su opacidad y las brasas vuelven a sus glifos
+y reconstruyen el texto. En mobile el disparador es un tap; en
+`prefers-reduced-motion` no existe.
 
 ### Rig híbrido: brasas + almendra
 
@@ -89,8 +90,12 @@ disparador es un tap; en `prefers-reduced-motion` no existe.
   se apaga en reposo.
 - **Almendra sólida.** Se dibuja en un canvas offscreen del mismo tamaño con
   `drawEye` de `eyeRender.js`: misma silueta, proporción, `TILT`, tapas y
-  emociones que el finale. Se compone con alpha sobre las brasas; las tapas usan
-  `destination-out` sólo dentro de ese canvas, así no recortan la transición.
+  emociones que el finale. Acepta un color opcional: el hero la enciende desde
+  el coral y el finale sigue usando el rojo puro por defecto. En la entrada se
+  compone **debajo** de las brasas (el cuerpo se condensa y las brasas quedan
+  como textura); en la salida se compone **encima** (la almendra cubre las
+  brasas y cede opacidad). Las tapas usan `destination-out` sólo dentro de ese
+  canvas, así no recortan la transición.
 - **El pliegue.** La línea de arriba se convierte en los párpados superiores y
   la de abajo en los inferiores. La banda central de cada mitad no se condensa
   en una pupila: se dispersa por el cuerpo de la almendra. Los extremos del
@@ -105,10 +110,12 @@ disparador es un tap; en `prefers-reduced-motion` no existe.
   puntos blancos. La mirada la hace el cuerpo completo, con resortes,
   microsacádicas y la inclinación de las tapas.
 - **Vuelo + encendido.** Las brasas salen del glifo con un bezier de dos tramos
-  y una onda por línea, no con delays aleatorios. A los ~0.30 s la rendija de
-  brasas empieza a encenderse en la almendra sólida; el crossfade termina a los
-  ~0.50 s, cuando ya no queda ninguna brasa en vuelo. El ojo derecho llega ~20–35
-  ms más tarde, como en el finale.
+  y una onda por línea, no con delays aleatorios. La última brasa aterriza a los
+  ~0.385 s; recién entonces la rendija se condensa en la almendra sólida coral
+  (0.385–0.42 s). El ojo abre entre 0.42 y 0.66 s con las brasas todavía encima;
+  al completar la cobertura se enciende el rojo (0.66–0.75 s), mientras las
+  brasas se apagan. El ojo derecho llega
+  ~20–35 ms más tarde, como en el finale.
 
 ### Coreografía
 
@@ -116,10 +123,12 @@ disparador es un tap; en `prefers-reduced-motion` no existe.
   en mobile. Una vez despierto, la mirada sigue al cursor mientras siga dentro
   del bloque de título + 24 px.
 - **Despertar.** El texto se desprende por líneas entre 0.04 y 0.26 s; no
-  desaparece de golpe. Las brasas pliegan en una onda por línea, la rendija
-  sólida se enciende entre 0.30 y 0.50 s y el ojo abre entre 0.50 y 0.72 s,
-  cuando las partículas ya terminaron. Queda en `hooded`. El primer despertar
-  de la carga regala un parpadeo lento de saludo a los ~1.35 s, una sola vez.
+  desaparece de golpe. Las brasas pliegan en una onda por línea y aterrizan a
+  los ~0.385 s. La rendija se condensa en la almendra coral entre 0.385 y 0.42 s
+  y el ojo abre entre 0.42 y 0.66 s; las brasas siguen encima durante toda la
+  apertura y el rojo se enciende al completar la cobertura (0.66–0.75 s). Queda
+  en `hooded`. El primer despertar de la carga regala un parpadeo lento de saludo
+  a los ~1.35 s, una sola vez.
 - **Emociones.** Tres bases: `hooded`, `focus` (a los ~3 s si el cursor se
   quedó quieto) y `sleepy` (a los ~7,4 s). El enojo es un impulso de ~0,9 s con
   cooldown de 2,2 s después de un swipe rápido; la desconfianza es una capa
@@ -130,12 +139,14 @@ disparador es un tap; en `prefers-reduced-motion` no existe.
   cae cerca de los 5 s.
 - **Retorno.** Al salir del bloque de título (140 ms de gracia), a los ~8,5 s de
   inactividad, al scrollear, al redimensionar, al ocultar la pestaña o con un
-  segundo tap en mobile. La almendra no se cierra: se deshace en el ojo coral
-  que ya está debajo entre 0 y 140 ms; hay un micro-hold de ~80 ms y el vuelo
-  arranca a los 220 ms. El texto entra desde los 580 ms, línea por línea, con
-  50 ms de diferencia. El retorno total dura ~820 ms. El texto del DOM siempre
-  vuelve a `opacity: 1`; si hay scroll, se restaura en el mismo frame en que
-  empieza la salida.
+  segundo tap en mobile. La almendra no se cierra: primero se enfría de rojo a
+  coral entre 0 y 80 ms, después cede opacidad entre 60 y 180 ms, y las brasas
+  arrancan a los 100 ms. Aterrizan completas en los glifos a los ~545 ms; no se
+  apagan en el aire. El texto entra desde los 560 ms, línea por línea, con 50 ms
+  de diferencia, y las brasas de cada línea se funden con su texto entre 560–740
+  ms y 610–790 ms. El retorno total dura ~800 ms. El texto del DOM siempre vuelve
+  a `opacity: 1`; si hay scroll, se restaura en el mismo frame en que empieza la
+  salida.
 - **Re-armado.** Sólo saliendo y volviendo a entrar al subtítulo. El primer
   despertar no se repite por carga. En mobile el sueño también se ve: llega a
   los ~7,4 s y devuelve a los ~8,5 s; el auto-retorno de seguridad es a los
