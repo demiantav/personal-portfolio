@@ -1,7 +1,8 @@
 import gsap from 'gsap';
 import { createNoise2D } from 'simplex-noise';
 import { progressState } from './progressState.js';
-import { EMOTIONS, FLAT, GEST_KEYS, NEUTRAL, TILT } from './eyeEmotions.js';
+import { EMOTIONS, FLAT, GEST_KEYS, NEUTRAL } from './eyeEmotions.js';
+import { drawEye } from './eyeRender.js';
 
 // Dos ojos ROJOS durante la fase de proceso. Todo va atado al scroll real del
 // holder (.progress-reveal, skillsProgressReveal.js), sin ScrollTrigger propio.
@@ -20,7 +21,6 @@ import { EMOTIONS, FLAT, GEST_KEYS, NEUTRAL, TILT } from './eyeEmotions.js';
 // Reduced-motion / sin JS: sin overlay.
 const REDUCE = '(prefers-reduced-motion: reduce)';
 const COARSE = '(hover: none)';
-const RED = '#ff0000';
 const EYE_TOP = 0.3; // reposo de los ojos tras el pin (fracción de H): cards y finale
 const OPEN_FROM = 0.6; // progreso del pin en que empiezan a entrar (título ya salió)
 const OPEN_TO = 1; // y en que terminan de abrir
@@ -253,74 +253,6 @@ export const processEyes = () => {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   };
   measure();
-
-  // ─── Almendra asimétrica (marco local, canto externo en +x) ────────
-  const almond = (rx, ry) => {
-    ctx.beginPath();
-    ctx.moveTo(-rx * 0.95, ry * 0.1);
-    ctx.bezierCurveTo(-rx * 0.55, -ry * 1.3, rx * 0.3, -ry * 1.5, rx, -ry * 0.28);
-    ctx.bezierCurveTo(rx * 0.45, ry * 0.85, -rx * 0.4, ry * 1.05, -rx * 0.95, ry * 0.1);
-    ctx.closePath();
-  };
-
-  // ─── Dibujo de un ojo ───────────────────────────────────────────────
-  // El cuerpo es fijo; sólo se dibujan las tapas encima, recortadas al ojo.
-  // Tapa superior: su borde está en y = -1.3ry + pos·2.6ry (pos 0 = retirada,
-  // 1 = cubre todo). Rotación positiva = canto interno (x<0 local) sube.
-  // Tapa inferior: su borde sube con pos, y `bow` lo curva hacia arriba.
-  const drawEye = (eye, cx, cy, R, look) => {
-    const rx = R * 1.9;
-    const ry = R * 0.82;
-    const s = eye.s;
-    const big = ry * 6;
-
-    ctx.save();
-    ctx.translate(cx + look.dx, cy);
-    ctx.scale(eye.dir, 1); // el ojo izquierdo es espejo: canto externo hacia fuera
-    ctx.rotate(-TILT); // cat-eye: canto externo elevado
-
-    // Cuerpo: almendra roja plana, sin glow. No escala nunca.
-    ctx.fillStyle = RED;
-    almond(rx, ry);
-    ctx.fill();
-
-    ctx.save();
-    almond(rx, ry);
-    ctx.clip();
-    // Tapas transparentes: borran el rojo y dejan ver el humo detrás
-    ctx.globalCompositeOperation = 'destination-out';
-    ctx.fillStyle = '#000';
-
-    // Tapa superior
-    const upRot = s.upRot + look.upRotExtra;
-    const yu = -ry * 1.3 + clamp(s.upPos, 0, 1) * ry * 2.6;
-    ctx.save();
-    ctx.rotate(upRot);
-    ctx.beginPath();
-    ctx.moveTo(-big, -big);
-    ctx.lineTo(big, -big);
-    ctx.lineTo(big, yu);
-    ctx.lineTo(-big, yu);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-
-    // Tapa inferior (con curvatura de sonrisa)
-    const yl = ry * 1.3 - clamp(s.loPos, 0, 1) * ry * 2.6;
-    ctx.save();
-    ctx.rotate(s.loRot + look.loRotExtra);
-    ctx.beginPath();
-    ctx.moveTo(-big, big);
-    ctx.lineTo(big, big);
-    ctx.lineTo(big, yl);
-    ctx.quadraticCurveTo(0, yl - 2 * s.bow * ry, -big, yl);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-
-    ctx.restore();
-    ctx.restore();
-  };
 
   // ─── Estado emocional: disparadores reactivos ───────────────────────
   // Prioridad: enojo > escaneo > pícara > beat de carta > sueño > ciclo > neutral.
@@ -562,7 +494,7 @@ export const processEyes = () => {
       // Temblor fino sólo en enojo
       const tremorRot = noise(tSec * TREMOR_RATE, 3.7) * TREMOR_AMP * eyes[0].s.tremor;
       for (const eye of eyes) {
-        drawEye(eye, eye.dir < 0 ? cx - gap / 2 : cx + gap / 2, eyeCy, R, {
+        drawEye(ctx, eye, eye.dir < 0 ? cx - gap / 2 : cx + gap / 2, eyeCy, R, {
           dx: -gazeX * R * 0.45, // ambos ojos se desplazan hacia el lado de la mirada
           upRotExtra: lookUpRot + tremorRot,
           loRotExtra: lookLoRot,

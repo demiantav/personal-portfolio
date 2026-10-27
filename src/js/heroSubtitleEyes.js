@@ -1,19 +1,20 @@
 import gsap from 'gsap';
 import { createNoise2D } from 'simplex-noise';
 import { EMOTIONS, FLAT, GEST_KEYS, TILT } from './eyeEmotions.js';
+import { drawEye } from './eyeRender.js';
 
 // Los ojos del subtítulo. El texto no "desaparece": se pliega. La línea de
 // arriba se convierte en los párpados superiores, la de abajo en los inferiores
 // y la banda central de cada mitad se reparte por el cuerpo de la almendra.
-// Todo son brasas rojas, sin pupila: la misma criatura del finale, hecha de
-// partículas, en un canvas 2D chico pegado al bloque.
+// El ojo despierto es la almendra sólida del finale; las brasas coral del
+// subtítulo son el encendido y el retorno. Dos capas, una sola criatura.
 //
 // Reglas:
 //  · aparece sólo al entrar al subtítulo; una vez despierto mira al cursor
 //    mientras el puntero siga dentro del bloque de título;
-//  · al alejarse (o a los 6 s de inactividad) se duerme y vuelve al texto;
+//  · al alejarse (o a los ~8,5 s de inactividad) se duerme y vuelve al texto;
 //  · mobile: tap para despertar, tap para volver, auto-retorno de seguridad a
-//    los 7 s (el sueño llega a los 6 s y devuelve antes);
+//    los ~9 s (el sueño llega a los ~7,4 s y devuelve antes);
 //  · reduced motion: no existe;
 //  · cualquier scroll > 2 px cancela en el mismo frame y restaura el texto
 //    antes de que el SplitText de salida empiece a moverlo.
@@ -25,21 +26,37 @@ const N_COARSE = 520;
 const HIT_PAD = 8;
 const ZONE_PAD = 24;
 const INIT_UP = 0.55; // el ojo nace en rendija
-const OPEN_AT = 0.46; // s desde el engage hasta que empieza a abrir
-const OPEN_DUR = 0.26;
-const FLIGHT = 0.46;
-const FLIGHT_DELAY = 0.19;
-const CLOSE_MS = 160;
-const RETURN_DELAY = 170; // ms de cierre antes de que las brasas caigan
-const RETURN_DUR = 0.3;
-const RETURN_TOTAL = 640;
-const IDLE_MS = 6000;
-const SLEEP_HOLD = 900;
-const PLAY_STILL = 2200;
-const AWAY_HOLD = 260;
-const ANGRY_MS = 1400;
-const COARSE_HOLD = 7000;
-const HELLO_AT = 1250;
+const OPEN_AT = 0.5; // s desde el engage hasta que la rendija despierta
+const OPEN_DUR = 0.22;
+const FLIGHT = 0.38;
+const ENTER_TEXT_DELAY = 0.04;
+const ENTER_TEXT_DUR = 0.18;
+const ENTER_TEXT_STAGGER = 0.035;
+const ENTER_SOLID_AT = 0.3;
+const ENTER_SOLID_DUR = 0.2;
+const RETURN_MIX = 0.14; // la almendra se deshace en brasas
+const RETURN_FLIGHT_AT = 0.22; // después de un micro-hold coral
+const RETURN_DUR = 0.38;
+const RETURN_TOTAL = 0.82;
+const RETURN_TEXT_AT = 0.58;
+const RETURN_TEXT_DUR = 0.18;
+const RETURN_TEXT_STAGGER = 0.05;
+const IDLE_MS = 7400;
+const SLEEP_HOLD = 1100;
+const AWAY_HOLD = 140;
+const ANGRY_ATTACK = 0.12;
+const ANGRY_HOLD = 0.32;
+const ANGRY_DECAY = 0.45;
+const ANGRY_COOLDOWN = 2200;
+const COARSE_HOLD = 9000;
+const HELLO_AT = 1350;
+const SLOW_BLINK_MS = 320;
+const SLOW_BLINK_AMP = 0.8;
+const FOCUS_AT = 3000;
+const FOCUS_STILL = 2200;
+const FOCUS_RESET = 900;
+const SACCADE_DEAD = 0.075;
+const SACCADE_GAP = 420;
 // La banda central del texto no es pupila: es masa para el cuerpo del ojo.
 const BODY_FROM = 0.25;
 const BODY_TO = 0.75;
@@ -98,7 +115,7 @@ const makeSprite = (core, mid, edge) => {
   grd.addColorStop(0, core);
   grd.addColorStop(0.22, mid);
   grd.addColorStop(0.55, edge);
-  grd.addColorStop(1, 'rgba(255, 0, 0, 0)');
+  grd.addColorStop(1, 'rgba(243, 80, 95, 0)');
   g.fillStyle = grd;
   g.fillRect(0, 0, S, S);
   return c;
@@ -123,15 +140,21 @@ export const initHeroSubtitleEyes = () => {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
+  // Capa aparte para la almendra sólida. Así las tapas pueden borrar el rojo
+  // con destination-out sin comerse las brasas de la transición.
+  const solidCanvas = document.createElement('canvas');
+  const solidCtx = solidCanvas.getContext('2d');
+  if (!solidCtx) return;
+
   const coarse = window.matchMedia(COARSE).matches;
   const reduceMq = window.matchMedia(REDUCE);
   const noise = createNoise2D();
+  // El subtítulo es coral (#f3505f); las brasas heredan ese color y el ojo
+  // despierto se enciende con el rojo puro del finale.
   const sprites = [
-    // Sólo rojo: el cuerpo del ojo del finale es #ff0000. Sin núcleos blancos
-    // ni durazno, así la suma aditiva nunca puede virar a blanco.
-    makeSprite('rgba(255, 0, 0, 0.92)', 'rgba(255, 0, 0, 0.58)', 'rgba(255, 0, 0, 0.12)'), // 0: párpado
-    makeSprite('rgba(255, 0, 0, 0.82)', 'rgba(255, 0, 0, 0.46)', 'rgba(255, 0, 0, 0.1)'), // 1: inferior
-    makeSprite('rgba(255, 0, 0, 0.62)', 'rgba(255, 0, 0, 0.32)', 'rgba(255, 0, 0, 0.08)'), // 2: cuerpo
+    makeSprite('rgba(243, 80, 95, 0.92)', 'rgba(243, 80, 95, 0.58)', 'rgba(243, 80, 95, 0.12)'), // 0: párpado
+    makeSprite('rgba(243, 80, 95, 0.82)', 'rgba(243, 80, 95, 0.46)', 'rgba(243, 80, 95, 0.1)'), // 1: inferior
+    makeSprite('rgba(243, 80, 95, 0.62)', 'rgba(243, 80, 95, 0.32)', 'rgba(243, 80, 95, 0.08)'), // 2: cuerpo
   ];
 
   // ─── Medidas ────────────────────────────────────────────────────────
@@ -144,6 +167,7 @@ export const initHeroSubtitleEyes = () => {
   let zoneRect = titles.getBoundingClientRect();
   let rx = 1;
   let ry = 1;
+  let eyeR = 1;
   let eyeCy = 0;
   let eyeCx = [0, 0];
   let eyeDir = [-1, 1];
@@ -166,12 +190,16 @@ export const initHeroSubtitleEyes = () => {
     canvas.width = Math.max(1, Math.round(CW * dpr));
     canvas.height = Math.max(1, Math.round(CH * dpr));
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    solidCanvas.width = canvas.width;
+    solidCanvas.height = canvas.height;
+    solidCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const eyeW = clamp(W * 0.3, 40, 54);
     const gap = eyeW * 0.26;
     rx = eyeW / 2;
     // Misma proporción que la almendra del finale (rx = 1.9R, ry = 0.82R).
     ry = rx * (0.82 / 1.9);
+    eyeR = rx / 1.9;
     const pairCx = PAD + W / 2;
     const pairCy = PAD + H / 2;
     eyeCx = [pairCx - (eyeW + gap) / 2, pairCx + (eyeW + gap) / 2];
@@ -293,6 +321,7 @@ export const initHeroSubtitleEyes = () => {
           sy: c.y + PAD + rand(-0.4, 0.4),
           eye,
           role,
+          line: c.line,
           t: param,
           bt,
           bv,
@@ -319,7 +348,9 @@ export const initHeroSubtitleEyes = () => {
 
   // ─── Estado ─────────────────────────────────────────────────────────
   let state = 'idle'; // idle | waking | awake | returning
-  let curState = 'neutral';
+  let solidMix = 0;
+  let particleMix = 0;
+  let curState = 'hooded';
   let engagedAt = 0;
   let openStart = 0;
   let openEnd = 0;
@@ -332,8 +363,10 @@ export const initHeroSubtitleEyes = () => {
   let lastPX = 0;
   let lastPY = 0;
   let lastMoveT = 0;
-  let angryUntil = 0;
-  let playUntil = 0;
+  let angerStart = -Infinity;
+  let angerCooldownUntil = 0;
+  let waryLevel = 0;
+  let slowBlinkStart = -1;
   let sleepySince = 0;
   let awayAt = 0;
   let wasInside = false;
@@ -341,22 +374,30 @@ export const initHeroSubtitleEyes = () => {
   let raf = 0;
   let lastT = 0;
   let blinkStart = -1;
+  let blinkMsActive = 0;
   let nextBlink = 0;
-  let nextMicro = 0;
-  let microX = 0;
-  let microY = 0;
   const pointer = { x: 0, y: 0 };
-  const gaze = { x: 0, y: 0 };
-  const sGx = { v: 0, vel: 0 };
-  const sGy = { v: 0, vel: 0 };
+  // La mirada es por ojo: el objetivo nace en el centro de cada almendra, no
+  // en el centro del par. Eso produce convergencia natural y evita que los dos
+  // ojos se sientan como un bloque que se desliza.
+  const gaze = [
+    { x: 0, y: 0 },
+    { x: 0, y: 0 },
+  ];
+  const saccades = [null, null];
+  const lastSaccadeAt = [0, 0];
+  const nextMicro = [0, 0];
+  const microX = [0, 0];
+  const microY = [0, 0];
   const S_LID = mkSpring(0.18, 1);
-  const S_GAZE = mkSpring(0.2, 0.95);
+  const WAKE = FLAT.hooded || FLAT.neutral;
   const gest = Object.fromEntries(
     GEST_KEYS.map((k) => [k, { v: k === 'upPos' ? INIT_UP : 0, vel: 0 }]),
   );
   const eyePose = [0, 1].map(() =>
     Object.fromEntries(GEST_KEYS.map((k) => [k, k === 'upPos' ? INIT_UP : 0])),
   );
+  const returnPose = [{}, {}];
   const eyeFrame = [{}, {}];
 
   // ─── Curvas del ojo ─────────────────────────────────────────────────
@@ -404,8 +445,8 @@ export const initHeroSubtitleEyes = () => {
 
   const buildFrames = (time) => {
     for (let k = 0; k < 2; k++) {
-      const pose = eyePose[k];
-      const localX = clamp(gaze.x * 0.34 * eyeDir[k], -0.9, 0.95);
+      const pose = state === 'returning' ? returnPose[k] : eyePose[k];
+      const localX = clamp(gaze[k].x * 0.34 * eyeDir[k], -0.9, 0.95);
       const top = curveY(upperPoint, localX, pose, time, k);
       const bottom = curveY(lowerPoint, localX, pose, time, k);
       const aperture = Math.max(0, bottom - top);
@@ -419,16 +460,21 @@ export const initHeroSubtitleEyes = () => {
   const targetFor = (p, time) => {
     const k = p.eye;
     const frame = eyeFrame[k];
-    const bodyX = gaze.x * rx * 0.22;
-    const bodyY = gaze.y * ry * 0.14;
+    const gz = gaze[k];
+    // La almendra sólida se cierra, pero las brasas conservan la pose que
+    // tenían al soltar: así el coral aparece como un ojo completo, no como una
+    // rendija, y recién después vuela al texto.
+    const pose = state === 'returning' ? returnPose[k] : eyePose[k];
+    const bodyX = gz.x * rx * 0.22;
+    const bodyY = gz.y * ry * 0.14;
     const jitterY = Math.sin(time * 1.15 + p.seed * 2.3) * 0.22;
     const ca = Math.cos(-TILT);
     const sa = Math.sin(-TILT);
     if (p.role === 2) {
       // Cuerpo: se reparte entre la tapa de arriba y la de abajo. No hay
       // centro ni pupila; la densidad hace que se lea como una sola almendra.
-      const top = upperPoint(p.bt, eyePose[k], time, k);
-      const bottom = lowerPoint(p.bt, eyePose[k], time, k);
+      const top = upperPoint(p.bt, pose, time, k);
+      const bottom = lowerPoint(p.bt, pose, time, k);
       const lx = mix(top.x, bottom.x, p.bv) * rx;
       const ly = mix(top.y, bottom.y, p.bv) * ry;
       const rxr = lx * ca - ly * sa;
@@ -441,13 +487,13 @@ export const initHeroSubtitleEyes = () => {
     }
     const pt =
       p.role === 0
-        ? upperPoint(p.t, eyePose[k], time, k)
-        : lowerPoint(p.t, eyePose[k], time, k);
+        ? upperPoint(p.t, pose, time, k)
+        : lowerPoint(p.t, pose, time, k);
     let lx = pt.x * rx;
     let ly = pt.y * ry;
     // Mirada lateral: las tapas se inclinan como en el finale. Sin pupila, este
     // gesto (más el desplazamiento del cuerpo) es lo que hace legible la mirada.
-    const lookRot = gaze.x * (p.role === 0 ? -0.12 : 0.12);
+    const lookRot = gz.x * (p.role === 0 ? -0.12 : 0.12);
     const lc = Math.cos(lookRot);
     const ls = Math.sin(lookRot);
     const ltx = lx * lc - ly * ls;
@@ -456,7 +502,7 @@ export const initHeroSubtitleEyes = () => {
     const rxr = lx * ca - ly * sa;
     const ryr = lx * sa + ly * ca;
     const lowerFade =
-      p.role === 1 ? 1 - smoothstep(0.8, 1, eyePose[k].upPos) : 1;
+      p.role === 1 ? 1 - smoothstep(0.8, 1, pose.upPos) : 1;
     return {
       x: eyeCx[k] + eyeDir[k] * rxr + bodyX,
       y: eyeCy + ryr + bodyY + jitterY,
@@ -467,11 +513,15 @@ export const initHeroSubtitleEyes = () => {
   // ─── Emociones y párpados ───────────────────────────────────────────
   const blinkLevel = (now) => {
     if (state !== 'awake') return 0;
-    const cfg = EMOTIONS[curState] || EMOTIONS.neutral;
-    if (blinkStart < 0 && now >= nextBlink) blinkStart = now;
+    if (blinkStart < 0 && now >= nextBlink) {
+      const cfg = EMOTIONS[curState] || EMOTIONS.hooded;
+      blinkStart = now;
+      blinkMsActive = cfg.blinkMs;
+    }
     if (blinkStart < 0) return 0;
-    const ph = (now - blinkStart) / cfg.blinkMs;
+    const ph = (now - blinkStart) / blinkMsActive;
     if (ph >= 1) {
+      const cfg = EMOTIONS[curState] || EMOTIONS.hooded;
       blinkStart = -1;
       nextBlink = now + rand(...cfg.blinkGap);
       return 0;
@@ -479,40 +529,108 @@ export const initHeroSubtitleEyes = () => {
     return Math.sin(ph * Math.PI);
   };
 
+  // Único parpadeo "de personaje": lento y una sola vez. Los cambios de base
+  // no usan blink; se resuelven con un morph de párpados.
+  const slowBlinkLevel = (now) => {
+    if (state !== 'awake' || slowBlinkStart < 0) return 0;
+    const ph = (now - slowBlinkStart) / SLOW_BLINK_MS;
+    if (ph >= 1) {
+      slowBlinkStart = -1;
+      return 0;
+    }
+    return Math.sin(ph * Math.PI) * SLOW_BLINK_AMP;
+  };
+
+  // Enojo como impulso: ataque rápido, meseta corta y caída. No cambia la base
+  // ni dispara parpadeo.
+  const angerLevel = (now) => {
+    const t = (now - angerStart) / 1000;
+    if (t < 0) return 0;
+    if (t < ANGRY_ATTACK) return t / ANGRY_ATTACK;
+    if (t < ANGRY_ATTACK + ANGRY_HOLD) return 1;
+    const d = clamp((t - ANGRY_ATTACK - ANGRY_HOLD) / ANGRY_DECAY, 0, 1);
+    return 1 - smoothstep(0, 1, d);
+  };
+
   const updatePose = (now, dt) => {
+    // En la salida la pose queda congelada: la almendra no se cierra, se
+    // deshace en las brasas que ya están debajo. Es un solo cambio de materia.
+    if (state === 'returning') {
+      buildFrames(now / 1000);
+      return;
+    }
+
     let target;
     if (state === 'waking') {
       const e = smoothstep(openStart, openEnd, now);
       target = {
-        upPos: INIT_UP * (1 - e),
-        upRot: 0,
-        loPos: 0,
-        loRot: 0,
-        bow: 0,
-        tremor: 0,
+        upPos: mix(INIT_UP, WAKE.upPos, e),
+        upRot: mix(0, WAKE.upRot, e),
+        loPos: mix(0, WAKE.loPos, e),
+        loRot: mix(0, WAKE.loRot, e),
+        bow: mix(0, WAKE.bow, e),
+        tremor: WAKE.tremor * e,
       };
     } else if (state === 'awake') {
-      target = FLAT[curState];
+      target = FLAT[curState] || WAKE;
     } else {
-      target = FLAT.neutral;
+      target = WAKE;
     }
     const g = {};
     for (const key of GEST_KEYS) g[key] = integrate(gest[key], target[key], S_LID, dt);
 
-    const blink = blinkLevel(now);
-    const closeAmt =
-      state === 'returning' ? smoothstep(returnAt, returnAt + CLOSE_MS, now) : 0;
+    const blink = Math.max(blinkLevel(now), slowBlinkLevel(now));
+    const anger = angerLevel(now);
+    const cfg = EMOTIONS[curState] || EMOTIONS.hooded;
+    const asym = cfg.asym || {};
+    const edge = Math.max(Math.abs(gaze[0].x), Math.abs(gaze[1].x));
+    const waryTarget = state === 'awake' ? smoothstep(0.55, 0.9, edge) : 0;
+    waryLevel += (waryTarget - waryLevel) * (1 - Math.exp(-dt * 7));
+
     for (let k = 0; k < 2; k++) {
-      const up = clamp(Math.max(g.upPos, blink, closeAmt), 0, 1);
-      const lo = clamp(Math.max(g.loPos, closeAmt, blink * 0.6), 0, 1);
-      const f = k === 1 ? 1 - Math.exp(-dt / 0.04) : 1;
+      const side = k === 0 ? 1 : -1;
+      // El ojo que mira más al costado se entorna apenas: la mirada se siente
+      // con intención, no como una calcomanía que se desplaza.
+      const focus =
+        state === 'awake' ? Math.min(1, Math.abs(gaze[k].x)) : 0;
+      const focusUp = focus * 0.03 + Math.min(1, Math.abs(gaze[k].y)) * 0.012;
+      const wary = waryLevel;
+      const up = clamp(
+        Math.max(
+          g.upPos +
+            (asym.upPos || 0) * side +
+            focusUp +
+            wary * 0.035 * side +
+            anger * 0.035,
+          blink,
+        ),
+        0,
+        1,
+      );
+      const lo = clamp(
+        Math.max(
+          g.loPos +
+            (asym.loPos || 0) * side +
+            wary * 0.018 * side +
+            anger * 0.035,
+          blink * 0.6,
+        ),
+        0,
+        1,
+      );
+      const upRot =
+        g.upRot + (asym.upRot || 0) * side - wary * 0.035 * side - anger * 0.1;
+      const loRot = g.loRot + (asym.loRot || 0) * side + wary * 0.02 * side + anger * 0.02;
+      const bow = g.bow + (asym.bow || 0) * side + anger * 0.05;
+      // El ojo derecho llega un pelo más tarde, incluso en el morph de párpado.
+      const f = k === 1 ? 1 - Math.exp(-dt / 0.028) : 1;
       const pose = eyePose[k];
       pose.upPos += (up - pose.upPos) * f;
-      pose.upRot += (g.upRot - pose.upRot) * f;
+      pose.upRot += (upRot - pose.upRot) * f;
       pose.loPos += (lo - pose.loPos) * f;
-      pose.loRot += (g.loRot - pose.loRot) * f;
-      pose.bow += (g.bow - pose.bow) * f;
-      pose.tremor = g.tremor;
+      pose.loRot += (loRot - pose.loRot) * f;
+      pose.bow += (bow - pose.bow) * f;
+      pose.tremor = (g.tremor + anger * 0.26) * (k === 1 ? 0.85 : 1);
     }
 
     buildFrames(now / 1000);
@@ -521,29 +639,80 @@ export const initHeroSubtitleEyes = () => {
   // ─── Mirada ─────────────────────────────────────────────────────────
   const updateGaze = (now, dt) => {
     if (state === 'returning') return;
-    const eyePageX = wrapRect.left + W / 2;
-    const eyePageY = wrapRect.top + H / 2;
-    // El subtítulo vive a la derecha: si usáramos un rango simétrico, la mirada
-    // a la derecha no llegaría nunca al borde. Normalizamos por el espacio
-    // disponible de cada lado.
-    const dxPage = pointer.x - eyePageX;
-    const rangeX =
-      dxPage >= 0
-        ? Math.max(140, window.innerWidth - eyePageX - 16)
-        : Math.max(300, eyePageX * 0.55);
-    const rangeY = Math.max(170, window.innerHeight * 0.3);
-    let tx = clamp(dxPage / rangeX, -1, 1);
-    let ty = clamp((pointer.y - eyePageY) / rangeY, -1, 1) * 0.7;
-    tx = Math.sign(tx) * Math.pow(Math.abs(tx), 0.9);
-    ty = Math.sign(ty) * Math.pow(Math.abs(ty), 0.9);
-    if (state === 'awake' && now >= nextMicro) {
-      const cfg = EMOTIONS[curState] || EMOTIONS.neutral;
-      microX = rand(-0.03, 0.03) * cfg.micro;
-      microY = rand(-0.018, 0.018) * cfg.micro;
-      nextMicro = now + rand(...cfg.microGap);
+    const eyePageY = wrapRect.top + (eyeCy - PAD);
+    for (let k = 0; k < 2; k++) {
+      const eyePageX = wrapRect.left + (eyeCx[k] - PAD);
+      const dxPage = pointer.x - eyePageX;
+      // El subtítulo vive a la derecha: normalizamos por el espacio disponible
+      // de cada lado y por cada ojo. Al apuntar desde centros distintos, la
+      // mirada converge cuando el cursor está cerca y se vuelve paralela lejos.
+      const rangeX =
+        dxPage >= 0
+          ? Math.max(120, window.innerWidth - eyePageX - 16)
+          : Math.max(220, eyePageX * 0.55);
+      const rangeY = Math.max(150, window.innerHeight * 0.3);
+      let tx = clamp(dxPage / rangeX, -1, 1);
+      let ty = clamp((pointer.y - eyePageY) / rangeY, -1, 1) * 0.7;
+      tx = Math.sign(tx) * Math.pow(Math.abs(tx), 0.9);
+      ty = Math.sign(ty) * Math.pow(Math.abs(ty), 0.9);
+
+      const cfg = EMOTIONS[curState] || EMOTIONS.hooded;
+      if (state === 'awake' && now >= nextMicro[k]) {
+        microX[k] = rand(-0.03, 0.03) * cfg.micro;
+        microY[k] = rand(-0.018, 0.018) * cfg.micro;
+        nextMicro[k] = now + rand(...cfg.microGap);
+      }
+
+      const gz = gaze[k];
+      if (state === 'awake') {
+        const dx = tx - gz.x;
+        const dy = ty - gz.y;
+        const dist = Math.hypot(dx, dy);
+        const gap = Math.max(SACCADE_GAP, (cfg.sac?.[0] || 40) * 1.1);
+        if (!saccades[k] && dist > SACCADE_DEAD && now - lastSaccadeAt[k] > gap) {
+          const sac = cfg.sac || [40, 90];
+          const dur = clamp(rand(sac[0], sac[1]) + dist * 16, 35, 240);
+          saccades[k] = {
+            fromX: gz.x,
+            fromY: gz.y,
+            toX: tx,
+            toY: ty,
+            overX: clamp(dx * 0.04, -0.02, 0.02),
+            start: now,
+            dur,
+            delay: k === 1 ? rand(20, 35) : 0,
+          };
+          lastSaccadeAt[k] = now;
+        }
+        const sac = saccades[k];
+        if (sac) {
+          const ph = (now - sac.start - sac.delay) / sac.dur;
+          if (ph >= 1) {
+            gz.x = sac.toX + sac.overX;
+            gz.y = sac.toY;
+            saccades[k] = null;
+          } else if (ph > 0) {
+            const e = easeOutCubic(ph);
+            gz.x = mix(sac.fromX, sac.toX + sac.overX, e);
+            gz.y = mix(sac.fromY, sac.toY, e);
+          }
+        } else {
+          // Fixación / seguimiento lento: el resorte sólo corrige lo que la
+          // sacada dejó pendiente. Las microsacádicas son independientes y
+          // espaciadas: el ojo tiene que sostener la mirada, no vibrar.
+          const rate = k === 1 ? 9 : 11;
+          const follow = 1 - Math.exp(-dt * rate);
+          gz.x += (tx + microX[k] - gz.x) * follow;
+          gz.y += (ty + microY[k] - gz.y) * follow;
+        }
+      } else {
+        const follow = 1 - Math.exp(-dt * 14);
+        gz.x += (tx - gz.x) * follow;
+        gz.y += (ty - gz.y) * follow;
+      }
+      gz.x = clamp(gz.x, -1.05, 1.05);
+      gz.y = clamp(gz.y, -0.85, 0.85);
     }
-    gaze.x = integrate(sGx, tx + microX, S_GAZE, dt);
-    gaze.y = integrate(sGy, ty + microY, S_GAZE, dt);
   };
 
   // ─── Estado de la interacción ───────────────────────────────────────
@@ -566,7 +735,9 @@ export const initHeroSubtitleEyes = () => {
     if (!particles.length) return;
     const now = performance.now();
     state = 'waking';
-    curState = 'neutral';
+    solidMix = 0;
+    particleMix = 1;
+    curState = 'hooded';
     engagedAt = now;
     openStart = now + OPEN_AT * 1000;
     openEnd = openStart + OPEN_DUR * 1000;
@@ -579,17 +750,21 @@ export const initHeroSubtitleEyes = () => {
     pointer.y = py;
     awayAt = 0;
     sleepySince = 0;
-    angryUntil = 0;
-    playUntil = 0;
+    angerStart = -Infinity;
+    angerCooldownUntil = 0;
+    waryLevel = 0;
+    slowBlinkStart = -1;
     blinkStart = -1;
-    nextBlink = openEnd + 320 + rand(0, 220);
-    nextMicro = now + 700;
-    microX = 0;
-    microY = 0;
-    sGx.v = 0;
-    sGx.vel = 0;
-    sGy.v = 0;
-    sGy.vel = 0;
+    nextBlink = openEnd + 4200 + rand(0, 800);
+    for (let k = 0; k < 2; k++) {
+      nextMicro[k] = now + 900 + rand(0, 300);
+      microX[k] = 0;
+      microY[k] = 0;
+      saccades[k] = null;
+      lastSaccadeAt[k] = 0;
+      gaze[k].x = 0;
+      gaze[k].y = 0;
+    }
     for (const key of GEST_KEYS) {
       gest[key].v = key === 'upPos' ? INIT_UP : 0;
       gest[key].vel = 0;
@@ -597,15 +772,16 @@ export const initHeroSubtitleEyes = () => {
         eyePose[k][key] = key === 'upPos' ? INIT_UP : 0;
       }
     }
-    const ex = px - wrapRect.left + PAD;
-    const ey = py - wrapRect.top + PAD;
-    const diag = Math.max(1, Math.hypot(CW, CH));
     for (const p of particles) {
       p.x = p.sx;
       p.y = p.sy;
       p.alpha = 0;
       p.sizeNow = p.s0;
-      p.delay = clamp((Math.hypot(p.sx - ex, p.sy - ey) / diag) * 0.14 + p.pick * 0.05, 0, FLIGHT_DELAY);
+      // Onda coherente por línea: la brasa no llega por azar, se pliega desde
+      // el texto como una cortina. La línea de arriba inicia primero.
+      const xNorm = clamp((p.sx - PAD) / Math.max(1, W), 0, 1);
+      p.delay =
+        (p.line === 0 ? 0 : 0.028) + xNorm * 0.055 + p.pick * 0.012;
       p.lat = rand(-9, 9);
       p.lift = p.role === 1 ? rand(5, 14) : rand(8, 22);
       p.c1x = p.sx + p.lat * 0.55;
@@ -615,8 +791,9 @@ export const initHeroSubtitleEyes = () => {
     gsap.killTweensOf(h4s);
     gsap.to(h4s, {
       opacity: 0,
-      duration: 0.12,
-      delay: 0.06,
+      duration: ENTER_TEXT_DUR,
+      delay: ENTER_TEXT_DELAY,
+      stagger: ENTER_TEXT_STAGGER,
       ease: 'none',
       overwrite: true,
     });
@@ -624,17 +801,35 @@ export const initHeroSubtitleEyes = () => {
   };
 
   const release = (reason) => {
-    if (state !== 'waking' && state !== 'awake') return;
+    // Un roce durante la entrada no debe mostrar un ojo a medio formar:
+    // devolvemos el texto limpio en el mismo frame.
+    if (state === 'waking') {
+      cancelInstant();
+      return;
+    }
+    if (state !== 'awake') return;
     state = 'returning';
+    // La almendra no se cierra: se deshace en el ojo coral que ya está debajo,
+    // con la misma pose. Así no hay hueco negro ni reapertura.
+    for (let k = 0; k < 2; k++) {
+      returnPose[k] = { ...eyePose[k] };
+    }
+    // El ojo despierto usa alphas bajos para leerse como brasa. Al soltar hay
+    // que subirlos: el coral es la materia visible del crossfade, no un residuo.
+    for (const p of particles) {
+      p.aRet = Math.min(0.98, Math.max(0.68, p.aBase * 2.3));
+    }
     returnAt = performance.now();
     returnStarted = false;
     returnStartAt = 0;
     awayAt = 0;
+    slowBlinkStart = -1;
     gsap.killTweensOf(h4s);
     gsap.to(h4s, {
       opacity: 1,
-      duration: 0.16,
-      delay: 0.32,
+      duration: RETURN_TEXT_DUR,
+      delay: RETURN_TEXT_AT,
+      stagger: RETURN_TEXT_STAGGER,
       ease: 'none',
       overwrite: true,
     });
@@ -650,13 +845,19 @@ export const initHeroSubtitleEyes = () => {
       cooldownUntil = performance.now() + 320;
       wasInside = false;
     }
+    solidMix = 0;
+    particleMix = 0;
     ctx.clearRect(0, 0, CW, CH);
+    solidCtx.clearRect(0, 0, CW, CH);
   };
 
   const finishReturn = (now) => {
     state = 'idle';
+    solidMix = 0;
+    particleMix = 0;
     stopLoop();
     ctx.clearRect(0, 0, CW, CH);
+    solidCtx.clearRect(0, 0, CW, CH);
     gsap.killTweensOf(h4s);
     gsap.set(h4s, { clearProps: 'opacity' });
     cooldownUntil = now + 160;
@@ -664,21 +865,37 @@ export const initHeroSubtitleEyes = () => {
     // despertarlos de nuevo (wasInside se actualiza en el próximo move).
   };
 
+  const setBase = (next) => {
+    if (next === curState) return;
+    curState = next;
+  };
+
   const updateAwake = (now) => {
     if (now >= helloAt && !helloPlayed) {
       helloPlayed = true;
       helloAt = Infinity;
-      playUntil = now + 380;
+      // Saludo A24: el único blink de personaje. Después, el ojo se queda
+      // quieto hasta el parpadeo natural de la sesión.
+      slowBlinkStart = now;
+      nextBlink = Math.max(nextBlink, now + 900);
     }
     const stillFor = now - lastMoveAt;
-    curState =
-      now < angryUntil
-        ? 'angry'
-        : now < playUntil || (stillFor > PLAY_STILL && stillFor < IDLE_MS)
-          ? 'playful'
-          : stillFor >= IDLE_MS
-            ? 'sleepy'
-            : 'neutral';
+    const awakeFor = now - engagedAt;
+
+    // Sólo tres bases. El enojo y la desconfianza son capas aditivas, no
+    // estados: no cambian la silueta de golpe ni disparan parpadeos.
+    if (stillFor >= IDLE_MS) {
+      setBase('sleepy');
+    } else if (curState === 'sleepy') {
+      // Si el cursor vuelve mientras dormita, despierta antes de irse.
+      setBase(awakeFor > FOCUS_AT && stillFor >= FOCUS_STILL ? 'focus' : 'hooded');
+      sleepySince = 0;
+    } else if (awakeFor > FOCUS_AT && stillFor >= FOCUS_STILL) {
+      setBase('focus');
+    } else if (stillFor < FOCUS_RESET) {
+      setBase('hooded');
+    }
+
     if (curState === 'sleepy') {
       if (!sleepySince) sleepySince = now;
       else if (now - sleepySince > SLEEP_HOLD) release('idle');
@@ -699,10 +916,16 @@ export const initHeroSubtitleEyes = () => {
         const rp = clamp(((now - returnStartAt) / 1000 - p.rdelay) / RETURN_DUR, 0, 1);
         if (rp <= 0) continue;
         const e = easeInOutCubic(rp);
-        p.x = bez(p.rx0, p.rx0 + p.rout, p.sx + p.rout * 0.35, p.sx, e);
-        p.y = bez(p.ry0, p.ry0 + p.rup, p.sy - p.rup * 0.4, p.sy, e);
-        p.alpha = p.aRet * (1 - smoothstep(0.55, 1, e));
-        p.sizeNow = p.size * (1 - 0.35 * e);
+        p.x = bez(p.rx0, p.rc1x, p.rc2x, p.sx, e);
+        p.y = bez(p.ry0, p.rc1y, p.rc2y, p.sy, e);
+        p.alpha = p.aRet * (1 - smoothstep(0.86, 1, e));
+        p.sizeNow = mix(p.sizeRet, p.size, smoothstep(0, 0.9, e));
+        continue;
+      }
+      if (state === 'returning') {
+        // Antes del vuelo el ojo coral ya está formado debajo de la almendra:
+        // el crossfade es de materia, no de posición.
+        p.alpha = p.aRet;
         continue;
       }
       const fp = clamp((tSec - p.delay) / FLIGHT, 0, 1);
@@ -729,17 +952,71 @@ export const initHeroSubtitleEyes = () => {
     }
   };
 
+  const updateMix = (now) => {
+    if (state === 'waking') {
+      const t = (now - engagedAt) / 1000;
+      // La rendija de brasas se enciende en rojo y la almendra toma el relevo
+      // antes de abrir. Un solo crossfade, sin capas encimadas.
+      solidMix = smoothstep(ENTER_SOLID_AT, ENTER_SOLID_AT + ENTER_SOLID_DUR, t);
+      particleMix = 1 - solidMix;
+    } else if (state === 'awake') {
+      solidMix = 1;
+      particleMix = 0;
+    } else if (state === 'returning') {
+      const rt = (now - returnAt) / 1000;
+      // El ojo no se cierra: la almendra se deshace en las brasas que ya están
+      // debajo. Después hay un micro-hold y recién ahí arranca el vuelo.
+      solidMix = 1 - smoothstep(0, RETURN_MIX, rt);
+      particleMix = 1 - solidMix;
+    } else {
+      solidMix = 0;
+      particleMix = 0;
+    }
+  };
+
+  const drawSolid = () => {
+    solidCtx.clearRect(0, 0, CW, CH);
+    for (let k = 0; k < 2; k++) {
+      const gz = gaze[k];
+      const look = {
+        dx: gz.x * rx * 0.22,
+        dy: gz.y * ry * 0.14,
+        upRotExtra: -gz.x * 0.12,
+        loRotExtra: gz.x * 0.12,
+      };
+      drawEye(
+        solidCtx,
+        { s: eyePose[k], dir: eyeDir[k] },
+        eyeCx[k],
+        eyeCy,
+        eyeR,
+        look,
+      );
+    }
+  };
+
   const draw = () => {
     ctx.clearRect(0, 0, CW, CH);
-    ctx.globalCompositeOperation = 'lighter';
-    for (const p of particles) {
-      if (p.alpha <= 0.004) continue;
-      ctx.globalAlpha = p.alpha;
-      const s = p.sizeNow;
-      ctx.drawImage(p.sprite, p.x - s / 2, p.y - s / 2, s, s);
+    if (particleMix > 0.004) {
+      // source-over: las brasas coral mantienen su matiz aunque se superpongan;
+      // con 'lighter' la suma de G/B podía virar a blanco.
+      ctx.globalCompositeOperation = 'source-over';
+      for (const p of particles) {
+        const a = p.alpha * particleMix;
+        if (a <= 0.004) continue;
+        ctx.globalAlpha = a;
+        const s = p.sizeNow;
+        ctx.drawImage(p.sprite, p.x - s / 2, p.y - s / 2, s, s);
+      }
     }
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
+    if (solidMix > 0.004) {
+      drawSolid();
+      ctx.globalAlpha = solidMix;
+      ctx.drawImage(solidCanvas, 0, 0, CW, CH);
+      ctx.globalAlpha = 1;
+    }
   };
 
   const loop = (now) => {
@@ -748,29 +1025,46 @@ export const initHeroSubtitleEyes = () => {
     const dt = clamp((now - lastT) / 1000, 0.001, 0.033);
     lastT = now;
 
-    if (state === 'returning' && !returnStarted && now - returnAt >= RETURN_DELAY) {
+    if (state === 'returning' && !returnStarted && now - returnAt >= RETURN_FLIGHT_AT * 1000) {
       returnStarted = true;
       returnStartAt = now;
       for (const p of particles) {
         p.rx0 = p.x;
         p.ry0 = p.y;
-        p.aRet = p.alpha; // el párpado ya está cerrado: no revivir el cuerpo
-        p.rout = (p.x - eyeCx[p.eye]) * 0.18 + rand(-3, 3);
-        p.rup = rand(2, 9);
-        p.rdelay = rand(0, 0.07);
+        // aRet se guardó al soltar: el coral ya está formado y con brillo.
+        if (p.aRet <= 0.004) p.aRet = p.alpha;
+        // Arco espejado de la entrada: primero sale del ojo, después cae en el
+        // glifo. La línea de arriba sale antes que la de abajo.
+        const dir =
+          Math.sign(p.sx - eyeCx[p.eye]) || (Math.random() < 0.5 ? -1 : 1);
+        p.rout = dir * rand(5, 12) + rand(-2, 2);
+        p.rup = p.role === 1 ? rand(10, 18) : rand(14, 28);
+        p.rc1x = p.rx0 + p.rout;
+        p.rc1y = p.ry0 - p.rup;
+        p.rc2x = p.sx + p.rout * 0.45;
+        p.rc2y = p.sy - p.rup * 0.55;
+        p.rdelay = (p.line === 0 ? 0 : 0.025) + rand(0, 0.04);
+        p.sizeRet = Math.max(p.size * 1.04, p.sizeNow * 1.08);
       }
     }
 
     if (state === 'waking' && now >= openEnd) state = 'awake';
     if (state === 'awake') updateAwake(now);
-    if (state === 'returning' && now >= returnAt + RETURN_TOTAL) {
+    // Si el puntero se va antes de que el ojo abra, no vale la pena completar
+    // la entrada para volver: se restaura el texto en el mismo frame.
+    if (state === 'waking' && awayAt && now - awayAt > AWAY_HOLD) {
+      cancelInstant();
+      return;
+    }
+    if (state === 'returning' && now >= returnAt + RETURN_TOTAL * 1000) {
       finishReturn(now);
       return;
     }
 
-    updatePose(now, dt);
     updateGaze(now, dt);
+    updatePose(now, dt);
     updateParticles(now, dt);
+    updateMix(now);
     draw();
     if (state !== 'idle') raf = requestAnimationFrame(loop);
   };
@@ -802,15 +1096,20 @@ export const initHeroSubtitleEyes = () => {
     const dist = Math.hypot(dx, dy);
     if (dist > 4) {
       lastMoveAt = now;
-      microX = 0;
-      microY = 0;
-      nextMicro = now + 700;
+      for (let k = 0; k < 2; k++) {
+        microX[k] = 0;
+        microY[k] = 0;
+        nextMicro[k] = now + 2400 + rand(0, 800);
+      }
     }
     // Gesto de enojo: un swipe corto y rápido, no un salto después de una
-    // pausa (dtm filtra los teleports del cursor).
+    // pausa (dtm filtra los teleports del cursor). Es un impulso one-shot.
     if (state === 'awake' && now - engagedAt > 700 && dist > 15 && dtm < 100) {
       const speed = dist / (dtm / 1000);
-      if (speed > 2800) angryUntil = now + ANGRY_MS;
+      if (speed > 2800 && now > angerCooldownUntil) {
+        angerStart = now;
+        angerCooldownUntil = now + ANGRY_COOLDOWN;
+      }
     }
     lastPX = x;
     lastPY = y;
@@ -854,6 +1153,7 @@ export const initHeroSubtitleEyes = () => {
     particles = [];
     measure();
     ctx.clearRect(0, 0, CW, CH);
+    solidCtx.clearRect(0, 0, CW, CH);
     resizeTimer = setTimeout(() => {
       if (state !== 'idle') return;
       build();

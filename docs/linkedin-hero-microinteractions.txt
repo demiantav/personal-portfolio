@@ -10,9 +10,9 @@ EN — VERSIÓN PRINCIPAL
 
 The detail I keep coming back to in my portfolio is a line of text that turns into eyes.
 
-The subtitle "+5 years of experience / Available worldwide" isn't static. Hover it and the letters break into embers, fold into two small eyes, and the eyes follow your cursor. They blink. Stay still and they squint. Swipe fast and they get annoyed. Wait long enough and they get sleepy, close, and the text comes back.
+The subtitle "+5 years of experience / Available worldwide" isn't static. Hover it and the letters break into coral embers, fold into two small eyes, and the embers ignite the solid red almond from the finale. The eyes follow your cursor. They blink. Stay still and they squint. Swipe fast and they get annoyed. Wait long enough and they get sleepy, dissolve into embers, and the text comes back.
 
-No video, no 3D model: ~800 Canvas 2D particles sampled from the real text, spring-driven lids, and an emotion table shared with the eyes at the end of the page. The DOM text is never split for the effect, so it stays accessible. On mobile it's a tap. Reduced motion opts out.
+No video, no 3D model: ~800 Canvas 2D coral particles sampled from the real text, the same solid red eye renderer as the finale, spring-driven lids, and an emotion table shared with the eyes at the end of the page. The DOM text is never split for the effect, so it stays accessible. On mobile it's a tap. Reduced motion opts out.
 
 Behind it, the hero breathes with WebGL smoke and red lightning. It stays ambient.
 
@@ -31,7 +31,7 @@ EN — VERSIÓN CORTA
 
 A line of text that turns into eyes.
 
-Hover the subtitle and the letters break into embers, fold into two small eyes, and follow your cursor. They blink, squint when you stay, get angry on a fast swipe, get sleepy if you wait, then close and the text returns. Mobile: tap. Reduced motion: no morph. The DOM text stays accessible.
+Hover the subtitle and the letters break into coral embers, fold into two small eyes, and ignite the solid red almond from the finale. The eyes follow your cursor. They blink, squint when you stay, get angry on a fast swipe, get sleepy if you wait, then dissolve and the text returns. Mobile: tap. Reduced motion: no morph. The DOM text stays accessible.
 
 The navbar is the quiet counterpoint: masked letter rolls, a magnetic cursor ring, a View Transition bubble.
 
@@ -46,9 +46,9 @@ ES — VERSIÓN PRINCIPAL
 
 El detalle de mi portfolio al que vuelvo una y otra vez es una línea de texto que se convierte en ojos.
 
-El subtítulo "+5 years of experience / Available worldwide" no es estático. Al hover, las letras se deshacen en brasas, se pliegan en dos ojos chiquitos y los ojos siguen al cursor. Parpadean. Si te quedás, entrecierran. Si hacés un swipe rápido, se enojan. Si esperás, se duermen, cierran y el texto vuelve.
+El subtítulo "+5 years of experience / Available worldwide" no es estático. Al hover, las letras se deshacen en brasas coral, se pliegan en dos ojos chiquitos y las brasas encienden la almendra roja del finale. Los ojos siguen al cursor. Parpadean. Si te quedás, entrecierran. Si hacés un swipe rápido, se enojan. Si esperás, se duermen, se deshacen en brasas y el texto vuelve.
 
-Sin video ni modelo 3D: ~800 partículas en Canvas 2D muestreadas del texto real, párpados con resortes y una tabla de emociones compartida con los ojos del finale. El texto del DOM no se parte para el efecto: sigue accesible. En mobile es un tap. Con reduced motion no existe.
+Sin video ni modelo 3D: ~800 partículas coral en Canvas 2D muestreadas del texto real, el mismo renderer de la almendra roja del finale, párpados con resortes y una tabla de emociones compartida con los ojos del cierre. El texto del DOM no se parte para el efecto: sigue accesible. En mobile es un tap. Con reduced motion no existe.
 
 Detrás, el hero respira con humo WebGL y relámpagos rojos. Queda de fondo.
 
@@ -67,7 +67,7 @@ ES — VERSIÓN CORTA
 
 Una línea de texto que se convierte en ojos.
 
-Al hover, las letras se deshacen en brasas, se pliegan en dos ojos chiquitos y siguen al cursor. Parpadean, entrecierran si te quedás, se enojan con un swipe rápido, se duermen si esperás; después cierran y el texto vuelve. En mobile es un tap. Con reduced motion no hay morph. El texto del DOM sigue accesible.
+Al hover, las letras se deshacen en brasas coral, se pliegan en dos ojos chiquitos, encienden la almendra roja del finale y siguen al cursor. Parpadean, entrecierran si te quedás, se enojan con un swipe rápido, se duermen si esperás; después se deshacen y el texto vuelve. En mobile es un tap. Con reduced motion no hay morph. El texto del DOM sigue accesible.
 
 El navbar es el contrapunto silencioso: letras enmascaradas, aro imán y burbuja con View Transition.
 

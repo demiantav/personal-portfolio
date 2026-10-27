@@ -1,8 +1,9 @@
 # LinkedIn — Hero: el subtítulo que se convierte en ojos + navbar
 
 Post enfocado en la interacción principal del hero: el subtítulo que se pliega
-en dos ojos de brasas y mira al cursor. El humo WebGL queda como atmósfera y el
-navbar como contrapunto silencioso. La versión corta va sólo a los ojos.
+en dos ojos, enciende la almendra roja del finale y mira al cursor. El humo
+WebGL queda como atmósfera y el navbar como contrapunto silencioso. La versión
+corta va sólo a los ojos.
 
 ---
 
@@ -11,9 +12,9 @@ navbar como contrapunto silencioso. La versión corta va sólo a los ojos.
 ```
 The detail I keep coming back to in my portfolio is a line of text that turns into eyes.
 
-The subtitle "+5 years of experience / Available worldwide" isn't static. Hover it and the letters break into embers, fold into two small eyes, and the eyes follow your cursor. They blink. Stay still and they squint. Swipe fast and they get annoyed. Wait long enough and they get sleepy, close, and the text comes back.
+The subtitle "+5 years of experience / Available worldwide" isn't static. Hover it and the letters break into coral embers, fold into two small eyes, and the embers ignite the solid red almond from the finale. The eyes follow your cursor. They blink. Stay still and they squint. Swipe fast and they get annoyed. Wait long enough and they get sleepy, dissolve into embers, and the text comes back.
 
-No video, no 3D model: ~800 Canvas 2D particles sampled from the real text, spring-driven lids, and an emotion table shared with the eyes at the end of the page. The DOM text is never split for the effect, so it stays accessible. On mobile it's a tap. Reduced motion opts out.
+No video, no 3D model: ~800 Canvas 2D coral particles sampled from the real text, the same solid red eye renderer as the finale, spring-driven lids, and an emotion table shared with the eyes at the end of the page. The DOM text is never split for the effect, so it stays accessible. On mobile it's a tap. Reduced motion opts out.
 
 Behind it, the hero breathes with WebGL smoke and red lightning. It stays ambient.
 
@@ -31,7 +32,7 @@ Built with Canvas 2D, GSAP, WebGL and the View Transitions API.
 ```
 A line of text that turns into eyes.
 
-Hover the subtitle and the letters break into embers, fold into two small eyes, and follow your cursor. They blink, squint when you stay, get angry on a fast swipe, get sleepy if you wait, then close and the text returns. Mobile: tap. Reduced motion: no morph. The DOM text stays accessible.
+Hover the subtitle and the letters break into coral embers, fold into two small eyes, and ignite the solid red almond from the finale. The eyes follow your cursor. They blink, squint when you stay, get angry on a fast swipe, get sleepy if you wait, then dissolve and the text returns. Mobile: tap. Reduced motion: no morph. The DOM text stays accessible.
 
 The navbar is the quiet counterpoint: masked letter rolls, a magnetic cursor ring, a View Transition bubble.
 
@@ -45,9 +46,9 @@ Built with Canvas 2D, GSAP and the View Transitions API.
 ```
 El detalle de mi portfolio al que vuelvo una y otra vez es una línea de texto que se convierte en ojos.
 
-El subtítulo "+5 years of experience / Available worldwide" no es estático. Al hover, las letras se deshacen en brasas, se pliegan en dos ojos chiquitos y los ojos siguen al cursor. Parpadean. Si te quedás, entrecierran. Si hacés un swipe rápido, se enojan. Si esperás, se duermen, cierran y el texto vuelve.
+El subtítulo "+5 years of experience / Available worldwide" no es estático. Al hover, las letras se deshacen en brasas coral, se pliegan en dos ojos chiquitos y las brasas encienden la almendra roja del finale. Los ojos siguen al cursor. Parpadean. Si te quedás, entrecierran. Si hacés un swipe rápido, se enojan. Si esperás, se duermen, se deshacen en brasas y el texto vuelve.
 
-Sin video ni modelo 3D: ~800 partículas en Canvas 2D muestreadas del texto real, párpados con resortes y una tabla de emociones compartida con los ojos del finale. El texto del DOM no se parte para el efecto: sigue accesible. En mobile es un tap. Con reduced motion no existe.
+Sin video ni modelo 3D: ~800 partículas coral en Canvas 2D muestreadas del texto real, el mismo renderer de la almendra roja del finale, párpados con resortes y una tabla de emociones compartida con los ojos del cierre. El texto del DOM no se parte para el efecto: sigue accesible. En mobile es un tap. Con reduced motion no existe.
 
 Detrás, el hero respira con humo WebGL y relámpagos rojos. Queda de fondo.
 
@@ -65,7 +66,7 @@ Hecho con Canvas 2D, GSAP, WebGL y la View Transitions API.
 ```
 Una línea de texto que se convierte en ojos.
 
-Al hover, las letras se deshacen en brasas, se pliegan en dos ojos chiquitos y siguen al cursor. Parpadean, entrecierran si te quedás, se enojan con un swipe rápido, se duermen si esperás; después cierran y el texto vuelve. En mobile es un tap. Con reduced motion no hay morph. El texto del DOM sigue accesible.
+Al hover, las letras se deshacen en brasas coral, se pliegan en dos ojos chiquitos, encienden la almendra roja del finale y siguen al cursor. Parpadean, entrecierran si te quedás, se enojan con un swipe rápido, se duermen si esperás; después se deshacen y el texto vuelve. En mobile es un tap. Con reduced motion no hay morph. El texto del DOM sigue accesible.
 
 El navbar es el contrapunto silencioso: letras enmascaradas, aro imán y burbuja con View Transition.
 
@@ -78,10 +79,10 @@ Hecho con Canvas 2D, GSAP y la View Transitions API.
 
 ## Notas técnicas (por si querés mencionarlas)
 
-- **Hero — ojos del subtítulo:** el texto se muestrea con `fillText` en un canvas offscreen; el DOM no se parte para el efecto. Las partículas se reparten por rango de píxeles para que los dos ojos tengan la misma densidad. La línea de arriba se convierte en el párpado superior, la de abajo en el inferior; la banda central de cada mitad, en el cuerpo de la almendra; los extremos, en las comisuras. Sin pupila y con rojo puro: la misma almendra y el mismo `TILT` que el ojo del finale, pero hecha de brasas.
-- **Hero — presupuesto:** 800 brasas en desktop y 520 en mobile; canvas 2D del tamaño del bloque + 30 px; DPR ≤ 2; sprites radiales pre-renderizados en rojo puro (sin núcleos blancos) con `globalCompositeOperation = 'lighter'`; loop apagado en reposo.
-- **Hero — emociones:** tabla compartida con `processEyes.js` (`eyeEmotions.js`): neutral, enojo, pícara, sueño y parpadeo. Prioridad enojo > pícara > sueño > neutral. El primer despertar regala una medialuna pícara a los ~1.25 s, una vez por carga; el ojo derecho llega ~40 ms más tarde.
-- **Hero — trigger y retorno:** despierta al entrar al subtítulo o con un tap; la mirada sigue al cursor mientras esté en el bloque de título + 24 px. Vuelve al texto al salir (260 ms de gracia), a los 6 s de inactividad, con scroll, resize, pestaña oculta o un segundo tap. En mobile el sueño llega a los 6 s y devuelve a los ~6.9 s; el auto-retorno de seguridad es a los 7 s y el tap devuelve antes. El re-armado exige salir y volver a entrar.
+- **Hero — ojos del subtítulo:** el texto se muestrea con `fillText` en un canvas offscreen; el DOM no se parte. Las partículas se reparten por rango de píxeles para que los dos ojos tengan la misma densidad. La línea de arriba se convierte en el párpado superior, la de abajo en el inferior; la banda central de cada mitad, en el cuerpo de la almendra; los extremos, en las comisuras. Las brasas coral encienden la **almendra sólida** que dibuja `eyeRender.js` con el mismo `drawEye`, `TILT` y tapas del finale. El ojo despierto es rojo puro, sin pupila ni puntos blancos.
+- **Hero — presupuesto:** 800 brasas coral en desktop y 520 en mobile, sólo durante el pliegue y el retorno; canvas 2D del tamaño del bloque + 30 px; DPR ≤ 2; sprites radiales pre-renderizados coral con `source-over` y ojo sólido en un segundo canvas offscreen; loop apagado en reposo.
+- **Hero — emociones:** tabla compartida con `processEyes.js` (`eyeEmotions.js`). El hero usa tres bases (`hooded`, `focus`, `sleepy`) y dos impulsos: `angry` y `wary`. El finale conserva `neutral`, `scan`, `playful`, `angry` y `sleepy`. La mirada es por ojo, con microsacádicas espaciadas y 20–35 ms de retardo en el derecho. El único parpadeo de personaje es el saludo lento a los ~1.35 s; el natural cae cerca de los 5 s.
+- **Hero — trigger y retorno:** despierta al entrar al subtítulo o con un tap; la mirada sigue al cursor mientras esté en el bloque de título + 24 px. Vuelve al texto al salir (140 ms de gracia), a los ~8,5 s de inactividad, con scroll, resize, pestaña oculta o un segundo tap. La almendra se deshace directamente en el ojo coral entre 0 y 140 ms, hay un micro-hold de ~80 ms, el vuelo arranca a los 220 ms y el texto entra desde los 580 ms, línea por línea, hasta completar ~820 ms. En mobile el sueño llega a los ~7,4 s; el auto-retorno de seguridad es a los ~9 s y el tap devuelve antes. El re-armado exige salir y volver a entrar.
 - **Hero — accesibilidad:** el canvas es `aria-hidden`, el texto sigue en el DOM y el aro custom se oculta sobre el subtítulo para que el cursor nativo sea el que los ojos miran. `prefers-reduced-motion` no monta el efecto.
 - **Hero — humo:** WebGL, un triángulo que cubre el viewport y un solo draw call. Ruido fbm + domain warping en dos pasos; la rampa `bodyAt` define núcleos y silueta; una capa macro de baja frecuencia rompe la repetición. Queda ambiental.
 - **Hero — relámpagos:** intervalo aleatorio de 2.5–6 s; 2 pulsos gaussianos por descarga; la normal falsa compara la densidad con la del vecino hacia el origen. Pauta WCAG 2.3.1.

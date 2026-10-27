@@ -5,8 +5,9 @@ rojos aleatorios, en la dirección visual de Stranger Things. El humo iluminado
 usa el mismo lenguaje que el finale de la sección de proceso, así el hero y el
 cierre comparten técnica.
 
-La interacción principal del hero es otra: el subtítulo se despierta y se pliega
-en dos ojos de brasas que miran al cursor. El humo y las esporas quedan de fondo.
+La interacción principal del hero es otra: el subtítulo se despierta, las brasas
+coral se pliegan en dos ojos y encienden la almendra roja del finale. El humo y
+las esporas quedan de fondo.
 
 ## Piezas
 
@@ -19,10 +20,13 @@ en dos ojos de brasas que miran al cursor. El humo y las esporas quedan de fondo
   `webglContext`. `progressFog.js` también los usa: antes duplicaba el ruido y el
   compilador.
 - **`src/js/heroSubtitleEyes.js`**: la interacción del subtítulo. Canvas 2D
-  pegado al bloque, partículas muestreadas del texto real, párpados con resortes
-  y mirada al cursor.
-- **`src/js/eyeEmotions.js`**: tabla compartida de emociones (neutral, enojo,
-  pícara, sueño, parpadeo) entre los ojos del hero y los del finale.
+  pegado al bloque, partículas muestreadas del texto real, almendra sólida al
+  despertar, párpados con resortes y mirada al cursor.
+- **`src/js/eyeRender.js`**: renderer compartido de la almendra del finale. El
+  ojo del hero y los ojos de `processEyes.js` dibujan exactamente la misma forma.
+- **`src/js/eyeEmotions.js`**: tabla compartida de emociones. El finale usa
+  `neutral`, `scan`, `playful`, `angry` y `sleepy`; el hero usa `hooded`,
+  `focus` y `sleepy` como bases, más `angry` y `wary` como impulsos.
 
 ## Campo: nube + capa macro
 
@@ -64,63 +68,79 @@ humo y por debajo del texto (mismo `z-index: 0`, orden del DOM).
 
 La interacción principal del hero es el subtítulo. Los dos `h4` son la forma
 dormida de la criatura que aparece en el finale: al entrar al bloque, el texto se
-despierta, se pliega en dos ojos de brasas y mira al cursor. Al salir (o a los
-6 s de inactividad) los ojos se cierran, las brasas vuelven a sus glifos y el
-texto reaparece. En mobile el disparador es un tap; en `prefers-reduced-motion`
-no existe.
+despierta, las brasas coral se pliegan en dos ojos y la almendra se enciende en
+rojo. Al salir (o a los ~8,5 s de inactividad) el ojo sólido se deshace en las
+brasas, que vuelven a sus glifos y reconstruyen el texto. En mobile el
+disparador es un tap; en `prefers-reduced-motion` no existe.
 
-### Rig de partículas
+### Rig híbrido: brasas + almendra
 
 - **Sin tocar el DOM.** El texto no se splitea para el efecto: se renderiza con
   la fuente computada en un canvas offscreen y se muestrean los píxeles opacos.
   El `SplitText` de la salida (`hero-zoom-transition.js`) queda intacto y el
   subtítulo sigue siendo texto real para lectores de pantalla.
-- **Presupuesto.** 800 brasas en desktop y 520 en mobile, en un canvas 2D que
-  cubre sólo el bloque del subtítulo + 30 px de aire por lado. DPR máximo 2.
-  Sprites radiales pre-renderizados y `globalCompositeOperation = 'lighter'`;
-  el loop se apaga en reposo. Todos los sprites son rojo puro, sin núcleos
-  blancos: la suma aditiva nunca puede virar a blanco.
+- **Presupuesto.** 800 brasas coral en desktop y 520 en mobile para el pliegue y
+  el retorno. El ojo despierto no usa partículas: usa la almendra sólida del
+  finale. El canvas cubre sólo el bloque + 30 px de aire por lado y el DPR
+  máximo es 2.
+- **Brasas coral.** Los sprites radiales heredan el coral del subtítulo
+  (`#f3505f`), con el último stop transparente del mismo color. Se dibujan con
+  `source-over` (no aditivo) para que la superposición no vire a blanco. El loop
+  se apaga en reposo.
+- **Almendra sólida.** Se dibuja en un canvas offscreen del mismo tamaño con
+  `drawEye` de `eyeRender.js`: misma silueta, proporción, `TILT`, tapas y
+  emociones que el finale. Se compone con alpha sobre las brasas; las tapas usan
+  `destination-out` sólo dentro de ese canvas, así no recortan la transición.
 - **El pliegue.** La línea de arriba se convierte en los párpados superiores y
   la de abajo en los inferiores. La banda central de cada mitad no se condensa
   en una pupila: se dispersa por el cuerpo de la almendra. Los extremos del
   texto, en las comisuras. Las partículas se reparten por rango de píxeles (no
   por punto medio geométrico) para que los dos ojos tengan la misma densidad
   aunque el subtítulo esté alineado a la derecha.
-- **La almendra.** Cada ojo usa la proporción y el `TILT` del finale, con una
-  curva asimétrica tipo cat-eye; el párpado superior y el inferior comparten el
-  mismo parámetro `t` (comisura interna 0 → externa 1), así el cierre y la media
-  luna funcionan con una sola pose. El cuerpo se reparte entre las dos tapas y
-  se apaga con la abertura real del ojo: sin máscara, al cerrar no quedan brasas
-  rojas flotando sobre el párpado.
-- **Sin pupila.** El ojo es rojo puro y no tiene centro brillante. La mirada la
-  hace el cuerpo completo, como el ojo del finale, con resortes, microsacádicas
-  y la inclinación de las tapas.
-- **Vuelo.** Las brasas salen del glifo con un bezier de dos tramos (levantan y
-  se abren antes de entrar al ojo). El ojo derecho llega ~40 ms más tarde, como
-  en el finale.
+- **La silueta.** La almendra de partículas usa la misma curva asimétrica
+  cat-eye; el párpado superior y el inferior comparten el mismo parámetro `t`
+  (comisura interna 0 → externa 1). El cuerpo se apaga con la abertura real, así
+  al cerrar no quedan brasas flotando sobre el párpado.
+- **Sin pupila.** El ojo despierto es `#ff0000` plano, sin centro brillante ni
+  puntos blancos. La mirada la hace el cuerpo completo, con resortes,
+  microsacádicas y la inclinación de las tapas.
+- **Vuelo + encendido.** Las brasas salen del glifo con un bezier de dos tramos
+  y una onda por línea, no con delays aleatorios. A los ~0.30 s la rendija de
+  brasas empieza a encenderse en la almendra sólida; el crossfade termina a los
+  ~0.50 s, cuando ya no queda ninguna brasa en vuelo. El ojo derecho llega ~20–35
+  ms más tarde, como en el finale.
 
 ### Coreografía
 
 - **Trigger.** Sólo al entrar al subtítulo (con 8 px de tolerancia) o con un tap
   en mobile. Una vez despierto, la mirada sigue al cursor mientras siga dentro
   del bloque de título + 24 px.
-- **Despertar.** El ojo nace en rendija (`upPos 0.55`), abre a los ~0.46 s y
-  queda abierto. El primer despertar de la carga regala una medialuna pícara a
-  los ~1.25 s, una sola vez.
-- **Emociones.** Se comparten con el finale vía `eyeEmotions.js`: neutral,
-  enojo (swipe rápido), pícara (cursor quieto), sueño (6 s de inactividad) y
-  parpadeo. Prioridad: enojo > pícara > sueño > neutral. La mirada usa resortes
-  con microsacádicas; el parpadeo y los tiempos salen de la misma tabla.
-- **Retorno.** Al salir del bloque de título (260 ms de gracia), a los 6 s de
+- **Despertar.** El texto se desprende por líneas entre 0.04 y 0.26 s; no
+  desaparece de golpe. Las brasas pliegan en una onda por línea, la rendija
+  sólida se enciende entre 0.30 y 0.50 s y el ojo abre entre 0.50 y 0.72 s,
+  cuando las partículas ya terminaron. Queda en `hooded`. El primer despertar
+  de la carga regala un parpadeo lento de saludo a los ~1.35 s, una sola vez.
+- **Emociones.** Tres bases: `hooded`, `focus` (a los ~3 s si el cursor se
+  quedó quieto) y `sleepy` (a los ~7,4 s). El enojo es un impulso de ~0,9 s con
+  cooldown de 2,2 s después de un swipe rápido; la desconfianza es una capa
+  aditiva cuando la mirada va al borde. Ninguno dispara un parpadeo ni cambia
+  la silueta de golpe. La mirada es por ojo, con microsacádicas espaciadas
+  (2,6–5 s), sacadas de 60–110 ms, zona muerta de 0,075 y un retardo de 20–35
+  ms en el ojo derecho. El único parpadeo de personaje es el saludo; el natural
+  cae cerca de los 5 s.
+- **Retorno.** Al salir del bloque de título (140 ms de gracia), a los ~8,5 s de
   inactividad, al scrollear, al redimensionar, al ocultar la pestaña o con un
-  segundo tap en mobile. El ojo se cierra en 160 ms; a los 170 ms las brasas
-  vuelven a los glifos y el texto entra a los 320 ms. El texto del DOM siempre
+  segundo tap en mobile. La almendra no se cierra: se deshace en el ojo coral
+  que ya está debajo entre 0 y 140 ms; hay un micro-hold de ~80 ms y el vuelo
+  arranca a los 220 ms. El texto entra desde los 580 ms, línea por línea, con
+  50 ms de diferencia. El retorno total dura ~820 ms. El texto del DOM siempre
   vuelve a `opacity: 1`; si hay scroll, se restaura en el mismo frame en que
   empieza la salida.
 - **Re-armado.** Sólo saliendo y volviendo a entrar al subtítulo. El primer
   despertar no se repite por carga. En mobile el sueño también se ve: llega a
-  los 6 s y devuelve a los ~6.9 s; el auto-retorno de seguridad es a los 7 s y
-  el tap devuelve antes.
+  los ~7,4 s y devuelve a los ~8,5 s; el auto-retorno de seguridad es a los
+  ~9 s, el texto empieza a volver cerca de 9,1 s y termina cerca de 9,3 s. El
+  tap devuelve antes.
 - **Accesibilidad.** El canvas es `aria-hidden`; el texto sigue en el DOM; el
   aro custom se oculta sobre el subtítulo y el cursor nativo (flecha) es el que
   los ojos miran. `prefers-reduced-motion` no monta el efecto; el CSS también
@@ -153,7 +173,7 @@ del pin. El muestreo del campo se pliega hacia el centro de la D
 idea es la misma que la absorción del finale.
 
 Antes de que el zoom empiece, `heroSubtitleEyes.js` escucha el scroll: si el
-subtítulo está despierto, cierra los ojos y restaura el texto en el mismo frame
+subtítulo está despierto, lo deshace y restaura el texto en el mismo frame
 (`cancelInstant`). El canvas de los ojos queda limpio y el `SplitText` de los
 `h4` sigue su curso.
 
@@ -162,9 +182,11 @@ subtítulo está despierto, cierra los ojos y restaura el texto en el mismo fram
 - Media resolución: escala 0.5 en desktop y 0.38 en mobile (el humo es de baja
   frecuencia, no se nota). El loop se pausa con `IntersectionObserver` cuando el
   hero sale de pantalla.
-- **Ojos del subtítulo**: 800/520 brasas en un canvas 2D del tamaño del bloque
-  (no del viewport), DPR ≤ 2, sprites pre-renderizados y loop apagado en reposo.
-  El muestreo del texto corre una vez por build (carga y resize), no por frame.
+- **Ojos del subtítulo**: 800/520 brasas sólo durante el pliegue y el retorno;
+  el ojo despierto es una almendra sólida en un canvas offscreen del tamaño del
+  bloque (no del viewport), DPR ≤ 2, sprites pre-renderizados y loop apagado en
+  reposo. El muestreo del texto corre una vez por build (carga y resize), no por
+  frame.
 - **Reduced motion**: sin relámpagos ni bucle; se dibuja un solo frame estático
   (verificado: `reduce = true`, sin errores).
 - **Sin WebGL**: el canvas queda vacío y se ve el degradado de respaldo de
@@ -186,7 +208,9 @@ hero, así el presupuesto de píxeles queda chico.
 
 - `src/js/heroSmoke.js`: humo (shader) y relámpagos.
 - `src/js/heroSpores.js`: esporas en canvas 2D, con parallax y salida hacia la D.
-- `src/js/heroSubtitleEyes.js`: el subtítulo que se pliega en ojos.
+- `src/js/heroSubtitleEyes.js`: el subtítulo que se pliega en ojos; brasas coral
+  y almendra sólida.
+- `src/js/eyeRender.js`: renderer compartido de la almendra del finale.
 - `src/js/eyeEmotions.js`: emociones compartidas con `processEyes.js`.
 - `src/js/gl.js`: helpers y ruido compartidos.
 - `src/js/textAnimate.js`: instancia el humo y las esporas (`heroFx`, `heroSporesFx`),

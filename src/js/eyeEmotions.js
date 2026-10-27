@@ -1,8 +1,9 @@
 // Vocabulario emocional compartido por los ojos del finale (processEyes.js) y
-// los ojos de brasas del hero (heroSubtitleEyes.js). Los valores están en
-// grados/fracciones, tal como los consume el rig de párpados de cada pantalla.
-// El hero no instancia processEyes: sólo comparte la tabla para que las dos
-// criaturas sientan igual.
+// los ojos del hero (heroSubtitleEyes.js), que alternan brasas coral y la
+// almendra sólida del finale. Los valores están en grados/fracciones, tal como
+// los consume el rig de párpados de cada pantalla. El hero no instancia
+// processEyes: comparte la tabla y el renderer para que las dos criaturas
+// sientan igual.
 
 export const TILT = 0.1; // inclinación cat-eye (rad)
 
@@ -12,6 +13,10 @@ const DEG = Math.PI / 180;
 // referencia local del ojo; mismo signo en ambos ojos). pos = cobertura de la
 // tapa (0 = retirada, 1 = cubre todo el ojo). bow = curvatura hacia arriba del
 // borde inferior (media luna, sonrisa).
+//
+// `asym` es un metadato del hero: sesgo entre el ojo izquierdo y el derecho
+// (fracciones y radianes, ya sin `DEG`). El finale lo ignora; la criatura del
+// hero lo usa para que la mirada no se sienta como un bloque.
 export const NEUTRAL = {
   up: { rot: 0, pos: 0 },
   lo: { rot: 0, pos: 0 },
@@ -48,6 +53,39 @@ export const EMOTIONS = {
     microGap: [2500, 4500],
     blinkMs: 260,
     blinkGap: [2000, 3500],
+    asym: { upPos: 0.02, upRot: 0, loPos: 0 },
+  },
+
+  // ─── Vocabulario del hero ───────────────────────────────────────────
+  // Performance contenida: una base, un foco y un sueño. El enojo y la
+  // desconfianza no son estados completos; son impulsos que se suman a la pose.
+  // A24: poca apertura, quietud y asimetría. El ojo nunca se abre del todo.
+  hooded: {
+    ...NEUTRAL,
+    up: { rot: -4, pos: 0.22 },
+    lo: { rot: 0, pos: 0.1 },
+    bow: 0.06,
+    sac: [60, 110],
+    micro: 0.2,
+    microGap: [2600, 5000],
+    blinkMs: 240,
+    blinkGap: [5200, 7600],
+    asym: { upPos: 0.02, upRot: -0.015, loPos: 0.012 },
+  },
+  // Foco: la versión quieta y entornada de la mirada de acecho. Una sola
+  // silueta para el momento en que el cursor se detiene.
+  focus: {
+    ...NEUTRAL,
+    up: { rot: -8, pos: 0.34 },
+    lo: { rot: 0, pos: 0.24 },
+    bow: 0.12,
+    tremor: 0.12,
+    sac: [65, 110],
+    micro: 0.28,
+    microGap: [2800, 5200],
+    blinkMs: 220,
+    blinkGap: [5200, 7600],
+    asym: { upPos: 0.02, upRot: -0.015, loPos: 0.015 },
   },
 };
 
