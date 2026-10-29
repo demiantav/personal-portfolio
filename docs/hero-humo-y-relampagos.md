@@ -69,10 +69,10 @@ humo y por debajo del texto (mismo `z-index: 0`, orden del DOM).
 La interacción principal del hero es el subtítulo. Los dos `h4` son la forma
 dormida de la criatura que aparece en el finale: al entrar al bloque, el texto se
 despierta, las brasas coral se condensan en dos ojos y la almendra se enciende
-en rojo cuando termina de abrirse. Al salir (o a los ~8,5 s de inactividad) el
-ojo sólido se enfría a coral, cede su opacidad y las brasas vuelven a sus glifos
-y reconstruyen el texto. En mobile el disparador es un tap; en
-`prefers-reduced-motion` no existe.
+en rojo cuando termina de abrirse. Al salir (o a los ~8,5 s de inactividad) los
+párpados se entrecierran y el ojo sólido se enfría a coral, cede su opacidad y
+las brasas vuelven a sus glifos y reconstruyen el texto. En mobile el disparador
+es un tap; en `prefers-reduced-motion` no existe.
 
 ### Rig híbrido: brasas + almendra
 
@@ -100,30 +100,37 @@ y reconstruyen el texto. En mobile el disparador es un tap; en
 - **Almendra sólida.** Se dibuja en un canvas offscreen del mismo tamaño con
   `drawEye` de `eyeRender.js`: misma silueta, proporción, `TILT`, tapas y
   emociones que el finale. Acepta un color opcional: el hero la enciende desde
-  el coral y el finale sigue usando el rojo puro por defecto. En la entrada se
-  compone **debajo** de las brasas (el cuerpo se condensa y las brasas quedan
-  como textura); en la salida se compone **encima** (la almendra cubre las
-  brasas y cede opacidad). Las tapas usan `destination-out` sólo dentro de ese
-  canvas, así no recortan la transición.
+  el coral y el finale sigue usando el rojo puro por defecto. La entrada es
+  **partículas-primero**: las brasas forman y abren el ojo; al completar la
+  apertura la nube se contrae y se apaga mientras la almendra coral ocupa su
+  lugar. El rojo se enciende recién cuando no queda ninguna partícula encima.
+  En la salida la almendra se compone **encima** (cubre las brasas y cede
+  opacidad). Las tapas usan `destination-out` sólo dentro de ese canvas, así no
+  recortan la transición.
 - **El pliegue.** La línea de arriba se convierte en los párpados superiores y
   la de abajo en los inferiores. La banda central de cada mitad no se condensa
   en una pupila: se dispersa por el cuerpo de la almendra. Los extremos del
   texto, en las comisuras. Las partículas se reparten por rango de píxeles (no
   por punto medio geométrico) para que los dos ojos tengan la misma densidad
   aunque el subtítulo esté alineado a la derecha.
-- **La silueta.** La almendra de partículas usa la misma curva asimétrica
-  cat-eye; el párpado superior y el inferior comparten el mismo parámetro `t`
-  (comisura interna 0 → externa 1). El cuerpo se apaga con la abertura real, así
-  al cerrar no quedan brasas flotando sobre el párpado.
+- **La silueta.** La nube usa la misma almendra y las mismas líneas de tapa que
+  `drawEye`: el párpado superior es la línea rotada por `upRot` recortada por la
+  almendra, y el inferior la línea con `bow`. Al condensarse, el ojo no cambia
+  de tamaño ni de posición: sólo pasa de textura de brasas a relleno sólido. El
+  cuerpo se apaga con la abertura real, así al cerrar no quedan brasas flotando
+  sobre el párpado.
 - **Sin pupila.** El ojo despierto es `#ff0000` plano, sin centro brillante ni
   puntos blancos. La mirada la hace el cuerpo completo, con resortes,
   microsacádicas y la inclinación de las tapas.
 - **Vuelo + encendido.** Las brasas salen del glifo con un bezier de dos tramos
   y una onda por línea, no con delays aleatorios. La última brasa aterriza a los
-  ~0.385 s; recién entonces la rendija se condensa en la almendra sólida coral
-  (0.385–0.42 s). El ojo abre entre 0.42 y 0.66 s con las brasas todavía encima;
-  al completar la cobertura se enciende el rojo (0.66–0.75 s), mientras las
-  brasas se apagan. El ojo derecho llega
+  ~0.32 s; desde ahí la nube abre el ojo sola, sin almendra debajo, entre ~0.32
+  y ~0.45 s. Sigue un respiro de ~0.08 s para que el resorte de los párpados
+  asiente la pose. Después la nube se contrae y se apaga durante ~0.12 s
+  (~0.53–0.65 s) mientras aparece la almendra coral; el rojo recién se enciende
+  cuando no queda ninguna partícula, en ~0.09 s (~0.65–0.74 s). El ojo queda
+  despierto a los ~0.74 s. La almendra nunca convive en rojo con la nube:
+  mientras haya una brasa visible, el cuerpo es coral. El ojo derecho llega
   ~20–35 ms más tarde, como en el finale.
 
 ### Coreografía
@@ -134,12 +141,11 @@ y reconstruyen el texto. En mobile el disparador es un tap; en
 - **Despertar.** El `h4` se oculta en el mismo frame en que los fragmentos ya
   están dibujados: no hay fade de texto por detrás. Cada fragmento conserva su
   recorte mientras despega y se convierte en brasa sobre la marcha. Las brasas
-  pliegan en una onda por línea y aterrizan a los ~0.385 s. La rendija se
-  condensa en la almendra coral entre 0.385 y 0.42 s y el ojo abre entre 0.42 y
-  0.66 s; las brasas siguen encima durante toda la apertura y el rojo se
-  enciende al completar la cobertura (0.66–0.75 s). Queda en `hooded`. El primer
-  despertar de la carga regala un parpadeo lento de saludo a los ~1.35 s, una
-  sola vez.
+  pliegan en una onda por línea y aterrizan a los ~0.32 s. La nube abre el ojo
+  sola entre ~0.32 y ~0.45 s, respira ~0.08 s y recién entonces se condensa en
+  la almendra coral (~0.53–0.65 s). El rojo se enciende cuando la nube ya se
+  apagó (~0.65–0.74 s). Queda en `hooded`. El primer despertar de la carga
+  regala un parpadeo lento de saludo a los ~1.35 s, una sola vez.
 - **Emociones.** Tres bases: `hooded`, `focus` (a los ~3 s si el cursor se
   quedó quieto) y `sleepy` (a los ~7,4 s). El enojo es un impulso de ~0,9 s con
   cooldown de 2,2 s después de un swipe rápido; la desconfianza es una capa
@@ -148,16 +154,17 @@ y reconstruyen el texto. En mobile el disparador es un tap; en
   (2,6–5 s), sacadas de 60–110 ms, zona muerta de 0,075 y un retardo de 20–35
   ms en el ojo derecho. El único parpadeo de personaje es el saludo; el natural
   cae cerca de los 5 s.
-- **Retorno.** Al salir del bloque de título (140 ms de gracia), a los ~8,5 s de
-  inactividad, al scrollear, al redimensionar, al ocultar la pestaña o con un
-  segundo tap en mobile. La almendra no se cierra: primero se enfría de rojo a
-  coral entre 0 y 80 ms, después cede opacidad entre 60 y 180 ms, y las brasas
-  arrancan a los 100 ms. Cada brasa viaja con su recorte y lo vuelve a encender
-  al acercarse al glifo: el texto se reconstruye desde los fragmentos, sin que
-  un `h4` haga fade por debajo. A los ~545 ms todas las piezas aterrizaron; el
-  retorno total dura ~800 ms y termina con el texto ya dibujado en el canvas.
-  El `h4` sigue oculto hasta que un scroll, resize, pestaña oculta o
-  `prefers-reduced-motion` devuelve el DOM.
+- **Retorno.** Al salir del bloque de título el ojo entrecierra los párpados en
+  el mismo frame (~90 ms) y recién después arranca el retorno; también vuelve a
+  los ~8,5 s de inactividad, al scrollear, al redimensionar, al ocultar la
+  pestaña o con un segundo tap en mobile. La almendra no se cierra: primero se
+  enfría de rojo a coral entre 0 y 120 ms, después cede opacidad entre 80 y
+  240 ms, y las brasas arrancan a los 140 ms. Cada brasa viaja con su recorte y
+  lo vuelve a encender al acercarse al glifo: el texto se reconstruye desde los
+  fragmentos, sin que un `h4` haga fade por debajo. A los ~560 ms todas las
+  piezas aterrizaron; el retorno total dura ~850 ms y termina con el texto ya
+  dibujado en el canvas. El `h4` sigue oculto hasta que un scroll, resize,
+  pestaña oculta o `prefers-reduced-motion` devuelve el DOM.
 - **Re-armado.** Sólo saliendo y volviendo a entrar al subtítulo. El primer
   despertar no se repite por carga. En mobile el sueño también se ve: llega a
   los ~7,4 s y devuelve a los ~8,5 s; el auto-retorno de seguridad es a los

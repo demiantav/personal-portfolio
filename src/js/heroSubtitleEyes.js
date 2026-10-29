@@ -29,23 +29,38 @@ const HIT_PAD = 8;
 const ZONE_PAD = 24;
 const PATCH = 10; // recorte de texto que lleva cada brasa al posarse
 const INIT_UP = 0.55; // el ojo nace en rendija
-const OPEN_AT = 0.42; // s desde el engage hasta que la rendija despierta
-const OPEN_DUR = 0.24;
-const FLIGHT = 0.32;
-const ENTER_SOLID_AT = 0.385; // la última brasa ya aterrizó
-const ENTER_SOLID_DUR = 0.035;
-const ENTER_IGNITE_DUR = 0.09; // el ojo ya abrió en coral y se enciende el rojo
+const OPEN_AT = 0.32; // s desde el engage hasta que la rendija despierta
+const OPEN_DUR = 0.13;
+const FLIGHT = 0.27;
+// La entrada es partículas-primero: la nube abre el ojo y recién al final se
+// condensa en la almendra. Las dos fases no se pisan: mientras quede una sola
+// brasa, la almendra sigue coral; el rojo sólo se enciende cuando la nube ya
+// terminó de apagarse. Así no conviven dos siluetas del mismo ojo.
+const ENTER_CONDENSE_DUR = 0.12;
+const ENTER_IGNITE_DUR = 0.09;
+// Respiro entre la apertura y la condensación: deja que el resorte de los
+// párpados termine de asentar la nube en su pose final. Sin esta pausa la
+// almendra aparece mientras el ojo todavía está abriendo y el cambio de tamaño
+// se nota.
+const ENTER_HOLD = 0.08;
 const ENTER_GLOW = 1.45; // la rendija coral necesita más cuerpo que el ojo despierto
-const RETURN_COLOR_OUT = 0.08; // rojo → coral antes de deshacerse
-const RETURN_PARTICLE_IN = 0.035; // las brasas recién se encienden con el coral
-const RETURN_SOLID_FADE_AT = 0.06;
-const RETURN_SOLID_FADE_END = 0.18;
-const RETURN_FLIGHT_AT = 0.1; // las brasas arrancan mientras la almendra cede
-const RETURN_DUR = 0.38;
-const RETURN_TOTAL = 0.8;
+const RETURN_COLOR_OUT = 0.12; // rojo → coral antes de deshacerse
+const RETURN_PARTICLE_IN = 0.06; // las brasas recién se encienden con el coral
+const RETURN_SOLID_FADE_AT = 0.08;
+const RETURN_SOLID_FADE_END = 0.24;
+const RETURN_FLIGHT_AT = 0.14; // las brasas arrancan mientras la almendra cede
+const RETURN_DUR = 0.42;
+const RETURN_TOTAL = 0.85;
 const IDLE_MS = 7400;
 const SLEEP_HOLD = 1100;
-const AWAY_HOLD = 140;
+const AWAY_HOLD = 140; // gracia sólo durante la entrada; despierto manda SQUINT_MS
+// Al salir del bloque la reacción es inmediata: los párpados se entrecierran y
+// recién cuando el gesto ya se ve empieza el retorno. No hay espera muerta.
+const SQUINT_MS = 95;
+const SQUINT_RATE = 30;
+const SQUINT_UP = 0.28;
+const SQUINT_LO = 0.18;
+const SQUINT_BOW = 0.06;
 const ANGRY_ATTACK = 0.12;
 const ANGRY_HOLD = 0.32;
 const ANGRY_DECAY = 0.45;
@@ -127,9 +142,6 @@ const makeSprite = (core, mid, edge) => {
   g.fillRect(0, 0, S, S);
   return c;
 };
-
-const cornerY = (x) =>
-  A.inner[1] + ((x - A.inner[0]) / (A.outer[0] - A.inner[0])) * (A.outer[1] - A.inner[1]);
 
 export const initHeroSubtitleEyes = () => {
   if (window.matchMedia(REDUCE).matches) return;
@@ -463,6 +475,7 @@ export const initHeroSubtitleEyes = () => {
   let state = 'idle'; // idle | waking | awake | returning
   let solidMix = 0;
   let particleMix = 0;
+  let condenseMix = 0;
   let solidColorMix = 1;
   let curState = 'hooded';
   let engagedAt = 0;
@@ -483,6 +496,7 @@ export const initHeroSubtitleEyes = () => {
   let slowBlinkStart = -1;
   let sleepySince = 0;
   let awayAt = 0;
+  let squintLevel = 0;
   let wasInside = false;
   let cooldownUntil = 0;
   let raf = 0;
@@ -515,18 +529,21 @@ export const initHeroSubtitleEyes = () => {
   const eyeFrame = [{}, {}];
 
   // ─── Curvas del ojo ─────────────────────────────────────────────────
+  // La nube no dibuja una almendra propia: sus párpados caen sobre la misma
+  // geometría que `drawEye` (línea de tapa rotada + recorte de la almendra).
+  // Así la silueta de brasas y la almendra sólida coinciden y el paso de una a
+  // otra no cambia el tamaño ni la posición del ojo.
   const upperPoint = (t, pose, time, k) => {
     const u = clamp(pose.upPos, 0, 1);
-    const brow = -pose.upRot * 0.85;
     const tr =
       pose.tremor *
       (noise(time * 5.2, k * 11 + 1.3) * 0.06 + noise(time * 11, k * 11 + 7.7) * 0.025);
-    const c1y = mix(A.up1[1], cornerY(A.up1[0]), u) + brow + tr;
-    const c2y = mix(A.up2[1], cornerY(A.up2[0]), u) + brow * 0.18 + tr * 0.6;
-    return {
-      x: bez(A.inner[0], A.up1[0], A.up2[0], A.outer[0], t),
-      y: bez(A.inner[1], c1y, c2y, A.outer[1], t),
-    };
+    const x = bez(A.inner[0], A.up1[0], A.up2[0], A.outer[0], t);
+    const almondY = bez(A.inner[1], A.up1[1], A.up2[1], A.outer[1], t);
+    const rot = pose.upRot + gaze[k].x * -0.12;
+    const y0 = -1.3 + u * 2.6;
+    const lidY = x * (rx / ry) * Math.tan(rot) + y0 / Math.cos(rot);
+    return { x, y: Math.max(almondY, lidY) + tr };
   };
 
   const lowerPoint = (t, pose, time, k) => {
@@ -535,12 +552,14 @@ export const initHeroSubtitleEyes = () => {
     const tr =
       pose.tremor *
       (noise(time * 5.2, k * 11 + 4.1) * 0.04 + noise(time * 9, k * 11 + 2.2) * 0.02);
-    const c1y = mix(A.lo2[1], cornerY(A.lo2[0]), u) - bow * 0.5 + tr;
-    const c2y = mix(A.lo1[1], cornerY(A.lo1[0]), u) - bow * 0.5 + tr;
-    return {
-      x: bez(A.inner[0], A.lo2[0], A.lo1[0], A.outer[0], t),
-      y: bez(A.inner[1], c1y, c2y, A.outer[1], t),
-    };
+    const x = bez(A.inner[0], A.lo2[0], A.lo1[0], A.outer[0], t);
+    const almondY = bez(A.inner[1], A.lo2[1], A.lo1[1], A.outer[1], t);
+    const rot = pose.loRot + gaze[k].x * 0.12;
+    const y0 = 1.3 - u * 2.6;
+    const ux = (x * rx) / (6 * ry);
+    const bowY = bow * (1 - ux * ux);
+    const lidY = x * (rx / ry) * Math.tan(rot) + (y0 - bowY) / Math.cos(rot);
+    return { x, y: Math.min(almondY, lidY) + tr };
   };
 
   const curveY = (fn, x, pose, time, k) => {
@@ -605,16 +624,8 @@ export const initHeroSubtitleEyes = () => {
       p.role === 0
         ? upperPoint(p.t, pose, time, k)
         : lowerPoint(p.t, pose, time, k);
-    let lx = pt.x * rx;
-    let ly = pt.y * ry;
-    // Mirada lateral: las tapas se inclinan como en el finale. Sin pupila, este
-    // gesto (más el desplazamiento del cuerpo) es lo que hace legible la mirada.
-    const lookRot = gz.x * (p.role === 0 ? -0.12 : 0.12);
-    const lc = Math.cos(lookRot);
-    const ls = Math.sin(lookRot);
-    const ltx = lx * lc - ly * ls;
-    ly = lx * ls + ly * lc;
-    lx = ltx;
+    const lx = pt.x * rx;
+    const ly = pt.y * ry;
     const rxr = lx * ca - ly * sa;
     const ryr = lx * sa + ly * ca;
     const lowerFade =
@@ -702,6 +713,12 @@ export const initHeroSubtitleEyes = () => {
     const edge = Math.max(Math.abs(gaze[0].x), Math.abs(gaze[1].x));
     const waryTarget = state === 'awake' ? smoothstep(0.55, 0.9, edge) : 0;
     waryLevel += (waryTarget - waryLevel) * (1 - Math.exp(-dt * 7));
+    // Entrecerrado de salida: no pasa por el resorte lento de los párpados. Se
+    // suma a la pose final y llega al pico en ~90 ms, apenas el cursor deja el
+    // bloque de título. Si vuelve a entrar, se relaja con la misma rapidez.
+    const squintTarget = state === 'awake' && awayAt ? 1 : 0;
+    squintLevel += (squintTarget - squintLevel) * (1 - Math.exp(-dt * SQUINT_RATE));
+    const squint = squintLevel;
 
     for (let k = 0; k < 2; k++) {
       const side = k === 0 ? 1 : -1;
@@ -717,7 +734,8 @@ export const initHeroSubtitleEyes = () => {
             (asym.upPos || 0) * side +
             focusUp +
             wary * 0.035 * side +
-            anger * 0.035,
+            anger * 0.035 +
+            squint * SQUINT_UP,
           blink,
         ),
         0,
@@ -728,7 +746,8 @@ export const initHeroSubtitleEyes = () => {
           g.loPos +
             (asym.loPos || 0) * side +
             wary * 0.018 * side +
-            anger * 0.035,
+            anger * 0.035 +
+            squint * SQUINT_LO,
           blink * 0.6,
         ),
         0,
@@ -737,7 +756,8 @@ export const initHeroSubtitleEyes = () => {
       const upRot =
         g.upRot + (asym.upRot || 0) * side - wary * 0.035 * side - anger * 0.1;
       const loRot = g.loRot + (asym.loRot || 0) * side + wary * 0.02 * side + anger * 0.02;
-      const bow = g.bow + (asym.bow || 0) * side + anger * 0.05;
+      const bow =
+        g.bow + (asym.bow || 0) * side + anger * 0.05 + squint * SQUINT_BOW;
       // El ojo derecho llega un pelo más tarde, incluso en el morph de párpado.
       const f = k === 1 ? 1 - Math.exp(-dt / 0.028) : 1;
       const pose = eyePose[k];
@@ -853,6 +873,7 @@ export const initHeroSubtitleEyes = () => {
     state = 'waking';
     solidMix = 0;
     particleMix = 1;
+    condenseMix = 0;
     solidColorMix = 0;
     curState = 'hooded';
     engagedAt = now;
@@ -866,6 +887,7 @@ export const initHeroSubtitleEyes = () => {
     pointer.x = px;
     pointer.y = py;
     awayAt = 0;
+    squintLevel = 0;
     sleepySince = 0;
     angerStart = -Infinity;
     angerCooldownUntil = 0;
@@ -900,7 +922,7 @@ export const initHeroSubtitleEyes = () => {
       // delay deja todas las brasas apoyadas antes de que aparezca la almendra.
       const xNorm = clamp((p.sx - PAD) / Math.max(1, W), 0, 1);
       p.delay =
-        (p.line === 0 ? 0 : 0.02) + xNorm * 0.035 + p.pick * 0.01;
+        (p.line === 0 ? 0 : 0.015) + xNorm * 0.03 + p.pick * 0.005;
       p.lat = rand(-9, 9);
       p.lift = p.role === 1 ? rand(5, 14) : rand(8, 22);
       p.c1x = p.sx + p.lat * 0.55;
@@ -933,6 +955,7 @@ export const initHeroSubtitleEyes = () => {
     }
     solidMix = 1;
     particleMix = 0;
+    condenseMix = 0;
     solidColorMix = 1;
     // El ojo despierto usa alphas bajos para leerse como brasa. Al soltar hay
     // que subirlos: el coral es la textura visible cuando la almendra cede.
@@ -966,6 +989,8 @@ export const initHeroSubtitleEyes = () => {
     }
     solidMix = 0;
     particleMix = 0;
+    condenseMix = 0;
+    squintLevel = 0;
     ctx.clearRect(0, 0, CW, CH);
     solidCtx.clearRect(0, 0, CW, CH);
   };
@@ -974,6 +999,8 @@ export const initHeroSubtitleEyes = () => {
     state = 'idle';
     solidMix = 0;
     particleMix = 0;
+    condenseMix = 0;
+    squintLevel = 0;
     textVisible = true;
     stopLoop();
     for (const p of particles) {
@@ -1031,7 +1058,7 @@ export const initHeroSubtitleEyes = () => {
       sleepySince = 0;
     }
     if (coarse && now - engagedAt > COARSE_HOLD) release('timeout');
-    if (awayAt && now - awayAt > AWAY_HOLD) release('away');
+    if (awayAt && now - awayAt > SQUINT_MS) release('away');
   };
 
   // ─── Partículas ─────────────────────────────────────────────────────
@@ -1099,33 +1126,38 @@ export const initHeroSubtitleEyes = () => {
 
   const updateMix = (now) => {
     if (state === 'waking') {
-      const t = (now - engagedAt) / 1000;
-      // Las brasas aterrizaron. La almendra se condensa en coral debajo y se
-      // abre sin que las partículas se apaguen: el reveal sigue siendo coral.
-      solidMix = smoothstep(ENTER_SOLID_AT, ENTER_SOLID_AT + ENTER_SOLID_DUR, t);
-      const igniteEnd = openEnd + ENTER_IGNITE_DUR * 1000;
-      particleMix = 1 - smoothstep(openEnd, igniteEnd, now);
-      // El rojo recién aparece cuando el ojo terminó de cubrirse; no antes.
-      solidColorMix = smoothstep(openEnd, igniteEnd, now);
+      // La nube sostiene el ojo durante toda la apertura y recién al final se
+      // condensa en la almendra. No hay solapamiento de rojo y brasas: mientras
+      // se ve una partícula, la almendra sigue coral.
+      const condenseStart = openEnd + ENTER_HOLD * 1000;
+      const condenseEnd = condenseStart + ENTER_CONDENSE_DUR * 1000;
+      const igniteStart = condenseEnd;
+      const igniteEnd = igniteStart + ENTER_IGNITE_DUR * 1000;
+
+      condenseMix = smoothstep(condenseStart, condenseEnd, now);
+      particleMix = 1 - condenseMix;
+      // La almendra entra desde abajo mientras la nube todavía la cubre; el
+      // corrimiento de 10 ms evita que el borde nítido aparezca antes que el
+      // primer fragmento empiece a apagarse.
+      solidMix = smoothstep(condenseStart + 10, condenseEnd, now);
+      solidColorMix = smoothstep(igniteStart, igniteEnd, now);
     } else if (state === 'awake') {
       solidMix = 1;
       particleMix = 0;
+      condenseMix = 0;
       solidColorMix = 1;
     } else if (state === 'returning') {
       const rt = (now - returnAt) / 1000;
-      // El ojo se enfría de rojo a coral y después cede opacidad. Las brasas
-      // recién se encienden debajo cuando el coral ya reemplazó al rojo.
+      // El ojo se enfría de rojo a coral y al mismo tiempo las brasas empiezan a
+      // brotar debajo. El sólido cede opacidad mientras el color termina de virar.
+      condenseMix = 0;
       solidColorMix = 1 - smoothstep(0, RETURN_COLOR_OUT, rt);
-      solidMix =
-        1 - smoothstep(RETURN_SOLID_FADE_AT, RETURN_SOLID_FADE_END, rt);
-      particleMix = smoothstep(
-        RETURN_COLOR_OUT,
-        RETURN_COLOR_OUT + RETURN_PARTICLE_IN,
-        rt,
-      );
+      particleMix = smoothstep(0.04, 0.04 + RETURN_PARTICLE_IN, rt);
+      solidMix = 1 - smoothstep(0.08, RETURN_SOLID_FADE_END, rt);
     } else {
       solidMix = 0;
       particleMix = 0;
+      condenseMix = 0;
     }
   };
 
@@ -1165,11 +1197,15 @@ export const initHeroSubtitleEyes = () => {
     // source-over: las brasas coral mantienen su matiz aunque se superpongan;
     // con 'lighter' la suma de G/B podía virar a blanco.
     ctx.globalCompositeOperation = 'source-over';
+    // En la condensación los sprites se encogen mientras la almendra ocupa su
+    // lugar. El 40% hace que la nube se contraiga hacia el ojo en vez de
+    // desvanecerse sobre una segunda silueta.
+    const condenseScale = 1 - 0.4 * condenseMix;
     for (const p of particles) {
       const a = p.alpha * particleMix;
       if (a <= 0.004) continue;
       ctx.globalAlpha = a;
-      const s = p.sizeNow;
+      const s = p.sizeNow * condenseScale;
       ctx.drawImage(p.sprite, p.x - s / 2, p.y - s / 2, s, s);
     }
     ctx.globalAlpha = 1;
@@ -1269,9 +1305,12 @@ export const initHeroSubtitleEyes = () => {
       }
     }
 
-    // La cobertura termina con la apertura. El rojo recién se enciende al
-    // completar el coral: el reveal sigue en las brasas hasta ese momento.
-    if (state === 'waking' && now >= openEnd + ENTER_IGNITE_DUR * 1000) {
+    // La entrada termina cuando la nube ya se condensó y el rojo completó su
+    // encendido. No hay partículas coral conviviendo con el ojo rojo.
+    if (
+      state === 'waking' &&
+      now >= openEnd + (ENTER_HOLD + ENTER_CONDENSE_DUR + ENTER_IGNITE_DUR) * 1000
+    ) {
       state = 'awake';
     }
     if (state === 'awake') updateAwake(now);
@@ -1360,7 +1399,14 @@ export const initHeroSubtitleEyes = () => {
 
   const onLeave = () => {
     wasInside = false;
-    if (state === 'waking' || state === 'awake') release('away');
+    if (state === 'waking') {
+      release('away');
+      return;
+    }
+    // No se libera en el acto: el mismo gesto de entrecerrado corre durante
+    // ~95 ms y recién después arranca el retorno. El ojo nunca se queda
+    // esperando sin responder.
+    if (state === 'awake' && !awayAt) awayAt = performance.now();
   };
 
   const onScroll = () => {
