@@ -34,7 +34,7 @@ precision mediump float;
 uniform vec2 u_res;      // canvas en px de buffer
 uniform vec2 u_view;     // viewport en px CSS
 uniform float u_time;    // tiempo de flujo del humo
-uniform float u_alpha;   // apertura de la intro 0→1
+uniform float u_intro;   // entrada de la intro 0→1 (máscara espacial)
 uniform float u_exit;    // salida hacia la D 0→1 (scroll)
 uniform vec2 u_exitPos;  // centro de la D, px de viewport
 uniform float u_flash;   // luz del relámpago 0→1
@@ -129,7 +129,17 @@ void main() {
   // detrás del humo. La luz protagonista es la direccional, no esta. Un poco más
   // de presencia que antes para acercarlo a la densidad de la sección de los ojos.
   float ambient = body * floorBias * (0.55 + 0.28 * u_flash);
-  float density = (ambient + lit * 1.5 + sky * 0.16) * u_alpha;
+  float density = ambient + lit * 1.5 + sky * 0.16;
+
+  // Entrada de la intro: en vez de un fade global, la densidad se revela con una
+  // máscara espacial. Reusa macro (ya calculado) para que el humo se condense
+  // en parches y suma un sesgo hacia el pie, donde nace. Con u_intro = 0 no se
+  // ve nada; con u_intro = 1 la densidad es exactamente la de siempre.
+  float reveal = smoothstep(
+    0.0, 1.0,
+    u_intro * 2.05 + (macro - 0.5) * 0.7 + (vy - 0.5) * 0.25 - 0.48
+  );
+  density *= reveal;
 
   vec3 tint = mix(vec3(0.07, 0.008, 0.012), vec3(0.34, 0.032, 0.052), body);
   // Sombreado interno: la capa macro varía apenas el brillo del cuerpo, así las
@@ -153,14 +163,17 @@ export class HeroSmoke {
     // Tweeneado desde hero-zoom-transition.js
     this.exitProgress = 0;
     this.started = false;
+    this.introStarted = false;
     this.visible = false;
-    this.alpha = 0;
+    this.intro = 0;
     this.flow = 0;
     this.clock = 0;
     this.flash = 0;
     this.flashTarget = 0;
     this.pulses = [];
-    this.nextFlashAt = 0;
+    // La primera descarga no puede caer en el primer frame: la entrada tiene que
+    // leerse como humo, no como un flash. `prime()` la agenda después del reveal.
+    this.nextFlashAt = Infinity;
     this.flashPos = { x: 0, y: 0 };
     this.exitPos = { x: 0, y: 0 };
     this.raf = 0;
@@ -195,7 +208,7 @@ export class HeroSmoke {
       res: gl.getUniformLocation(program, 'u_res'),
       view: gl.getUniformLocation(program, 'u_view'),
       time: gl.getUniformLocation(program, 'u_time'),
-      alpha: gl.getUniformLocation(program, 'u_alpha'),
+      intro: gl.getUniformLocation(program, 'u_intro'),
       exit: gl.getUniformLocation(program, 'u_exit'),
       exitPos: gl.getUniformLocation(program, 'u_exitPos'),
       flash: gl.getUniformLocation(program, 'u_flash'),
@@ -205,18 +218,39 @@ export class HeroSmoke {
     return true;
   }
 
-  // La intro recién muestra el humo al terminar el titular (textAnimate.js), así
-  // el primer frame no compite con el vuelo de las letras.
-  start() {
+  // `prime()` deja el humo simulando detrás del preloader, sin mostrarlo: cuando
+  // el disco termina de cubrir la pantalla el campo ya lleva unos frames de
+  // deriva y el primer render no cae en el momento del reveal.
+  prime() {
     if (this.started) return;
     this.started = true;
     this.measureExit();
     if (this.reduce) {
-      this.alpha = 1;
+      this.intro = 1;
       this.render();
       return;
     }
-    gsap.to(this, { alpha: 1, duration: 1.6, ease: 'power2.out' });
+    // La primera descarga se agenda recién cuando la escena terminó de entrar:
+    // antes, el flash sería lo primero que se ve del humo.
+    this.nextFlashAt = this.clock + 2.6 + Math.random() * 1.4;
+    this.startLoop();
+  }
+
+  // La intro enciende el humo con una rampa lenta y una máscara espacial (shader).
+  // Arranca con algo de presencia para que el fade del preloader ya revele una
+  // escena viva; el resto se asienta mientras entra el titular.
+  start() {
+    if (this.introStarted) return;
+    if (!this.started) this.prime();
+    this.introStarted = true;
+    if (this.reduce) {
+      this.intro = 1;
+      this.render();
+      return;
+    }
+    this.intro = 0.25;
+    gsap.killTweensOf(this, 'intro');
+    gsap.to(this, { intro: 1, duration: 2.4, ease: 'power1.inOut' });
     this.startLoop();
   }
 
@@ -317,7 +351,7 @@ export class HeroSmoke {
     if (!gl) return;
     gl.useProgram(this.program);
     gl.uniform1f(this.u.time, this.flow);
-    gl.uniform1f(this.u.alpha, this.alpha);
+    gl.uniform1f(this.u.intro, this.intro);
     gl.uniform1f(this.u.exit, this.exitProgress);
     gl.uniform2f(this.u.exitPos, this.exitPos.x, this.exitPos.y);
     gl.uniform1f(this.u.flash, this.flash);

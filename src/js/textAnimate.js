@@ -157,6 +157,18 @@ export const pageLoad = ({ onReady } = {}) => {
     return { chars: split.chars, top: i % 2 === 0 };
   });
 
+  // El ambiente tiene su propio arranque: `prime()` lo deja simulando detrás del
+  // preloader y `start()` lo enciende con el fade, no al terminar el titular. Así
+  // el disco no revela una pantalla vacía y el humo no aparece de golpe.
+  const primeHeroEnvironment = () => {
+    heroFx.prime();
+    heroSporesFx.prime();
+  };
+  const startHeroEnvironment = () => {
+    heroFx.start();
+    heroSporesFx.start();
+  };
+
   // revelado del hero (compartido por las dos ramas)
   const revealHero = (at) => {
     tl.from(
@@ -197,16 +209,6 @@ export const pageLoad = ({ onReady } = {}) => {
       },
       titleFly.startTime() + 0.95,
     );
-    // 3️⃣ HUMO + ESPORAS: el entorno se materializa al terminar el titular, así el
-    // primer frame del shader no compite con la última parte del vuelo
-    tl.call(
-      () => {
-        heroFx.start();
-        heroSporesFx.start();
-      },
-      [],
-      titleFly.endTime(),
-    );
   };
 
   if (reduceMotion) {
@@ -221,7 +223,9 @@ export const pageLoad = ({ onReady } = {}) => {
     labels.forEach(({ chars }) => gsap.set(chars, { yPercent: 0, autoAlpha: 1 }));
 
     tl.call(runHeavySetup, [], 0.2);
+    tl.call(primeHeroEnvironment, [], 0.25);
     tl.to($containerblue, { autoAlpha: 0, duration: 0.4 }, 0.3);
+    tl.call(startHeroEnvironment, [], 0.35);
     revealHero(0.5);
     return;
   }
@@ -369,6 +373,12 @@ export const pageLoad = ({ onReady } = {}) => {
 
   // ⚙️ setup + medición con el disco ya cubriendo la escena (invisible)
   tl.call(runHeavySetup, [], countEnd + 1.6);
+
+  // El humo y las esporas ya están simulando detrás del disco: entran con el
+  // fade, no después del titular. El tween de entrada vive en cada efecto, así
+  // no estira el timeline ni retrasa el desbloqueo del scroll.
+  tl.call(primeHeroEnvironment, [], countEnd + 1.45);
+  tl.call(startHeroEnvironment, [], countEnd + 1.8);
 
   // handoff: el preloader se desvanece revelando el sitio (mismo negro)
   tl.to($containerblue, { autoAlpha: 0, duration: 0.5 }, countEnd + 1.8);

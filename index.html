@@ -168,6 +168,13 @@
         z-index: 2;
         pointer-events: none;
         background-color: #201b1b;
+        /* Misma base que .hero-pin: cuando el disco termina de cubrir, el fade
+           revela un fondo idéntico en vez de un negro distinto. */
+        background-image: radial-gradient(
+          120% 80% at 50% 100%,
+          rgba(243, 80, 95, 0.1),
+          transparent 62%
+        );
         clip-path: circle(var(--cover-r) at 50% 100%);
       }
 

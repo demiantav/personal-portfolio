@@ -12,7 +12,8 @@ y las esporas quedan de fondo.
 ## Piezas
 
 - **`src/js/heroSmoke.js`**: el efecto. Canvas WebGL que llena `.hero-pin`.
-  - `start()` (lo llama la intro al terminar el titular) revela el humo.
+  - `prime()` deja el campo simulando detrás del preloader, sin mostrarlo;
+    `start()` lo revela con una máscara espacial (ver *Arranque*).
   - `exitProgress` (0→1, lo tweenea `hero-zoom-transition.js`) pliega el humo
     hacia la D del titular y lo traga, como la absorción del finale.
 - **`src/js/gl.js`**: helpers WebGL compartidos. Exporta `NOISE` (campo de ruido),
@@ -58,11 +59,41 @@ humo y por debajo del texto (mismo `z-index: 0`, orden del DOM).
   fuera de cuadro con fundido en los bordes.
 - Sprite radial pre-renderizado + `globalCompositeOperation = 'lighter'`: brasas
   rojas, sin crear gradientes por partícula.
-- Entrada al mismo ritmo que el humo (1.6 s). `exitProgress` lo tweenea
+- Entrada escalonada: cada espora tiene un `birth` (las de abajo aparecen
+  primero, más un colchón al azar) y funde con un `smoothstep` de ~0.3 sobre la
+  rampa de `intro`; el estado final es el de siempre. `exitProgress` lo tweenea
   `hero-zoom-transition.js` junto con `heroFx`: las esporas se pliegan hacia la
   D, se achican y se apagan con el humo.
 - Reduced motion: un cuadro estático. `IntersectionObserver` pausa el loop
   cuando el hero sale de pantalla.
+
+## Arranque: handoff del preloader
+
+El ambiente no espera al titular: arranca con el fade del preloader. `textAnimate.js`
+lo maneja en dos tiempos desde que termina el contador (`countEnd`):
+
+- `primeHeroEnvironment()` en `countEnd + 1.45`, con el disco ya cubriendo todo:
+  `prime()` arranca reloj y loop de cada efecto con el hero oculto. Es idempotente
+  y no toca `intro`, así el primer frame visible no cae justo en el reveal.
+- `startHeroEnvironment()` en `countEnd + 1.8`, exactamente con el fade de 0.5 s:
+  cada efecto tweenea su `intro` (0.25 el humo, 0.18 las esporas) a 1 en 2.4 s con
+  `power1.inOut`. El disco levanta una escena ya viva y el resto se asienta
+  mientras entran el titular y el header.
+- Los tweens viven dentro de cada efecto, fuera del timeline principal: no estiran
+  el `no-scroll` ni retrasan `markIntroDone()`.
+- Reduced motion: `prime()` y `start()` también corren durante el fade, pero
+  `intro` pasa directo a 1, sin bucle ni rampa.
+
+**Máscara del humo.** `u_intro` reemplaza al fade global por alpha. La densidad se
+multiplica por un `smoothstep` que combina `intro`, la capa `macro` ya calculada
+(condensa el humo en parches) y `vy` (sesgo hacia el pie, donde nace). Con
+`u_intro = 1` la densidad es exactamente la de siempre; con 0 no se ve nada.
+
+**Primera descarga.** `prime()` agenda el primer relámpago a `clock + 2.6–4.0 s` y
+`nextFlashAt` arranca en `Infinity`: la entrada se lee como humo, no como flash.
+
+**Handoff visual.** `.preloader__cover` lleva el mismo `radial-gradient` coral al
+pie que `.hero-pin`, así el fade no revela un negro distinto del que ya se veía.
 
 ## Los ojos del subtítulo (`heroSubtitleEyes.js`)
 

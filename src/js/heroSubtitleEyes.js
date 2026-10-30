@@ -192,6 +192,7 @@ export const initHeroSubtitleEyes = () => {
   let eyeDir = [-1, 1];
   let particles = [];
   let textAtlas = null;
+  let patchPx = 1;
   let textVisible = false;
   let armed = false;
   let disabled = false;
@@ -280,10 +281,12 @@ export const initHeroSubtitleEyes = () => {
     // borde del bloque no se cortan ni se reescalan.
     atlas.width = Math.max(1, Math.round((W + PATCH * 2) * dpr));
     atlas.height = Math.max(1, Math.round((H + PATCH * 2) * dpr));
-    const g = atlas.getContext('2d');
+    // CPU-backed desde el inicio: buildTextPatches() lee el atlas con
+    // getImageData y, si el canvas vive en GPU, ese readback frena el main
+    // thread justo al terminar la intro (freeze percibido).
+    const g = atlas.getContext('2d', { willReadFrequently: true });
     if (!g) return;
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    g.clearRect(0, 0, W + PATCH * 2, H + PATCH * 2);
     g.fillStyle = getComputedStyle(h4s[0]).color || '#f3505f';
     g.textAlign = 'right';
     g.textBaseline = 'middle';
@@ -307,60 +310,85 @@ export const initHeroSubtitleEyes = () => {
     textAtlas = atlas;
   };
 
-  // Cada partícula recibe un recorte propio del atlas. Los píxeles del glifo
-  // se reparten por cercanía, sin solaparse: en reposo la suma de fragmentos
-  // reproduce el texto exacto, no una versión más gruesa por transparencias.
+  // Los recortes de todas las brasas viven en un único atlas empaquetado: así
+  // el texto se sube a GPU con un solo putImageData en vez de 800. Cada píxel
+  // del glifo se asigna a la brasa más cercana (sin duplicados), para que en
+  // reposo la suma de fragmentos reproduzca el texto exacto.
   const buildTextPatches = () => {
     if (!textAtlas || !particles.length) return;
-    const patchPx = Math.max(1, Math.round(PATCH * dpr));
+    patchPx = Math.max(1, Math.round(PATCH * dpr));
     const atlasCtx = textAtlas.getContext('2d', { willReadFrequently: true });
     if (!atlasCtx) return;
-    const src = atlasCtx.getImageData(0, 0, textAtlas.width, textAtlas.height).data;
-    for (const p of particles) {
-      p.patchCanvas = document.createElement('canvas');
-      p.patchCanvas.width = patchPx;
-      p.patchCanvas.height = patchPx;
-      p.patchCtx = p.patchCanvas.getContext('2d');
-      if (!p.patchCtx) {
-        p.patchCanvas = null;
-        continue;
-      }
-      p.patchData = p.patchCtx.createImageData(patchPx, patchPx);
-      p.patchSx = Math.round((p.tx - PATCH / 2) * dpr);
-      p.patchSy = Math.round((p.ty - PATCH / 2) * dpr);
+    const aw = textAtlas.width;
+    const ah = textAtlas.height;
+    const src = atlasCtx.getImageData(0, 0, aw, ah).data;
+
+    const n = particles.length;
+    const cols = Math.ceil(Math.sqrt(n));
+    const rows = Math.ceil(n / cols);
+    const packedW = cols * patchPx;
+    const packedH = rows * patchPx;
+    const packedCanvas = document.createElement('canvas');
+    packedCanvas.width = packedW;
+    packedCanvas.height = packedH;
+    const packedCtx = packedCanvas.getContext('2d');
+    if (!packedCtx) return;
+    const packed = packedCtx.createImageData(packedW, packedH);
+
+    // Origen del recorte en el atlas de texto y ranura en el atlas empaquetado.
+    for (let i = 0; i < n; i++) {
+      const p = particles[i];
+      p.srcSx = Math.round((p.tx - PATCH / 2) * dpr);
+      p.srcSy = Math.round((p.ty - PATCH / 2) * dpr);
+      p.patchSx = (i % cols) * patchPx;
+      p.patchSy = ((i / cols) | 0) * patchPx;
+      p.patchCanvas = packedCanvas;
     }
-    for (let y = 0; y < textAtlas.height; y++) {
-      for (let x = 0; x < textAtlas.width; x++) {
-        const si = (y * textAtlas.width + x) * 4;
-        if (src[si + 3] <= 0) continue;
-        const cssX = (x + 0.5) / dpr;
-        const cssY = (y + 0.5) / dpr;
-        let best = null;
-        let bestD = Infinity;
-        for (const p of particles) {
-          const dx = p.tx - cssX;
-          const dy = p.ty - cssY;
+
+    // En vez de buscar la brasa más cercana para cada píxel (800 comparaciones
+    // por píxel), cada brasa recorre sólo su recorte y se queda con los píxeles
+    // para los que es la más cercana.
+    const bestD = new Float32Array(aw * ah).fill(Infinity);
+    const owner = new Int16Array(aw * ah).fill(-1);
+    for (let i = 0; i < n; i++) {
+      const p = particles[i];
+      const x0 = Math.max(0, p.srcSx);
+      const x1 = Math.min(aw, p.srcSx + patchPx);
+      const y0 = Math.max(0, p.srcSy);
+      const y1 = Math.min(ah, p.srcSy + patchPx);
+      for (let y = y0; y < y1; y++) {
+        const dy = (y + 0.5) / dpr - p.ty;
+        const row = y * aw;
+        for (let x = x0; x < x1; x++) {
+          const idx = row + x;
+          const si = idx * 4;
+          if (src[si + 3] <= 0) continue;
+          const dx = (x + 0.5) / dpr - p.tx;
           const d = dx * dx + dy * dy;
-          if (d < bestD) {
-            bestD = d;
-            best = p;
+          if (d < bestD[idx]) {
+            bestD[idx] = d;
+            owner[idx] = i;
           }
         }
-        if (!best || !best.patchData) continue;
-        const rx = x - best.patchSx;
-        const ry = y - best.patchSy;
-        if (rx < 0 || ry < 0 || rx >= patchPx || ry >= patchPx) continue;
-        const di = (ry * patchPx + rx) * 4;
-        best.patchData.data[di] = src[si];
-        best.patchData.data[di + 1] = src[si + 1];
-        best.patchData.data[di + 2] = src[si + 2];
-        best.patchData.data[di + 3] = src[si + 3];
       }
     }
-    for (const p of particles) {
-      if (p.patchCtx && p.patchData) p.patchCtx.putImageData(p.patchData, 0, 0);
-      p.patchData = null;
+
+    for (let idx = 0; idx < owner.length; idx++) {
+      const i = owner[idx];
+      if (i < 0) continue;
+      const p = particles[i];
+      const x = idx % aw;
+      const y = (idx / aw) | 0;
+      const si = idx * 4;
+      const di =
+        ((p.patchSy + (y - p.srcSy)) * packedW + (p.patchSx + (x - p.srcSx))) * 4;
+      packed.data[di] = src[si];
+      packed.data[di + 1] = src[si + 1];
+      packed.data[di + 2] = src[si + 2];
+      packed.data[di + 3] = src[si + 3];
     }
+
+    packedCtx.putImageData(packed, 0, 0);
   };
 
   const build = () => {
@@ -1222,6 +1250,10 @@ export const initHeroSubtitleEyes = () => {
       ctx.globalAlpha = p.textAlpha;
       ctx.drawImage(
         p.patchCanvas,
+        p.patchSx,
+        p.patchSy,
+        patchPx,
+        patchPx,
         p.x - PATCH / 2,
         p.y - PATCH / 2,
         PATCH,

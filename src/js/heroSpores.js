@@ -3,10 +3,16 @@
 // canvas 2D: el humo ya es WebGL y sumar un tercer contexto no aportaba nada.
 // Se suman al lenguaje del Upside Down (partículas en suspensión) y dan parallax
 // sin tocar el shader. Salen absorbidas hacia la D junto con el humo.
+import gsap from 'gsap';
+
 const REDUCE = '(prefers-reduced-motion: reduce)';
 
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const mix = (a, b, t) => a + (b - a) * t;
+const smoothstep = (a, b, t) => {
+  const x = clamp((t - a) / (b - a), 0, 1);
+  return x * x * (3 - 2 * x);
+};
 
 // Sprite de una espora: núcleo cálido y halo que se apaga. Se dibuja una sola vez
 // y se reusa con drawImage (mucho más barato que crear un gradiente por partícula).
@@ -48,8 +54,9 @@ export class HeroSpores {
     this.compact = window.matchMedia('(max-width: 48rem)');
     this.exitProgress = 0; // lo tweenea hero-zoom-transition.js
     this.started = false;
+    this.introStarted = false;
     this.visible = false;
-    this.alpha = 0;
+    this.intro = 0;
     this.clock = 0;
     this.last = 0;
     this.raf = 0;
@@ -82,9 +89,11 @@ export class HeroSpores {
     const particles = [];
     for (let i = 0; i < n; i++) {
       const depth = Math.random(); // 0 = lejos, 1 = cerca
+      const x = Math.random();
+      const y = Math.random();
       particles.push({
-        x: Math.random(),
-        y: Math.random(),
+        x,
+        y,
         depth, // 0 = lejos, 1 = cerca: tamaño, velocidad y parallax
         size: (2.4 + depth * 5.2 + Math.random() * 2.4) * (this.compact.matches ? 0.8 : 1),
         alpha: 0.1 + depth * 0.2 + Math.random() * 0.12,
@@ -95,6 +104,9 @@ export class HeroSpores {
         phase: Math.random() * Math.PI * 2,
         // parallax con el scroll: las de cerca se desplazan más
         parallax: 0.04 + depth * 0.16,
+        // Nacimiento escalonado: las que están más abajo aparecen primero y el
+        // resto se reparte al azar. Cada espora funde en ~0.3 de la intro.
+        birth: (1 - y) * 0.3 + Math.random() * 0.4,
       });
     }
     return particles;
@@ -141,16 +153,35 @@ export class HeroSpores {
     }
   }
 
-  start() {
+  // Deja las esporas simulando (sin mostrarlas) mientras el preloader todavía
+  // tapa el hero. Así el fade revela un campo ya en movimiento.
+  prime() {
     if (this.started || !this.ctx) return;
     this.started = true;
     this.resize();
     this.measure();
     if (this.reduce) {
-      this.alpha = 1;
+      this.intro = 1;
       this.render();
       return;
     }
+    this.startLoop();
+  }
+
+  // Entrada: las esporas nacen escalonadas sobre la rampa de `intro` (las de
+  // abajo primero). El estado final es el de siempre.
+  start() {
+    if (this.introStarted) return;
+    if (!this.started) this.prime();
+    this.introStarted = true;
+    if (this.reduce) {
+      this.intro = 1;
+      this.render();
+      return;
+    }
+    this.intro = 0.18;
+    gsap.killTweensOf(this, 'intro');
+    gsap.to(this, { intro: 1, duration: 2.4, ease: 'power1.inOut' });
     this.startLoop();
   }
 
@@ -166,8 +197,6 @@ export class HeroSpores {
     const dt = Math.min((now - this.last) / 1000, 0.05);
     this.last = now;
     this.clock += dt;
-    // Entrada al mismo ritmo que el humo (1.6 s)
-    this.alpha += (1 - this.alpha) * (1 - Math.exp(-dt * 1.6));
     this.render();
     this.raf = requestAnimationFrame(this.loop);
   }
@@ -208,7 +237,8 @@ export class HeroSpores {
       const edge = Math.min(clamp((y + 0.06) / 0.08, 0, 1), clamp((1.06 - y) / 0.08, 0, 1));
 
       const s = p.size * (1 - 0.55 * ex * ex);
-      const a = this.alpha * p.alpha * (1 - ex) * edge;
+      const birth = smoothstep(p.birth, p.birth + 0.3, this.intro);
+      const a = birth * p.alpha * (1 - ex) * edge;
       if (a <= 0.002) continue;
       ctx.globalAlpha = a;
       ctx.drawImage(this.sprite, px - s / 2, py - s / 2, s, s);
