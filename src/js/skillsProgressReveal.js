@@ -13,7 +13,7 @@ gsap.registerPlugin(ScrollTrigger);
 // de progreso emerge y se asienta.
 const PIN_VH = 0.8;
 
-export const skillsProgressReveal = () => {
+export const skillsProgressReveal = (skillsRevealTrigger) => {
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const skills = document.querySelector('.main__skills-section');
   const section = document.querySelector('.progress-title-section');
@@ -21,13 +21,16 @@ export const skillsProgressReveal = () => {
 
   const title = section.querySelector('.section-title');
 
-  // Contenido de Skills a un wrapper propio para poder escalarlo sin deformar
-  // el fondo ni el arco/bisel (mismo patrón que .overlap-inner).
-  let inner = skills.querySelector(':scope > .skills-inner');
+  // Contenido de Skills a un wrapper propio para escalarlo sin deformar
+  // el fondo ni la cortina de humo (mismo patrón que .overlap-inner).
+  let inner = skills.querySelector(':scope > .skills-room, :scope > .skills-inner');
   if (!inner) {
     inner = document.createElement('div');
     inner.className = 'skills-inner';
-    [...skills.childNodes].forEach((node) => inner.appendChild(node));
+    [...skills.childNodes].forEach((node) => {
+      if (node.nodeType === 1 && node.classList.contains('skills-smoke')) return;
+      inner.appendChild(node);
+    });
     skills.appendChild(inner);
   }
 
@@ -50,14 +53,23 @@ export const skillsProgressReveal = () => {
   const reveal = () => section.classList.add('is-revealed');
   const release = () => section.classList.remove('is-revealed');
 
+  // La salida de Skills arranca después del barrido de humo:
+  // la ventana es el tramo post-pin, que dura el alto de la sección (lo que
+  // tarda su borde inferior en llegar al tope del viewport).
+  const exitWindow = skillsRevealTrigger
+    ? {
+      start: () => skillsRevealTrigger.end,
+      end: () => skillsRevealTrigger.end + skills.offsetHeight,
+    }
+    : { start: 'top top', end: 'bottom top' };
+
   // Trigger sobre Skills (elemento no transformado): la ventana es exactamente
   // su salida, así ScrollTrigger no mide posiciones de la sección fija.
   gsap
     .timeline({
       scrollTrigger: {
         trigger: skills,
-        start: 'top top',
-        end: 'bottom top',
+        ...exitWindow,
         scrub: true,
         invalidateOnRefresh: true,
         onEnter: reveal,
@@ -67,6 +79,7 @@ export const skillsProgressReveal = () => {
       },
       defaults: { ease: 'none' },
     })
+
     // Cortina delantera: recede hacia atrás (lens pull).
     .fromTo(inner, { scale: 1, yPercent: 0 }, { scale: 0.88, yPercent: -8 }, 0)
     // Plano de atrás: emerge (más grande) y se asienta.

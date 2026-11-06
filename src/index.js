@@ -6,6 +6,7 @@ import { progressFog } from './js/progressFog.js';
 import { animateReveals } from './js/reveal-animations.js';
 import { parallaxAnimations } from './js/parallax-animations.js';
 import { sectionOverlap } from './js/section-overlap.js';
+import { skillsSmokeReveal } from './js/skillsSmokeReveal.js';
 import { skillsProgressReveal } from './js/skillsProgressReveal.js';
 import { processEyes } from './js/processEyes.js';
 import { footerReveal } from './js/footer-reveal.js';
@@ -13,7 +14,6 @@ import { initHeroZoomTransition } from './js/hero-zoom-transition.js';
 import { headerTheme } from './js/headerTheme.js';
 import { initCursor } from './js/cursor.js';
 import { initHeroSubtitleEyes } from './js/heroSubtitleEyes.js';
-import { initSkillsMarquee } from './js/skillsMarquee.js';
 import { initFooterTitleMagnet } from './js/footerTitleMagnet.js';
 import { initProjectDialog } from './js/projectDialog.js';
 import { magneticBackToTop } from './js/magnetic-button.js';
@@ -67,7 +67,8 @@ document.addEventListener('DOMContentLoaded', () => {
       animateReveals();
       parallaxAnimations();
       sectionOverlap();
-      skillsProgressReveal();
+      const skillsReveal = skillsSmokeReveal();
+      skillsProgressReveal(skillsReveal);
       processEyes();
       footerReveal();
     },
@@ -77,7 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
   headerTheme();
   magneticBackToTop();
   footerNavRoll();
-  initSkillsMarquee();
   initFooterTitleMagnet();
   initProjectDialog();
   // recién terminada la intro: antes el cursor nativo sigue siendo el ref

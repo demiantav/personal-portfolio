@@ -10,14 +10,14 @@
 
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Baumans&family=Amaranth:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Baumans&family=IBM+Plex+Mono:wght@400;500&family=Amaranth:ital,wght@0,400;0,700;1,400;1,700&display=swap"
       media="print"
       onload="this.media = 'all'"
     />
 
     <noscript>
       <link
-        href="https://fonts.googleapis.com/css2?family=Baumans&family=Amaranth:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Baumans&family=IBM+Plex+Mono:wght@400;500&family=Amaranth:ital,wght@0,400;0,700;1,400;1,700&display=swap"
         rel="stylesheet"
       />
     </noscript>
@@ -650,79 +650,89 @@
       </section>
 
       <section class="main__skills-section" id="skills">
-        <div class="section-title">
-          <span class="section-title__line section-title__line--left"></span>
-          <h2 class="section-title__about">Skills</h2>
-          <span class="section-title__line section-title__line--right"></span>
+        <div class="skills-intro" aria-hidden="true">
+          <div class="skills-intro__content">
+            <span class="skills-intro__hint">Scroll to open</span>
+            <span class="skills-intro__title">Skills</span>
+          </div>
         </div>
-        <div class="main__skills-container">
-          <details name="skills">
-            <summary>Frontend</summary>
-            <div class="skill-marquee">
-              <div class="skill-marquee__viewport">
-                <ul class="skill-marquee__track">
-                  <li>JavaScript</li>
-                  <li>React</li>
-                  <li>HTML5</li>
-                  <li>CSS3</li>
-                  <li>CSS Modules</li>
-                  <li>Material UI</li>
-                  <li>GSAP</li>
-                  <li>Redux</li>
-                  <li>React Router</li>
-                  <li>TanStack / React Query</li>
-                  <li>Figma</li>
-                </ul>
+        <canvas class="skills-smoke" aria-hidden="true"></canvas>
+
+        <div class="skills-room">
+          <div class="skills-room__camera-content">
+            <span class="skills-room__programme-mark" aria-hidden="true"></span>
+            <span class="skills-room__programme-spine" aria-hidden="true"></span>
+
+            <div class="skills-editorial">
+              <div class="skills-register" aria-label="Skills, categorías 1 a 3">
+                <span class="skills-register__rule" aria-hidden="true"></span>
+                <span class="skills-register__dot" aria-hidden="true"></span>
+                <span>01 — 03</span>
               </div>
+
+              <h2 class="skills-title" id="skills-heading">
+                <span class="skills-title__line">What I</span>
+                <span class="skills-title__line skills-title__line--second">Know</span>
+              </h2>
             </div>
-          </details>
-          <details name="skills">
-            <summary>Backend</summary>
-            <div class="skill-marquee skill-marquee--reverse">
-              <div class="skill-marquee__viewport">
-                <ul class="skill-marquee__track">
-                  <li>Node.js</li>
-                  <li>Express</li>
-                  <li>JWT</li>
-                  <li>GraphQL</li>
-                  <li>REST API Development</li>
-                  <li>MongoDB</li>
-                  <li>MySQL</li>
-                </ul>
+
+            <div class="skills-chamber" role="region" aria-labelledby="skills-heading">
+              <div class="skills-accordion" role="group" aria-label="Skill categories">
+                <details class="skills-category skills-category--frontend" name="skills" open>
+                  <summary>
+                    <span class="skills-category__rule" aria-hidden="true"></span>
+                    <span class="skill-category__number" aria-hidden="true">01</span>
+                    <span class="skill-category__name">Frontend</span>
+                    <span class="skill-category__toggle" aria-hidden="true"></span>
+                  </summary>
+                  <div class="skill-panel">
+                    <ul class="skill-list">
+                      <li>JavaScript, React, HTML/CSS,</li>
+                      <li>CSS Modules, GSAP, Material UI,</li>
+                      <li>Figma, Redux, React Router,</li>
+                      <li>TanStack/React Query.</li>
+                    </ul>
+                  </div>
+                </details>
+
+                <details class="skills-category skills-category--backend" name="skills">
+                  <summary>
+                    <span class="skills-category__rule" aria-hidden="true"></span>
+                    <span class="skill-category__number" aria-hidden="true">02</span>
+                    <span class="skill-category__name">Backend</span>
+                    <span class="skill-category__toggle" aria-hidden="true"></span>
+                  </summary>
+                  <div class="skill-panel">
+                    <ul class="skill-list">
+                      <li>Node.js</li><li>Express</li><li>JWT</li><li>GraphQL</li>
+                      <li>REST API Development</li><li>MongoDB</li><li>MySQL</li>
+                    </ul>
+                  </div>
+                </details>
+
+                <details class="skills-category skills-category--other" name="skills">
+                  <summary>
+                    <span class="skills-category__rule" aria-hidden="true"></span>
+                    <span class="skill-category__number" aria-hidden="true">03</span>
+                    <span class="skill-category__name">Other</span>
+                    <span class="skill-category__toggle" aria-hidden="true"></span>
+                  </summary>
+                  <div class="skill-panel">
+                    <ul class="skill-list">
+                      <li>Git</li><li>Vite</li><li>ESLint</li><li>Vitest</li>
+                      <li>React Testing Library</li><li>Node Test Runner</li><li>Playwright</li>
+                      <li>Postman</li><li>REST Client</li><li>Unit Testing</li>
+                      <li>Integration Testing</li><li>E2E Testing</li><li>OOP</li><li>TDD</li>
+                      <li>Scrum</li><li>Middleware</li><li>Screaming Architecture</li>
+                      <li>Style Guides</li><li>User Research</li><li>User Flows</li>
+                      <li>Wireframes</li><li>Prototypes</li>
+                    </ul>
+                  </div>
+                </details>
               </div>
+              <span class="skills-chamber__closing-rule" aria-hidden="true"></span>
             </div>
-          </details>
-          <details name="skills">
-            <summary>Others</summary>
-            <div class="skill-marquee">
-              <div class="skill-marquee__viewport">
-                <ul class="skill-marquee__track">
-                  <li>Git</li>
-                  <li>Vite</li>
-                  <li>ESLint</li>
-                  <li>Vitest</li>
-                  <li>React Testing Library</li>
-                  <li>Node Test Runner</li>
-                  <li>Playwright</li>
-                  <li>Postman</li>
-                  <li>REST Client</li>
-                  <li>Unit Testing</li>
-                  <li>Integration Testing</li>
-                  <li>E2E Testing</li>
-                  <li>OOP</li>
-                  <li>TDD</li>
-                  <li>Scrum</li>
-                  <li>Middleware</li>
-                  <li>Screaming Architecture</li>
-                  <li>Style Guides</li>
-                  <li>User Research</li>
-                  <li>User Flows</li>
-                  <li>Wireframes</li>
-                  <li>Prototypes</li>
-                </ul>
-              </div>
-            </div>
-          </details>
+          </div>
         </div>
       </section>
 

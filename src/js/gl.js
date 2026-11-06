@@ -32,6 +32,36 @@ float fbm(vec2 p) {
 }
 `;
 
+// Campo de humo compartido por el hero y la tormenta de Skills. Mantener una
+// sola definición conserva la misma silueta y evolución del ruido en ambos.
+export const SMOKE_FIELD = `
+vec2 toNoise(vec2 vp) {
+  return vec2((vp.x - u_view.x * 0.5) / u_view.y, vp.y / u_view.y) * 2.2;
+}
+
+float bodyAt(float d) {
+  return smoothstep(0.30, 0.85, d);
+}
+
+float macroAt(vec2 vp, float t) {
+  vec2 p = toNoise(vp);
+  p.y += t * 1.6;
+  return noise(p * 0.42 + vec2(1.3, 4.7) + vec2(0.0, t * 0.5)) * 0.65
+       + noise(p * 0.85 + vec2(7.7, 2.1) - vec2(t * 0.3, 0.0)) * 0.35;
+}
+
+float fieldAt(vec2 vp, float t) {
+  vec2 p = toNoise(vp);
+  p.y += t * 1.6;
+  vec2 q = vec2(fbm(p), fbm(p + vec2(5.2, 1.3)));
+  vec2 r = vec2(
+    fbm(p + 2.0 * q + vec2(1.7, 9.2) + 0.3 * t),
+    fbm(p + 2.0 * q + vec2(8.3, 2.8) - 0.2 * t)
+  );
+  return fbm(p + 2.5 * r);
+}
+`;
+
 const VERT = `
 attribute vec2 a_pos;
 void main() {

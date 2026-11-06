@@ -1,5 +1,5 @@
 import gsap from 'gsap';
-import { NOISE, buildProgram, webglContext } from './gl.js';
+import { NOISE, SMOKE_FIELD, buildProgram, webglContext } from './gl.js';
 
 // Humo del hero: un canvas WebGL que llena la sección. Reemplaza a las líneas
 // 2D (waves.js) y usa el mismo campo de ruido que el humo del finale, así el
@@ -40,41 +40,7 @@ uniform vec2 u_exitPos;  // centro de la D, px de viewport
 uniform float u_flash;   // luz del relámpago 0→1
 uniform vec2 u_flashPos; // origen del relámpago, px de viewport
 ${NOISE}
-
-// Coordenadas de ruido desde px de viewport: el campo queda fijo en la pantalla
-vec2 toNoise(vec2 vp) {
-  return vec2((vp.x - u_view.x * 0.5) / u_view.y, vp.y / u_view.y) * 2.2;
-}
-
-// Densidad visible a partir del campo. Misma curva que el humo de la sección de
-// los ojos: núcleos definidos y silueta de nube. Se usa también para el vecino
-// del relámpago, así la normal falsa compara la misma curva.
-float bodyAt(float d) {
-  return smoothstep(0.30, 0.85, d);
-}
-
-// Capa macro: dos ruidos de baja frecuencia con deriva lenta que modulan la
-// densidad a gran escala. Rompen la repetición del warping sin volver a
-// filamentos: masas de nube, no una textura única.
-float macroAt(vec2 vp, float t) {
-  vec2 p = toNoise(vp);
-  p.y += t * 1.6;
-  return noise(p * 0.42 + vec2(1.3, 4.7) + vec2(0.0, t * 0.5)) * 0.65
-       + noise(p * 0.85 + vec2(7.7, 2.1) - vec2(t * 0.3, 0.0)) * 0.35;
-}
-
-// Campo de densidad del humo. Sube desde el borde inferior (la coordenada crece
-// hacia abajo) y usa domain warping en dos pasos, igual que el humo del finale.
-float fieldAt(vec2 vp, float t) {
-  vec2 p = toNoise(vp);
-  p.y += t * 1.6;
-  vec2 q = vec2(fbm(p), fbm(p + vec2(5.2, 1.3)));
-  vec2 r = vec2(
-    fbm(p + 2.0 * q + vec2(1.7, 9.2) + 0.3 * t),
-    fbm(p + 2.0 * q + vec2(8.3, 2.8) - 0.2 * t)
-  );
-  return fbm(p + 2.5 * r);
-}
+${SMOKE_FIELD}
 
 void main() {
   vec2 vp = vec2(gl_FragCoord.x / u_res.x, 1.0 - gl_FragCoord.y / u_res.y) * u_view;
