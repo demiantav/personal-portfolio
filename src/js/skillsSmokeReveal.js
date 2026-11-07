@@ -10,8 +10,9 @@ const COMPACT = 970;
 const STATIC_HEIGHT = 700;
 const PIN_VH = 0.74;
 
-// El campo NOISE/SMOKE_FIELD es el mismo del Hero. El shader compone la
-// superficie negra y la disuelve con humo en el borde que avanza a la izquierda.
+// El campo NOISE/SMOKE_FIELD viene del Hero (con una octava menos para esta
+// cortina). La superficie negra es opaca y solo se abre por una silueta de
+// humo que avanza a la izquierda y deforma todo el lateral.
 const FRAG = `
 #ifdef GL_FRAGMENT_PRECISION_HIGH
 precision highp float;
@@ -29,119 +30,138 @@ uniform float u_pointerActive;
 ${NOISE}
 ${SMOKE_FIELD}
 
-// fieldAt/macroAt incluyen una deriva vertical común. Se cancela para mantener
+// El campo del hero incluye una deriva vertical común. Se cancela para mantener
 // anclado el cuerpo principal; el movimiento visible viene de remolinos locales.
 vec2 anchoredFieldPoint(vec2 point, float t) {
   point.y -= t * (1.6 / 2.2) * u_view.y;
   return point;
 }
 
-// Campo de flujo divergencia-cero: el gradiente de ruido gira 90 grados para
-// producir corrientes suaves que se enrollan en vez de trasladar toda la nube.
-vec2 curlFlow(vec2 p) {
-  float e = 0.075;
-  vec2 gradient = vec2(
-    noise(p + vec2(e, 0.0)) - noise(p - vec2(e, 0.0)),
-    noise(p + vec2(0.0, e)) - noise(p - vec2(0.0, e))
+// Tres octavas del mismo ruido, más baratas que el fbm de 5. La cortina dura
+// pocos segundos de scroll: alcanza para conservar la silueta del hero.
+float fbm3(vec2 p) {
+  float v = 0.0;
+  float a = 0.5;
+  mat2 m = mat2(1.6, 1.2, -1.2, 1.6);
+  for (int i = 0; i < 3; i++) {
+    v += a * noise(p);
+    p = m * p;
+    a *= 0.5;
+  }
+  return v;
+}
+
+// Mismo campo que el hero, con una octava menos. Suficiente para las masas
+// grandes; el detalle vive en los filamentos anclados al borde.
+float stormField(vec2 vp, float t) {
+  vec2 p = toNoise(vp);
+  p.y += t * 1.6;
+  vec2 q = vec2(fbm3(p), fbm3(p + vec2(5.2, 1.3)));
+  return fbm3(p + 2.2 * q + vec2(1.7, 9.2) + 0.3 * t);
+}
+
+// Silueta del borde: tres escalas a lo largo de la altura. La grande hace los
+// lóbulos que deforman todo el lateral; las otras rompen el contorno.
+float edgeWave(float yn, float t) {
+  float a = noise(vec2(yn * 1.55 + 1.7, t * 0.11 + 3.1));
+  float b = noise(vec2(yn * 4.40 - 4.3, t * 0.23 + 7.7));
+  float c = noise(vec2(yn * 10.0 + 8.9, t * 0.37 + 1.9));
+  return (a - 0.5) * 0.64 + (b - 0.5) * 0.26 + (c - 0.5) * 0.10;
+}
+
+// Segunda escala lenta para abrir bahías amplias, no sólo una onda regular.
+float edgeCarve(float yn, float t) {
+  float a = noise(vec2(yn * 1.32 - 2.1, t * 0.07 + 5.3));
+  float b = noise(vec2(yn * 3.10 + 6.7, t * 0.13 + 8.1));
+  return (a - 0.5) * 0.70 + (b - 0.5) * 0.30;
+}
+
+// Humo anclado al frente: se evalúa en coordenadas relativas al borde, así la
+// textura viaja con la cortina en vez de quedar fija a la pantalla.
+float edgeFilaments(vec2 p, float t) {
+  vec2 warp = vec2(
+    noise(p * 0.63 + vec2(1.7, -t * 0.22)) - 0.5,
+    noise(p * 0.81 + vec2(5.3, t * 0.18)) - 0.5
   );
-  float magnitude = length(gradient);
-  float strength = smoothstep(0.015, 0.19, magnitude);
-  return vec2(gradient.y, -gradient.x) / max(magnitude, 0.0001) * strength;
-}
-
-// Tres escalas con ritmos y direcciones distintas: billows amplios, pliegues
-// intermedios y filamentos rápidos. Ninguna capa traslada el humo como bloque.
-vec2 smokeFlowAt(vec2 point, float time) {
-  vec2 p = toNoise(point);
-  vec2 broad = curlFlow(p * vec2(0.34, 0.64) + vec2(time * 0.34, -time * 0.19) + vec2(2.7, 5.1));
-  vec2 middle = curlFlow(p * vec2(0.52, 1.18) + vec2(-time * 0.76, time * 0.43) + vec2(4.9, 8.3));
-  vec2 detail = curlFlow(p * vec2(0.72, 2.05) + vec2(time * 1.24, time * 0.81) + vec2(7.4, 1.8));
-  return broad * (u_view.y * 0.1)
-       + middle * (u_view.y * 0.035)
-       + detail * (u_view.y * 0.015);
-}
-
-// La densidad anisotrópica estira los trazos en horizontal. Cada capa se
-// advecta a otro ritmo para que los filamentos se abran y se crucen distinto.
-float stretchedFilaments(vec2 point, float time) {
-  vec2 p = toNoise(point);
-  float warpX = noise(p * vec2(0.24, 0.72) + vec2(-time * 0.22, time * 0.11) + vec2(3.1, 6.8));
-  float warpY = noise(p * vec2(0.43, 1.34) + vec2(time * 0.39, -time * 0.27) + vec2(8.1, 2.7));
-  vec2 warped = p + vec2((warpX - 0.5) * 0.42, (warpY - 0.5) * 0.14);
-  float broad = noise(warped * vec2(0.36, 2.15) + vec2(-time * 0.31, time * 0.17) + vec2(4.2, 1.7));
-  float fine = noise(warped * vec2(0.62, 4.35) + vec2(time * 0.92, -time * 0.58) + vec2(7.6, 5.3));
-  return clamp(broad * 0.62 + fine * 0.38, 0.0, 1.0);
+  return fbm3(p + warp * 1.45 + vec2(2.6, 4.1));
 }
 
 void main() {
   vec2 vp = vec2(gl_FragCoord.x / u_res.x, 1.0 - gl_FragCoord.y / u_res.y) * u_view;
-  float t = sin(u_time * 0.23) * 0.72 + sin(u_time * 0.097 + 1.4) * 0.28;
+  float h = max(u_view.y, 1.0);
+  float yn = vp.y / h;
+  float t = u_motion * 0.55;
 
-  // La cortina empieza con margen suficiente fuera del viewport para que ni
-  // sus irregularidades ni la nube filtren píxeles antes de que arranque el
-  // scroll. El humo ya se calcula y fluye detrás de esta superficie opaca.
-  float start = u_view.x + u_view.y * 0.4;
-  float finish = -u_view.y * 0.5;
+  // El frente arranca fuera de cuadro a la derecha y termina fuera a la
+  // izquierda. La silueta se suma después, así el lateral entero se deforma
+  // en vez de moverse como un bloque.
+  float start = u_view.x + h * 0.75;
+  float finish = -h * 0.60;
   float front = mix(start, finish, clamp(u_reveal, 0.0, 1.0));
 
+  float shape = edgeWave(yn, t) * h * 0.80
+              + edgeCarve(yn, t) * h * 0.20;
+
   vec2 delta = vp - u_pointer;
-  float radius = u_view.y * 0.3;
-  float influence = exp(-dot(delta, delta) / max(radius * radius, 1.0)) * u_pointerActive;
-  vec2 curl = vec2(-delta.y, delta.x) / max(length(delta), 1.0);
-  vec2 pointerWarp = curl * influence * u_view.y * 0.11;
+  float pointerField = exp(-dot(delta, delta) / max(h * h * 0.075, 1.0)) * u_pointerActive;
+  float pointerNearFront = exp(-pow((u_pointer.x - front) / (h * 0.35), 2.0));
+  float pointerPush = clamp((u_pointer.x - front) / h, -0.22, 0.22)
+                    * pointerField * pointerNearFront * h * 0.55;
 
-  vec2 edgePoint = anchoredFieldPoint(vec2(front, vp.y), t);
-  float edgeDistance = (vp.x - front) / max(u_view.y * 0.38, 1.0);
-  float edgeEnvelope = exp(-edgeDistance * edgeDistance);
-  vec2 edgeFlow = smokeFlowAt(edgePoint, u_motion);
-  vec2 localFlow = edgeFlow * edgeEnvelope;
-  vec2 samplePoint = anchoredFieldPoint(vp + pointerWarp, t) + localFlow;
+  float deformedFront = front + shape + pointerPush;
+  // Filo fino: evita que el borde sea un corte perfectamente limpio.
+  deformedFront += (noise(vec2(yn * 37.0, t * 1.6)) - 0.5) * h * 0.006;
 
-  float density = fieldAt(samplePoint, t);
-  float macro = macroAt(samplePoint, t);
-  float body = bodyAt(density);
+  float signedEdge = (vp.x - deformedFront) / h;
+  // 1 = negro (izquierda), 0 = coral (derecha). Alpha 1 en todo el lado negro:
+  // acá no hay "gaps", la sala de atrás nunca se transparenta.
+  float cover = 1.0 - smoothstep(-0.0035, 0.0025, signedEdge);
 
-  // La silueta se evalúa a lo largo de todo el costado: masas grandes del
-  // campo compartido empujan el frente hacia el coral y lo retraen en otras
-  // zonas. El detalle local rompe los lóbulos sin volverlos geométricos.
-  float edgeMacro = macroAt(edgePoint + edgeFlow, t);
-  float plume = (edgeMacro - 0.5) * 1.04 + (macro - 0.5) * 0.72;
-  float pointerPull = exp(-abs(u_pointer.x - front) / max(u_view.y * 0.4, 1.0))
-                    * exp(-abs(u_pointer.y - vp.y) / max(u_view.y * 0.5, 1.0))
-                    * u_pointerActive;
-  float deformedFront = front + plume * u_view.y * 0.22
-                      + (u_pointer.x - front) * pointerPull * 0.32;
+  // Masa de ceniza sobre el negro: campo grande para las volutas y filamentos
+  // finos pegados al filo. La ceniza nunca perfora el negro.
+  float edgeEnvelope = exp(-pow(signedEdge / 0.30, 2.0));
+  vec2 curl = vec2(
+    noise(vp * 0.0022 + vec2(1.7, t * 0.40)) - 0.5,
+    noise(vp * 0.0027 + vec2(5.3, -t * 0.31)) - 0.5
+  );
+  vec2 samplePoint = anchoredFieldPoint(vp + curl * edgeEnvelope * h * 0.12, t);
+  float density = stormField(samplePoint, t);
+  float body = smoothstep(0.36, 0.62, density);
 
-  // La nube vive en un plano más ancho que el viewport. Su centro sigue al
-  // frente desde fuera de la derecha, así el scroll la trae físicamente a cuadro.
-  float plumeCenter = deformedFront + u_view.y * 0.24;
-  float plumeX = (vp.x - plumeCenter) / max(u_view.y * 0.34, 1.0);
-  float plumeEnvelope = exp(-plumeX * plumeX);
-  vec2 plumePoint = vec2(vp.x - plumeCenter + u_view.x * 0.5, vp.y);
-  vec2 plumeSample = anchoredFieldPoint(plumePoint + pointerWarp, t) + edgeFlow;
-  float filamentField = stretchedFilaments(plumeSample, u_motion);
-  float filaments = smoothstep(0.45, 0.68, filamentField);
+  // Filamentos anclados al filo: la textura viaja con la cortina, no con la
+  // pantalla. El muestreo es anisótropo (mucho más fino en y) para que el humo
+  // se lea como jirones arrastrados en horizontal, no como manchas redondas.
+  vec2 pEdge = vec2(signedEdge * 3.4, yn * 13.5 + t * 0.40 + max(signedEdge, 0.0) * 2.6);
+  float filA = edgeFilaments(pEdge, t);
+  float filB = fbm3(pEdge * vec2(2.10, 1.90) + vec2(-4.3, 7.7 - t * 0.12));
+  float vein = filA * 0.55 + filB * 0.45;
+  float strands = smoothstep(0.535, 0.585, vein);
+  // clumps abre huecos anchos entre volutas: rompe el degradé continuo.
+  float clumps = smoothstep(0.36, 0.60, filA);
 
-  float signedFront = (vp.x - deformedFront) / max(u_view.y, 1.0);
-  float edgeNoise = (density - 0.52) * 0.12 + (macro - 0.5) * 0.08;
-  float contour = signedFront + edgeNoise;
-  float edgeBand = exp(-abs(contour) * 3.8);
-  float exposedSide = smoothstep(-0.07, 0.14, contour);
-  float coveredSide = 1.0 - exposedSide;
-  float smokeReach = exp(-max(contour, 0.0) * 1.25)
-                   * exp(-max(-contour, 0.0) * 2.1);
-  float cover = 1.0 - smoothstep(-0.035, 0.052, contour);
-  float gaps = smoothstep(0.48, 0.77, density) * edgeBand * 0.82 * coveredSide;
-  float darkAlpha = cover * (1.0 - gaps);
-  float smokeBody = (body * 0.3 + filaments * 0.78) * smokeReach * plumeEnvelope * exposedSide;
-  float smokeAlpha = smokeBody * 0.82;
-  float alpha = max(darkAlpha, smokeAlpha);
+  // Ceniza del lado negro: oscura en el cuerpo, encendida junto al filo.
+  float sootMask = exp(-max(-signedEdge, 0.0) * 3.4)
+                 * exp(-max(signedEdge, 0.0) * 16.0);
+  float sootTone = clamp(body * 0.62 + strands * 0.50, 0.0, 1.0);
+  vec3 soot = mix(vec3(0.014, 0.0015, 0.003), vec3(0.33, 0.028, 0.048), sootTone);
+  vec3 ember = vec3(0.88, 0.12, 0.14);
+  float rim = exp(-abs(signedEdge) * 30.0) * (0.20 + sootTone * 0.90);
+  vec3 coveredCol = soot * sootMask + ember * rim * 0.48;
 
-  vec3 ink = vec3(0.0);
-  float smokeTone = clamp(body * 0.32 + filaments * 0.92, 0.0, 1.0);
-  vec3 soot = mix(vec3(0.09, 0.009, 0.018), vec3(0.56, 0.04, 0.085), smokeTone);
-  float rim = clamp((smokeReach * (0.18 + smokeTone * 0.78) + edgeBand * gaps * 0.25) * plumeEnvelope * exposedSide, 0.0, 0.92);
-  vec3 color = mix(ink, soot, rim);
+  // Lado coral: el humo nace en el filo y se corta en ~8% de la altura. La
+  // máscara de volutas deja claros de coral en vez de una franja uniforme.
+  float reach = exp(-max(signedEdge, 0.0) * 14.0);
+  float smokeA = strands * (0.28 + clumps * 0.72) * reach;
+  smokeA *= smoothstep(-0.004, 0.014, signedEdge);
+  smokeA = clamp(smokeA, 0.0, 0.84);
+  // La cola se funde antes del clear en reveal 1: no hay pop al salir.
+  smokeA *= 1.0 - smoothstep(0.86, 0.985, u_reveal);
+
+  vec3 smokeCol = mix(vec3(0.024, 0.002, 0.004), vec3(0.55, 0.042, 0.062), sootTone * 0.85);
+  smokeCol = mix(smokeCol, ember, rim * 0.60);
+
+  float alpha = cover + smokeA * (1.0 - cover);
+  vec3 color = mix(smokeCol, coveredCol, cover);
   gl_FragColor = vec4(color * alpha, alpha);
 }
 `;
@@ -218,7 +238,7 @@ class SkillsSmoke {
 
   resize() {
     if (!this.gl) return;
-    const scale = this.compact.matches ? 0.32 : 0.48;
+    const scale = this.compact.matches ? 0.72 : 0.82;
     const width = Math.max(1, Math.round(this.canvas.clientWidth * scale));
     const height = Math.max(1, Math.round(this.canvas.clientHeight * scale));
     this.canvas.width = width;
