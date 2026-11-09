@@ -56,31 +56,41 @@ float fbm4(vec2 p) {
   return v;
 }
 
-// Dos vórtices lentos en coordenadas relativas al frente. Giran en sentidos
-// opuestos y su fuerza respira: el humo se enrosca sin trasladarse en bloque.
+// Tres vórtices en coordenadas relativas al frente. Giran rápido, en sentidos
+// alternos, y su fuerza respira: el humo se enrosca sin trasladarse en bloque.
 vec2 vortexWarp(vec2 p, float t, float seed, vec2 pointerP, float pointerActive) {
   vec2 c1 = vec2(
-    0.18 + 0.22 * sin(t * 0.37 + seed * 0.11),
-    0.34 + 0.18 * sin(t * 0.29 + seed * 0.07 + 1.7)
+    0.18 + 0.22 * sin(t * 0.75 + seed * 0.11),
+    0.34 + 0.18 * sin(t * 0.60 + seed * 0.07 + 1.7)
   );
   vec2 d1 = p - c1;
-  float w1 = exp(-dot(d1, d1) / 0.070);
-  w1 *= 0.38 + 0.12 * sin(t * 0.51 + seed * 0.05);
+  float w1 = exp(-dot(d1, d1) / 0.090);
+  w1 *= 0.55 + 0.18 * sin(t * 0.95 + seed * 0.05);
   p += vec2(-d1.y, d1.x) * w1;
 
   vec2 c2 = vec2(
-    0.32 + 0.24 * cos(t * 0.31 + seed * 0.09 + 2.4),
-    0.67 + 0.16 * cos(t * 0.23 + seed * 0.06 + 0.8)
+    0.32 + 0.24 * cos(t * 0.65 + seed * 0.09 + 2.4),
+    0.67 + 0.16 * cos(t * 0.50 + seed * 0.06 + 0.8)
   );
   vec2 d2 = p - c2;
-  float w2 = exp(-dot(d2, d2) / 0.052);
-  w2 *= 0.30 + 0.10 * cos(t * 0.43 + seed * 0.04 + 1.1);
+  float w2 = exp(-dot(d2, d2) / 0.070);
+  w2 *= 0.42 + 0.15 * cos(t * 0.85 + seed * 0.04 + 1.1);
   p += vec2(d2.y, -d2.x) * w2;
+
+  // Tercer remolino chico y veloz: engancha los filamentos cerca del frente.
+  vec2 c3 = vec2(
+    0.42 + 0.30 * sin(t * 1.15 + seed * 0.13 + 4.1),
+    0.50 + 0.26 * cos(t * 1.05 + seed * 0.10 + 0.6)
+  );
+  vec2 d3 = p - c3;
+  float w3 = exp(-dot(d3, d3) / 0.035);
+  w3 *= 0.26 + 0.10 * sin(t * 1.35 + seed * 0.08);
+  p += vec2(-d3.y, d3.x) * w3;
 
   // El pointer abre un remolino local; no empuja el contorno.
   vec2 dp = p - pointerP;
   float wp = exp(-dot(dp, dp) / 0.065) * pointerActive;
-  p += vec2(-dp.y, dp.x) * wp * 0.34;
+  p += vec2(-dp.y, dp.x) * wp * 0.40;
 
   return p;
 }
@@ -89,7 +99,7 @@ void main() {
   vec2 vp = vec2(gl_FragCoord.x / u_res.x, 1.0 - gl_FragCoord.y / u_res.y) * u_view;
   float h = max(u_view.y, 1.0);
   float yn = clamp(vp.y / h, 0.0, 1.0);
-  float t = u_motion * 0.55;
+  float t = u_motion * 1.8;
   float seed = u_seed;
 
   // El frente avanza con el scroll y arranca/termina fuera de cuadro. El humo
@@ -114,70 +124,75 @@ void main() {
   // Doble warp de dominio: el grande orienta las masas, el de detalle las
   // engancha. La escala x es menor que la y para estirar las volutas.
   vec2 q = vec2(
-    fbm3(pv * vec2(0.68, 1.15) + vec2(seed + 1.7, t * 0.10 + 3.1)),
-    fbm3(pv * vec2(0.78, 1.02) + vec2(seed + 5.2, -t * 0.08 + 1.3))
+    fbm3(pv * vec2(0.68, 1.15) + vec2(seed + 1.7, t * 0.18 + 3.1)),
+    fbm3(pv * vec2(0.78, 1.02) + vec2(seed + 5.2, -t * 0.14 + 1.3))
   );
-  vec2 r = pv + (q - 0.44) * 1.15;
+  vec2 r = pv + (q - 0.44) * 1.35;
   r += (vec2(
-    noise(r * vec2(2.1, 2.7) + vec2(seed + 8.3, t * 0.05 + 2.8)),
-    noise(r * vec2(2.4, 2.3) + vec2(seed + 1.7, -t * 0.04 + 9.2))
+    noise(r * vec2(2.1, 2.7) + vec2(seed + 8.3, t * 0.10 + 2.8)),
+    noise(r * vec2(2.4, 2.3) + vec2(seed + 1.7, -t * 0.08 + 9.2))
   ) - 0.44) * 0.42;
 
   // Variedad por zona: en unas el ruido se estira en horizontal; en otras
   // queda compacto y gira. También cambia el ancho de los lóbulos.
   float aniso = smoothstep(0.28, 0.72,
-    noise(vec2(yn * 1.35 + seed * 0.07, t * 0.045 + 6.2)));
-  float edgeStretch = mix(0.26, 0.50, aniso);
-  float edgeYScale = mix(2.8, 5.6, aniso);
-  float shear = (noise(vec2(yn * 2.2 + seed * 0.05, t * 0.03 + 7.3)) - 0.5) * 0.30;
+    noise(vec2(yn * 1.35 + seed * 0.07, t * 0.09 + 6.2)));
+  float edgeStretch = mix(0.30, 0.55, aniso);
+  float edgeYScale = mix(2.2, 4.6, aniso);
+  float shear = (noise(vec2(yn * 2.2 + seed * 0.05, t * 0.07 + 7.3)) - 0.5) * 0.55;
 
   // El contorno se evalúa con una dependencia de x moderada: el negro nunca se
   // perfora, pero las olas se inclinan, se enganchan y forman lenguas.
-  float edgeWarpX = (fbm3(vec2(p.x * 0.52 + seed * 0.10, p.y * 1.70 + t * 0.05 + 4.8)) - 0.44) * 0.95;
+  float edgeWarpX = (fbm3(vec2(p.x * 0.70 + seed * 0.10, p.y * 2.00 + t * 0.08 + 4.8)) - 0.44) * 1.00;
   float edgeY = yn * edgeYScale
-              + (noise(vec2(yn * 1.90 + seed * 0.03, t * 0.035 + 2.2)) - 0.5) * 0.70;
-  float body = fbm4(vec2(p.x * edgeStretch + edgeWarpX + shear * yn, edgeY) + vec2(seed + 2.6, 4.1));
+              + (noise(vec2(yn * 2.40 + seed * 0.03, t * 0.07 + 2.2)) - 0.5) * 0.85;
+  // Sólo tres octavas y una escala vertical baja: el contorno conserva olas
+  // anchas en lugar de dientes de sierra. La agresividad viene del movimiento.
+  float body = fbm3(vec2(p.x * edgeStretch + edgeWarpX + shear * yn, edgeY) + vec2(seed + 2.6, 4.1));
   float bodyC = (body - 0.47) * 2.0;
 
-  // Lóbulos macro: zonas donde el humo apenas avanza y otras donde empuja
-  // mucho. Esto es lo que convierte una ondulación pareja en respiración.
-  float lobe = fbm3(vec2(yn * 1.25 + seed * 0.07, t * 0.05 + 5.1));
-  float reach = 0.14 + 1.02 * smoothstep(0.26, 0.72, lobe);
+  // Lóbulos macro en dos escalas: zonas donde el humo apenas avanza y otras
+  // donde empuja mucho. Más frecuencia = más bahías y lenguas, no una sola ola.
+  float lobe = fbm3(vec2(yn * 2.20 + seed * 0.07, t * 0.05 + 5.1));
+  lobe = mix(lobe, noise(vec2(yn * 5.20 - seed * 0.08, t * 0.10 + 1.9)), 0.30);
+  float reach = 0.10 + 1.06 * smoothstep(0.24, 0.70, lobe);
 
-  float front = clamp(reach * (0.52 + bodyC * 0.68), 0.04, 1.06);
-  // Ripples finos sobre el contorno grande: rompen la lectura de "blob".
-  float edgeDetail = (noise(vec2(yn * 15.0 + seed * 0.2, t * 0.06)) - 0.5) * 0.055
-                   + (noise(vec2(yn * 29.0 - seed * 0.1, t * 0.09 + 1.7)) - 0.5) * 0.022;
+  float front = clamp(reach * (0.54 + bodyC * 0.66), 0.04, 1.10);
+  // Ripples finos sobre el contorno grande: rompen la lectura de "blob" y
+  // viajan rápido para que el borde nunca quede quieto. Van a frecuencia baja
+  // para que se lean como ondulaciones, no como una máscara dentada.
+  float edgeDetail = (noise(vec2(yn * 9.0 + seed * 0.2, t * 0.26)) - 0.5) * 0.045
+                   + (noise(vec2(yn * 17.0 - seed * 0.1, t * 0.40 + 1.7)) - 0.5) * 0.020;
   front += edgeDetail;
   float depth = u - front;
 
   // La transición no es un filo: varía entre zonas definidas y otras
   // completamente difusas. El velo exterior se suma después.
-  float featherField = fbm3(vec2(yn * 2.00 + seed * 0.06, t * 0.04 + 5.3));
-  float soft = mix(0.016, 0.075, smoothstep(0.22, 0.75, featherField));
+  float featherField = fbm3(vec2(yn * 2.00 + seed * 0.06, t * 0.08 + 5.3));
+  float soft = mix(0.022, 0.075, smoothstep(0.22, 0.75, featherField));
   float cover = smoothstep(-soft, soft, depth);
 
   // La luz entra desde la sala en parches irregulares, no de forma uniforme.
   float lightPatch = smoothstep(0.30, 0.75,
-    noise(vec2(r.x * 0.55 + seed + 3.4, r.y * 1.60 - t * 0.03 + 8.2)) * 0.70
-    + noise(vec2(r.x * 0.90 + 3.1, r.y * 2.40 + 2.7)) * 0.30
+    noise(vec2(r.x * 0.55 + seed + 3.4, r.y * 1.60 - t * 0.10 + 8.2)) * 0.70
+    + noise(vec2(r.x * 0.90 + 3.1, r.y * 2.40 + 2.7 + t * 0.07)) * 0.30
   );
 
   // Densidad de humo: campo mediano + detalle fino. El umbral respira con la
   // luz, así unas volutas se abren mientras otras se cierran.
   float dens = fbm4(vec2(
     r.x * mix(0.90, 1.75, aniso) + seed + 8.4,
-    r.y * mix(4.60, 8.20, aniso) + t * 0.02 + 1.9
+    r.y * mix(4.60, 8.20, aniso) + t * 0.10 + 1.9
   ));
-  float detail = noise(vec2(r.x * 8.5 + seed + 4.1, r.y * 16.0 - t * 0.05));
-  dens = clamp(dens * 0.76 + detail * 0.24, 0.0, 1.0);
-  dens = smoothstep(0.40, 0.58, dens + (lightPatch - 0.5) * 0.12);
+  float detail = noise(vec2(r.x * 6.5 + seed + 4.1, r.y * 12.0 - t * 0.13));
+  dens = clamp(dens * 0.82 + detail * 0.18, 0.0, 1.0);
+  dens = smoothstep(0.36, 0.60, dens + (lightPatch - 0.5) * 0.12);
 
   // Claros: huecos irregulares donde la luz de la sala atraviesa el humo. Sin
   // ellos la capa densa se lee como una pared lisa.
-  float windows = smoothstep(0.32, 0.54,
-    noise(vec2(r.x * 2.60 + seed + 9.1, r.y * 2.30 + 1.2)) * 0.60
-    + noise(vec2(r.x * 5.20 + 3.3, r.y * 4.60 + 6.7)) * 0.40
+  float windows = smoothstep(0.28, 0.58,
+    noise(vec2(r.x * 2.60 + seed + 9.1, r.y * 2.30 + 1.2 + t * 0.09)) * 0.70
+    + noise(vec2(r.x * 3.60 + 3.3, r.y * 3.20 + 6.7 - t * 0.07)) * 0.30
   );
 
   // Bandas alrededor del contorno: el humo se disuelve hacia el coral y se
@@ -191,10 +206,10 @@ void main() {
   float denseA = clamp(dens * bandDense * (0.58 + 0.32 * lightPatch), 0.0, 0.88);
   denseA *= smokeFade * smokeGate;
   denseA *= 0.22 + 0.78 * (1.0 - cover);
-  denseA *= 0.34 + 0.66 * windows;
+  denseA *= 0.46 + 0.54 * windows;
   denseA *= frontVisible;
 
-  float veilField = fbm3(vec2(r.x * 1.30 + seed + 6.1, r.y * 4.60 + 7.7 + t * 0.02));
+  float veilField = fbm3(vec2(r.x * 1.30 + seed + 6.1, r.y * 4.60 + 7.7 + t * 0.10));
   float veilMask = smoothstep(0.50, 0.585, veilField);
   float veilA = clamp(veilMask * bandVeil * (0.18 + 0.32 * lightPatch), 0.0, 0.55);
   veilA *= smokeFade * smokeGate;
@@ -204,13 +219,13 @@ void main() {
   // Filamentos: crestas finas y anisótropas que se enroscan con los vórtices.
   // Son la capa que convierte el degradé en volutas y jirones.
   vec2 filP = r * vec2(mix(1.30, 2.40, aniso), mix(5.6, 9.8, aniso))
-            + vec2(seed + 2.0 + t * 0.03, 4.6 - t * 0.05);
+            + vec2(seed + 2.0 + t * 0.09, 4.6 - t * 0.14);
   vec2 filWarp = vec2(
-    noise(filP * vec2(0.55, 0.85) + vec2(1.3, t * 0.07)) - 0.5,
-    noise(filP * vec2(0.65, 0.75) + vec2(5.7, -t * 0.06)) - 0.5
+    noise(filP * vec2(0.55, 0.85) + vec2(1.3, t * 0.18)) - 0.5,
+    noise(filP * vec2(0.65, 0.75) + vec2(5.7, -t * 0.15)) - 0.5
   );
-  float filN = fbm3(filP + filWarp * 0.95);
-  float fil = 1.0 - smoothstep(0.0, 0.062, abs(filN - 0.50));
+  float filN = fbm3(filP + filWarp * 1.25);
+  float fil = 1.0 - smoothstep(0.0, 0.082, abs(filN - 0.50));
   float filMask = smoothstep(0.26, 0.58, dens * 0.55 + lightPatch * 0.45);
   float filBand = exp(-max(depth, 0.0) / 0.40) * exp(min(depth, 0.0) / 0.36);
   float filA = clamp(fil * filMask * filBand * (0.30 + 0.46 * lightPatch), 0.0, 0.72);
@@ -232,7 +247,7 @@ void main() {
   vec3 filCol = mix(vec3(0.36, 0.035, 0.014), vec3(0.95, 0.24, 0.085), lightPatch);
 
   // Brillo de brasa: ancho, roto por el ruido y sólo en las crestas.
-  float rimNoise = smoothstep(0.28, 0.78, noise(vec2(yn * 6.5 + seed, t * 0.09)))
+  float rimNoise = smoothstep(0.28, 0.78, noise(vec2(yn * 6.5 + seed, t * 0.25)))
                  * 0.75 + 0.25;
   float rim = exp(-abs(depth) / 0.075)
             * (0.30 + 0.70 * lightPatch)
