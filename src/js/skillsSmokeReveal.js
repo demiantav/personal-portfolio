@@ -10,9 +10,9 @@ const COMPACT = 970;
 const STATIC_HEIGHT = 700;
 const PIN_VH = 0.74;
 
-// Humo volumétrico anclado al frente: un contorno de campo con lóbulos macro,
-// warp de dominio y vórtices lentos. El núcleo es opaco; las capas densa y de
-// velo dejan pasar la luz coral en la franja de transición.
+// Humo volumétrico: una masa de densidad 2D en tres capas (masa, billows y
+// jirones) que se disuelve en parches. No hay un frente único: cada zona tiene
+// su propio retraso y la retirada izquierda sólo sesga el umbral.
 const FRAG = `
 #ifdef GL_FRAGMENT_PRECISION_HIGH
 precision highp float;
@@ -30,8 +30,7 @@ uniform float u_pointerActive;
 uniform float u_seed;
 ${NOISE}
 
-// Tres octavas para el warp/los lóbulos y cuatro para el cuerpo: el detalle
-// mediano es lo que separa una silueta de una voluta.
+// Tres octavas suaves para el warp y los pliegues del umbral.
 float fbm3(vec2 p) {
   float v = 0.0;
   float a = 0.5;
@@ -44,53 +43,58 @@ float fbm3(vec2 p) {
   return v;
 }
 
-float fbm4(vec2 p) {
+// fBm de rugosidad alta: las octavas altas conservan peso, así el campo tiene
+// hebras finas y no sólo manchas. Devuelve ~0..1 centrado en 0.5.
+float fbmRough(vec2 p) {
   float v = 0.0;
   float a = 0.5;
-  mat2 m = mat2(1.6, 1.2, -1.2, 1.6);
+  float norm = 0.0;
+  mat2 m = mat2(1.62, 1.18, -1.18, 1.62);
   for (int i = 0; i < 4; i++) {
     v += a * noise(p);
-    p = m * p + vec2(11.7, 7.3);
-    a *= 0.5;
+    norm += a;
+    p = m * p + vec2(7.3, 3.1);
+    a *= 0.68;
   }
-  return v;
+  return v / norm;
 }
 
-// Tres vórtices en coordenadas relativas al frente. Giran rápido, en sentidos
-// alternos, y su fuerza respira: el humo se enrosca sin trasladarse en bloque.
-vec2 vortexWarp(vec2 p, float t, float seed, vec2 pointerP, float pointerActive) {
+// Vórtices en coordenadas de pantalla normalizadas por la altura. Giran rápido,
+// en sentidos alternos, y sus centros derivan: el humo se enrosca sin
+// trasladarse en bloque.
+vec2 vortexWarp(vec2 p, float t, float seed, vec2 pointerP, float pointerActive, float ax) {
   vec2 c1 = vec2(
-    0.18 + 0.22 * sin(t * 0.75 + seed * 0.11),
-    0.34 + 0.18 * sin(t * 0.60 + seed * 0.07 + 1.7)
+    ax * (0.20 + 0.16 * sin(t * 0.72 + seed * 0.11)),
+    0.30 + 0.18 * sin(t * 0.58 + seed * 0.07 + 1.7)
   );
   vec2 d1 = p - c1;
-  float w1 = exp(-dot(d1, d1) / 0.090);
-  w1 *= 0.55 + 0.18 * sin(t * 0.95 + seed * 0.05);
+  float w1 = exp(-dot(d1, d1) / 0.120);
+  w1 *= 0.52 + 0.20 * sin(t * 0.92 + seed * 0.05);
   p += vec2(-d1.y, d1.x) * w1;
 
   vec2 c2 = vec2(
-    0.32 + 0.24 * cos(t * 0.65 + seed * 0.09 + 2.4),
-    0.67 + 0.16 * cos(t * 0.50 + seed * 0.06 + 0.8)
+    ax * (0.62 + 0.20 * cos(t * 0.63 + seed * 0.09 + 2.4)),
+    0.64 + 0.16 * cos(t * 0.48 + seed * 0.06 + 0.8)
   );
   vec2 d2 = p - c2;
-  float w2 = exp(-dot(d2, d2) / 0.070);
-  w2 *= 0.42 + 0.15 * cos(t * 0.85 + seed * 0.04 + 1.1);
+  float w2 = exp(-dot(d2, d2) / 0.095);
+  w2 *= 0.40 + 0.16 * cos(t * 0.82 + seed * 0.04 + 1.1);
   p += vec2(d2.y, -d2.x) * w2;
 
-  // Tercer remolino chico y veloz: engancha los filamentos cerca del frente.
+  // Tercer remolino chico y veloz: engancha los jirones cerca de la disolución.
   vec2 c3 = vec2(
-    0.42 + 0.30 * sin(t * 1.15 + seed * 0.13 + 4.1),
-    0.50 + 0.26 * cos(t * 1.05 + seed * 0.10 + 0.6)
+    ax * (0.40 + 0.24 * sin(t * 1.10 + seed * 0.13 + 4.1)),
+    0.46 + 0.26 * cos(t * 1.02 + seed * 0.10 + 0.6)
   );
   vec2 d3 = p - c3;
-  float w3 = exp(-dot(d3, d3) / 0.035);
-  w3 *= 0.26 + 0.10 * sin(t * 1.35 + seed * 0.08);
+  float w3 = exp(-dot(d3, d3) / 0.050);
+  w3 *= 0.24 + 0.10 * sin(t * 1.30 + seed * 0.08);
   p += vec2(-d3.y, d3.x) * w3;
 
-  // El pointer abre un remolino local; no empuja el contorno.
+  // El pointer abre un remolino local; no desplaza el humo en bloque.
   vec2 dp = p - pointerP;
-  float wp = exp(-dot(dp, dp) / 0.065) * pointerActive;
-  p += vec2(-dp.y, dp.x) * wp * 0.40;
+  float wp = exp(-dot(dp, dp) / 0.070) * pointerActive;
+  p += vec2(-dp.y, dp.x) * wp * 0.42;
 
   return p;
 }
@@ -99,174 +103,117 @@ void main() {
   vec2 vp = vec2(gl_FragCoord.x / u_res.x, 1.0 - gl_FragCoord.y / u_res.y) * u_view;
   float h = max(u_view.y, 1.0);
   float yn = clamp(vp.y / h, 0.0, 1.0);
+  float ax = max(u_view.x / h, 0.001);
+  float xnorm = clamp(vp.x / max(u_view.x, 1.0), 0.0, 1.0);
   float t = u_motion * 1.8;
   float seed = u_seed;
+  float s = clamp(u_reveal, 0.0, 1.0);
 
-  // El frente avanza con el scroll y arranca/termina fuera de cuadro. El humo
-  // vive en coordenadas relativas a ese frente, así viaja con la cortina. En
-  // portrait el recorrido se ancla al lado corto para que el frente no tarde
-  // media timeline en entrar.
-  float span = min(h, u_view.x * 1.15);
-  float start = u_view.x + span * 0.55;
-  float finish = -span * 0.72;
-  float frontX = mix(start, finish, clamp(u_reveal, 0.0, 1.0));
-  // El humo sólo aparece cuando el frente entra en cuadro: el intro detrás de
-  // "Skills" queda negro plano, sin velo ni brasa en la esquina.
-  float frontVisible = 1.0 - smoothstep(u_view.x - h * 0.40, u_view.x + h * 0.02, frontX);
-  float back = frontX - vp.x;
-  float reachPx = span * 0.62;
-  float u = back / reachPx;
+  vec2 p = vec2(vp.x / h, yn);
 
-  vec2 p = vec2(back / h, yn);
-  vec2 pointerP = vec2((u_pointer.x - frontX) / h, u_pointer.y / h);
-  vec2 pv = vortexWarp(p, t, seed, pointerP, u_pointerActive);
+  // La disolución arranca cuando el título ya salió: el intro queda negro plano.
+  float rs = smoothstep(0.14, 0.90, s);
 
-  // Doble warp de dominio: el grande orienta las masas, el de detalle las
-  // engancha. La escala x es menor que la y para estirar las volutas.
+  // Advección + vórtices: el campo circula y se enrosca, nunca se traslada en
+  // bloque.
+  vec2 flow = vec2(p.x - t * 0.055, yn - t * 0.018);
+  vec2 pointerP = vec2(u_pointer.x / h, u_pointer.y / h);
+  flow = vortexWarp(flow, t, seed, pointerP, u_pointerActive, ax);
+
+  // Doble warp de dominio: el grueso orienta las masas y el fino las deshilacha
+  // con una escala que no comparten.
   vec2 q = vec2(
-    fbm3(pv * vec2(0.68, 1.15) + vec2(seed + 1.7, t * 0.18 + 3.1)),
-    fbm3(pv * vec2(0.78, 1.02) + vec2(seed + 5.2, -t * 0.14 + 1.3))
+    fbm3(flow * vec2(0.72, 1.15) + vec2(seed + 1.7, t * 0.16 + 3.1)),
+    fbm3(flow * vec2(0.82, 1.02) + vec2(seed + 5.2, -t * 0.13 + 1.3))
   );
-  vec2 r = pv + (q - 0.44) * 1.35;
+  vec2 r = flow + (q - 0.44) * 1.60;
   r += (vec2(
-    noise(r * vec2(2.1, 2.7) + vec2(seed + 8.3, t * 0.10 + 2.8)),
-    noise(r * vec2(2.4, 2.3) + vec2(seed + 1.7, -t * 0.08 + 9.2))
-  ) - 0.44) * 0.42;
+    noise(r * vec2(2.7, 3.6) + vec2(seed + 8.3, t * 0.24 + 2.8)),
+    noise(r * vec2(3.1, 3.0) + vec2(seed + 1.7, -t * 0.20 + 9.2))
+  ) - 0.46) * 0.60;
 
-  // Variedad por zona: en unas el ruido se estira en horizontal; en otras
-  // queda compacto y gira. También cambia el ancho de los lóbulos.
-  float aniso = smoothstep(0.28, 0.72,
-    noise(vec2(yn * 1.35 + seed * 0.07, t * 0.09 + 6.2)));
-  float edgeStretch = mix(0.30, 0.55, aniso);
-  float edgeYScale = mix(2.2, 4.6, aniso);
-  float shear = (noise(vec2(yn * 2.2 + seed * 0.05, t * 0.07 + 7.3)) - 0.5) * 0.55;
+  // --- Campo de densidad ---------------------------------------------------
+  // Tres escalas. La base decide dónde hay masa; las crestas ridged la
+  // deshilachan en volutas y hebras, que es lo que separa el humo de una
+  // mancha difusa. Las crestas quedan finas porque el ridged se eleva al
+  // cuadrado.
+  float base = fbmRough(r * vec2(1.85, 2.80) + vec2(seed + 3.4, t * 0.06 + 1.1));
+  float ridgeN = 1.0 - abs(2.0 * fbmRough(r * vec2(5.60, 9.20) + vec2(seed + 7.1, t * 0.13 + 4.6)) - 1.0);
+  ridgeN *= ridgeN;
+  float threadN = 1.0 - abs(2.0 * fbmRough(r * vec2(15.0, 31.0) + vec2(seed + 2.0 - t * 0.24, 5.6 - t * 0.38)) - 1.0);
+  float thread = threadN * threadN;
+  float grit = noise(r * vec2(13.0, 27.0) + vec2(seed + 3.0, -t * 0.44));
 
-  // El contorno se evalúa con una dependencia de x moderada: el negro nunca se
-  // perfora, pero las olas se inclinan, se enganchan y forman lenguas.
-  float edgeWarpX = (fbm3(vec2(p.x * 0.70 + seed * 0.10, p.y * 2.00 + t * 0.08 + 4.8)) - 0.44) * 1.00;
-  float edgeY = yn * edgeYScale
-              + (noise(vec2(yn * 2.40 + seed * 0.03, t * 0.07 + 2.2)) - 0.5) * 0.85;
-  // Sólo tres octavas y una escala vertical baja: el contorno conserva olas
-  // anchas en lugar de dientes de sierra. La agresividad viene del movimiento.
-  float body = fbm3(vec2(p.x * edgeStretch + edgeWarpX + shear * yn, edgeY) + vec2(seed + 2.6, 4.1));
-  float bodyC = (body - 0.47) * 2.0;
+  float F = base * 0.58 + ridgeN * 0.28 + thread * 0.14;
+  F += (grit - 0.50) * 0.045;
+  F = clamp(F, 0.0, 1.0);
 
-  // Lóbulos macro en dos escalas: zonas donde el humo apenas avanza y otras
-  // donde empuja mucho. Más frecuencia = más bahías y lenguas, no una sola ola.
-  float lobe = fbm3(vec2(yn * 2.20 + seed * 0.07, t * 0.05 + 5.1));
-  lobe = mix(lobe, noise(vec2(yn * 5.20 - seed * 0.08, t * 0.10 + 1.9)), 0.30);
-  float reach = 0.10 + 1.06 * smoothstep(0.24, 0.70, lobe);
+  // --- Umbral de disolución ------------------------------------------------
+  // El umbral sube con la timeline, inclinado hacia la derecha (la sala se abre
+  // por ese lado) y plegado con dos ruidos: uno lento que adelanta o retrasa
+  // zonas enteras y otro rápido que deshilacha el cruce. No hay un frente único
+  // que el ojo pueda seguir: el humo existe donde el campo supera el umbral y
+  // ese cruce es fractal.
+  float lag = fbm3(p * vec2(1.90, 2.30) + vec2(seed + 2.7, t * 0.07 + 4.3)) - 0.44;
+  float th = mix(-0.15, 0.95, rs) + (xnorm - 0.5) * 0.72;
+  th += lag * 0.42 * smoothstep(0.02, 0.30, s);
+  th += (fbm3(p * vec2(5.0, 7.0) + vec2(seed + 14.0, -t * 0.12 + 2.0)) - 0.44)
+      * 0.06 * smoothstep(0.05, 0.30, s);
 
-  float front = clamp(reach * (0.54 + bodyC * 0.66), 0.04, 1.10);
-  // Ripples finos sobre el contorno grande: rompen la lectura de "blob" y
-  // viajan rápido para que el borde nunca quede quieto. Van a frecuencia baja
-  // para que se lean como ondulaciones, no como una máscara dentada.
-  float edgeDetail = (noise(vec2(yn * 9.0 + seed * 0.2, t * 0.26)) - 0.5) * 0.045
-                   + (noise(vec2(yn * 17.0 - seed * 0.1, t * 0.40 + 1.7)) - 0.5) * 0.020;
-  front += edgeDetail;
-  float depth = u - front;
+  // Feather de pocos píxeles: el campo ya es irregular, no hace falta un
+  // degradé ancho para que el borde no sea un filo duro.
+  float soft = mix(0.010, 0.028, smoothstep(0.20, 0.80, base));
+  float presence = smoothstep(th - soft, th + soft, F);
 
-  // La transición no es un filo: varía entre zonas definidas y otras
-  // completamente difusas. El velo exterior se suma después.
-  float featherField = fbm3(vec2(yn * 2.00 + seed * 0.06, t * 0.08 + 5.3));
-  float soft = mix(0.022, 0.075, smoothstep(0.22, 0.75, featherField));
-  float cover = smoothstep(-soft, soft, depth);
+  // El intro no puede mostrar ni un hueco.
+  presence = max(presence, 1.0 - smoothstep(0.0, 0.045, s));
 
-  // La luz entra desde la sala en parches irregulares, no de forma uniforme.
+  // Cuánto adentro de la masa está este píxel: gobierna opacidad y color.
+  float core = smoothstep(th + soft, th + 0.10, F);
+
+  // Densidad: el núcleo es opaco y la translucidez vive sólo en la franja.
+  float body = (0.26 + 2.35 * core) * (0.90 + 0.22 * ridgeN);
+  body += 0.40 * thread * core;
+  float dens = presence * body;
+  dens *= 1.0 - smoothstep(0.965, 1.0, s);
+  float alpha = 1.0 - exp(-max(dens, 0.0) * 1.55);
+  // Cobertura total mientras el intro está en pantalla.
+  alpha = max(alpha, 1.0 - smoothstep(0.0, 0.035, s));
+
+  // Color: cuerpo casi negro; el ámbar entra por las partes finas y el borde.
   float lightPatch = smoothstep(0.30, 0.75,
-    noise(vec2(r.x * 0.55 + seed + 3.4, r.y * 1.60 - t * 0.10 + 8.2)) * 0.70
-    + noise(vec2(r.x * 0.90 + 3.1, r.y * 2.40 + 2.7 + t * 0.07)) * 0.30
+    noise(vec2(r.x * 0.55 + seed + 3.4, r.y * 1.60 - t * 0.07 + 8.2)) * 0.70
+    + noise(vec2(r.x * 0.90 + 3.1, r.y * 2.40 + 2.7 + t * 0.05)) * 0.30
   );
+  float colorGate = smoothstep(0.010, 0.090, s);
+  float edgeLit = (1.0 - core) * presence;
+  vec3 blackCol = vec3(0.0045, 0.0007, 0.0012);
+  vec3 deepCol = vec3(0.022, 0.0018, 0.0032);
+  vec3 oxblood = vec3(0.200, 0.0140, 0.0190);
+  vec3 ember = vec3(1.000, 0.260, 0.090);
+  vec3 smokeCol = mix(deepCol, oxblood, clamp(core * 0.90 + ridgeN * 0.22, 0.0, 1.0));
+  // El interior profundo se apaga hacia negro: da contraste contra el borde.
+  smokeCol = mix(smokeCol, blackCol, smoothstep(0.55, 1.0, core) * 0.60);
+  smokeCol = mix(smokeCol, ember, edgeLit * (0.10 + 0.70 * lightPatch));
+  smokeCol = mix(smokeCol, ember, ridgeN * thread * core * 0.35 * lightPatch);
+  vec3 col = mix(blackCol, smokeCol, colorGate);
 
-  // Densidad de humo: campo mediano + detalle fino. El umbral respira con la
-  // luz, así unas volutas se abren mientras otras se cierran.
-  float dens = fbm4(vec2(
-    r.x * mix(0.90, 1.75, aniso) + seed + 8.4,
-    r.y * mix(4.60, 8.20, aniso) + t * 0.10 + 1.9
-  ));
-  float detail = noise(vec2(r.x * 6.5 + seed + 4.1, r.y * 12.0 - t * 0.13));
-  dens = clamp(dens * 0.82 + detail * 0.18, 0.0, 1.0);
-  dens = smoothstep(0.36, 0.60, dens + (lightPatch - 0.5) * 0.12);
+  // Jirones rezagados: hilos ámbar que quedan flotando donde el humo ya se
+  // abrió. Impiden que el borde se lea como un corte limpio.
+  float outside = (1.0 - presence) * smoothstep(th - 0.20, th - 0.01, F);
+  float wisp = thread * outside * (0.55 + 0.45 * lightPatch);
+  float wispA = wisp * (0.22 + 0.55 * lightPatch);
+  wispA *= colorGate * (1.0 - smoothstep(0.78, 0.96, s));
+  wispA = clamp(wispA, 0.0, 0.38);
+  vec3 wispCol = mix(vec3(0.55, 0.070, 0.030), vec3(1.00, 0.36, 0.12), lightPatch);
+  col = mix(col, wispCol, wispA);
+  alpha = max(alpha, wispA * 0.70);
 
-  // Claros: huecos irregulares donde la luz de la sala atraviesa el humo. Sin
-  // ellos la capa densa se lee como una pared lisa.
-  float windows = smoothstep(0.28, 0.58,
-    noise(vec2(r.x * 2.60 + seed + 9.1, r.y * 2.30 + 1.2 + t * 0.09)) * 0.70
-    + noise(vec2(r.x * 3.60 + 3.3, r.y * 3.20 + 6.7 - t * 0.07)) * 0.30
-  );
+  // Intro: negro plano, sin velo, hasta que el título empieza a salir.
+  float introBlack = 1.0 - smoothstep(0.150, 0.230, s);
+  col = mix(col, blackCol, introBlack);
+  alpha = max(alpha, introBlack);
 
-  // Bandas alrededor del contorno: el humo se disuelve hacia el coral y se
-  // funde hacia el negro. La capa densa es la que tapa el texto.
-  float bandDense = exp(-max(depth, 0.0) / 0.40) * exp(min(depth, 0.0) / 0.24);
-  float bandVeil  = exp(-max(depth, 0.0) / 0.62) * exp(min(depth, 0.0) / 0.44);
-
-  float smokeFade = 1.0 - smoothstep(0.86, 0.985, u_reveal);
-  float smokeGate = smoothstep(0.0, 0.08, u_reveal);
-
-  float denseA = clamp(dens * bandDense * (0.58 + 0.32 * lightPatch), 0.0, 0.88);
-  denseA *= smokeFade * smokeGate;
-  denseA *= 0.22 + 0.78 * (1.0 - cover);
-  denseA *= 0.46 + 0.54 * windows;
-  denseA *= frontVisible;
-
-  float veilField = fbm3(vec2(r.x * 1.30 + seed + 6.1, r.y * 4.60 + 7.7 + t * 0.10));
-  float veilMask = smoothstep(0.50, 0.585, veilField);
-  float veilA = clamp(veilMask * bandVeil * (0.18 + 0.32 * lightPatch), 0.0, 0.55);
-  veilA *= smokeFade * smokeGate;
-  veilA *= 0.32 + 0.68 * (1.0 - cover);
-  veilA *= frontVisible;
-
-  // Filamentos: crestas finas y anisótropas que se enroscan con los vórtices.
-  // Son la capa que convierte el degradé en volutas y jirones.
-  vec2 filP = r * vec2(mix(1.30, 2.40, aniso), mix(5.6, 9.8, aniso))
-            + vec2(seed + 2.0 + t * 0.09, 4.6 - t * 0.14);
-  vec2 filWarp = vec2(
-    noise(filP * vec2(0.55, 0.85) + vec2(1.3, t * 0.18)) - 0.5,
-    noise(filP * vec2(0.65, 0.75) + vec2(5.7, -t * 0.15)) - 0.5
-  );
-  float filN = fbm3(filP + filWarp * 1.25);
-  float fil = 1.0 - smoothstep(0.0, 0.082, abs(filN - 0.50));
-  float filMask = smoothstep(0.26, 0.58, dens * 0.55 + lightPatch * 0.45);
-  float filBand = exp(-max(depth, 0.0) / 0.40) * exp(min(depth, 0.0) / 0.36);
-  float filA = clamp(fil * filMask * filBand * (0.30 + 0.46 * lightPatch), 0.0, 0.72);
-  filA *= smokeFade * smokeGate;
-  filA *= 0.30 + 0.70 * (1.0 - cover);
-  filA *= frontVisible;
-
-  // Color: cuerpo profundo casi negro, ceniza ámbar junto al frente y en los
-  // parches donde entra la luz. El negro del intro queda plano (textureGate).
-  vec3 blackCol = vec3(0.006, 0.0008, 0.0015);
-  vec3 oxblood = vec3(0.16, 0.011, 0.020);
-  float textureGate = smoothstep(0.0, 0.10, u_reveal);
-  float nearEdge = exp(-max(depth, 0.0) / 0.20);
-  float coreTone = clamp(dens * 0.62 + lightPatch * 0.16, 0.0, 1.0);
-  vec3 coreCol = mix(blackCol, oxblood, coreTone * nearEdge * textureGate * (0.35 + 0.65 * dens));
-
-  vec3 denseCol = mix(vec3(0.026, 0.0018, 0.0035), vec3(0.22, 0.022, 0.012), lightPatch);
-  vec3 veilCol = mix(vec3(0.20, 0.020, 0.016), vec3(0.66, 0.115, 0.048), lightPatch);
-  vec3 filCol = mix(vec3(0.36, 0.035, 0.014), vec3(0.95, 0.24, 0.085), lightPatch);
-
-  // Brillo de brasa: ancho, roto por el ruido y sólo en las crestas.
-  float rimNoise = smoothstep(0.28, 0.78, noise(vec2(yn * 6.5 + seed, t * 0.25)))
-                 * 0.75 + 0.25;
-  float rim = exp(-abs(depth) / 0.075)
-            * (0.30 + 0.70 * lightPatch)
-            * (0.40 + 0.60 * dens)
-            * rimNoise
-            * frontVisible;
-  vec3 rimCol = vec3(0.95, 0.34, 0.14);
-
-  // Composición en orden de profundidad: núcleo, humo denso, velo, jirones.
-  vec3 col = coreCol;
-  float alpha = cover;
-  col = mix(col, denseCol, denseA);
-  alpha = denseA + alpha * (1.0 - denseA);
-  col = mix(col, veilCol, veilA);
-  alpha = veilA + alpha * (1.0 - veilA);
-  col = mix(col, filCol, filA);
-  alpha = filA + alpha * (1.0 - filA);
-
-  col += rimCol * rim * 0.26 * smokeFade;
   alpha = clamp(alpha, 0.0, 1.0);
   col = clamp(col, 0.0, 1.0);
   gl_FragColor = vec4(col * alpha, alpha);
