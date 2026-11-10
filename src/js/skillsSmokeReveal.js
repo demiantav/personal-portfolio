@@ -10,9 +10,11 @@ const COMPACT = 970;
 const STATIC_HEIGHT = 700;
 const PIN_VH = 0.74;
 
-// Humo volumétrico: una masa de densidad 2D en tres capas (masa, billows y
-// jirones) que se disuelve en parches. No hay un frente único: cada zona tiene
-// su propio retraso y la retirada izquierda sólo sesga el umbral.
+// Humo de frente: el negro del intro retrocede en bloque con el título y sólo
+// la franja de disolución tiene humo. La masa es un campo de densidad 2D en tres
+// capas (masa, crestas y hebras) que se erosiona contra un umbral que barre la
+// pantalla de derecha a izquierda. Lejos del frente no hay humo: o negro sólido
+// o sala limpia.
 const FRAG = `
 #ifdef GL_FRAGMENT_PRECISION_HIGH
 precision highp float;
@@ -59,7 +61,7 @@ float fbmRough(vec2 p) {
   return v / norm;
 }
 
-// Vórtices en coordenadas de pantalla normalizadas por la altura. Giran rápido,
+// Vórtices en coordenadas de pantalla normalizadas por la altura. Giran despacio,
 // en sentidos alternos, y sus centros derivan: el humo se enrosca sin
 // trasladarse en bloque.
 vec2 vortexWarp(vec2 p, float t, float seed, vec2 pointerP, float pointerActive, float ax) {
@@ -105,114 +107,115 @@ void main() {
   float yn = clamp(vp.y / h, 0.0, 1.0);
   float ax = max(u_view.x / h, 0.001);
   float xnorm = clamp(vp.x / max(u_view.x, 1.0), 0.0, 1.0);
-  float t = u_motion * 1.8;
+  // Movimiento lento: el humo se enrosca, no corre.
+  float t = u_motion * 0.18;
   float seed = u_seed;
   float s = clamp(u_reveal, 0.0, 1.0);
 
   vec2 p = vec2(vp.x / h, yn);
 
-  // La disolución arranca cuando el título ya salió: el intro queda negro plano.
-  float rs = smoothstep(0.14, 0.90, s);
+  // --- Frente de revelado --------------------------------------------------
+  // El negro del intro acompaña al título (que sale hacia la izquierda). La
+  // franja de humo vive sólo en ese borde; detrás queda negro sólido y delante,
+  // sala limpia. El frente arranca fuera de pantalla y acelera al final para
+  // dejar la sala completamente descubierta.
+  float front = 1.24 - 1.34 * s - 0.48 * smoothstep(0.72, 0.99, s);
+  float wob = fbmRough(vec2(yn * 2.35 + seed * 0.11, t * 0.06 + 2.3)) - 0.5;
+  float wob2 = fbmRough(vec2(yn * 7.2 - seed * 0.07, t * 0.09 + 7.1)) - 0.5;
+  float wobT = 1.0 - smoothstep(0.82, 0.96, s);
+  float frontShape = front + (wob * 0.10 + wob2 * 0.032) * wobT;
 
-  // Advección + vórtices: el campo circula y se enrosca, nunca se traslada en
-  // bloque.
-  vec2 flow = vec2(p.x - t * 0.055, yn - t * 0.018);
+  // Advección + vórtices: circulación lenta que enrosca la franja, sin
+  // trasladarla en bloque.
+  vec2 flow = vec2(p.x - t * 0.045, yn - t * 0.014);
   vec2 pointerP = vec2(u_pointer.x / h, u_pointer.y / h);
   flow = vortexWarp(flow, t, seed, pointerP, u_pointerActive, ax);
 
-  // Doble warp de dominio: el grueso orienta las masas y el fino las deshilacha
-  // con una escala que no comparten.
+  // Doble warp de dominio: el grueso orienta las volutas y el fino las
+  // deshilacha con una escala que no comparten.
   vec2 q = vec2(
-    fbm3(flow * vec2(0.72, 1.15) + vec2(seed + 1.7, t * 0.16 + 3.1)),
-    fbm3(flow * vec2(0.82, 1.02) + vec2(seed + 5.2, -t * 0.13 + 1.3))
+    fbm3(flow * vec2(0.72, 1.15) + vec2(seed + 1.7, t * 0.11 + 3.1)),
+    fbm3(flow * vec2(0.82, 1.02) + vec2(seed + 5.2, -t * 0.09 + 1.3))
   );
-  vec2 r = flow + (q - 0.44) * 1.60;
+  vec2 r = flow + (q - 0.44) * 1.55;
   r += (vec2(
-    noise(r * vec2(2.7, 3.6) + vec2(seed + 8.3, t * 0.24 + 2.8)),
-    noise(r * vec2(3.1, 3.0) + vec2(seed + 1.7, -t * 0.20 + 9.2))
-  ) - 0.46) * 0.60;
+    noise(r * vec2(2.7, 3.6) + vec2(seed + 8.3, t * 0.16 + 2.8)),
+    noise(r * vec2(3.1, 3.0) + vec2(seed + 1.7, -t * 0.13 + 9.2))
+  ) - 0.46) * 0.55;
 
   // --- Campo de densidad ---------------------------------------------------
-  // Tres escalas. La base decide dónde hay masa; las crestas ridged la
-  // deshilachan en volutas y hebras, que es lo que separa el humo de una
-  // mancha difusa. Las crestas quedan finas porque el ridged se eleva al
-  // cuadrado.
-  float base = fbmRough(r * vec2(1.85, 2.80) + vec2(seed + 3.4, t * 0.06 + 1.1));
-  float ridgeN = 1.0 - abs(2.0 * fbmRough(r * vec2(5.60, 9.20) + vec2(seed + 7.1, t * 0.13 + 4.6)) - 1.0);
+  // Tres escalas: masa, crestas ridged y hebras finas. Al cruzar el umbral, las
+  // crestas y hebras son las que convierten el borde en humo y no en un filo.
+  float base = fbmRough(r * vec2(1.85, 2.80) + vec2(seed + 3.4, t * 0.04 + 1.1));
+  float ridgeN = 1.0 - abs(2.0 * fbmRough(r * vec2(5.60, 9.20) + vec2(seed + 7.1, t * 0.09 + 4.6)) - 1.0);
   ridgeN *= ridgeN;
-  float threadN = 1.0 - abs(2.0 * fbmRough(r * vec2(15.0, 31.0) + vec2(seed + 2.0 - t * 0.24, 5.6 - t * 0.38)) - 1.0);
+  float threadN = 1.0 - abs(2.0 * fbmRough(r * vec2(15.0, 31.0) + vec2(seed + 2.0 - t * 0.16, 5.6 - t * 0.25)) - 1.0);
   float thread = threadN * threadN;
-  float grit = noise(r * vec2(13.0, 27.0) + vec2(seed + 3.0, -t * 0.44));
+  float grit = noise(r * vec2(13.0, 27.0) + vec2(seed + 3.0, -t * 0.30));
 
   float F = base * 0.58 + ridgeN * 0.28 + thread * 0.14;
   F += (grit - 0.50) * 0.045;
   F = clamp(F, 0.0, 1.0);
 
   // --- Umbral de disolución ------------------------------------------------
-  // El umbral sube con la timeline, inclinado hacia la derecha (la sala se abre
-  // por ese lado) y plegado con dos ruidos: uno lento que adelanta o retrasa
-  // zonas enteras y otro rápido que deshilacha el cruce. No hay un frente único
-  // que el ojo pueda seguir: el humo existe donde el campo supera el umbral y
-  // ese cruce es fractal.
-  float lag = fbm3(p * vec2(1.90, 2.30) + vec2(seed + 2.7, t * 0.07 + 4.3)) - 0.44;
-  float th = mix(-0.15, 0.95, rs) + (xnorm - 0.5) * 0.72;
-  th += lag * 0.42 * smoothstep(0.02, 0.30, s);
-  th += (fbm3(p * vec2(5.0, 7.0) + vec2(seed + 14.0, -t * 0.12 + 2.0)) - 0.44)
-      * 0.06 * smoothstep(0.05, 0.30, s);
+  // En vez de un umbral global, barre sólo una franja alrededor del frente: a la
+  // izquierda el umbral es tan bajo que todo es negro; a la derecha, tan alto
+  // que todo es sala. El cruce lo decide el campo fractal.
+  float xf = (xnorm - frontShape) / 0.22;
+  float k = smoothstep(-1.15, 1.15, xf);
+  float lag = fbm3(p * vec2(1.90, 2.30) + vec2(seed + 2.7, t * 0.05 + 4.3)) - 0.44;
+  float th = mix(-0.24, 1.16, k);
+  th += lag * 0.18 * smoothstep(0.02, 0.10, s);
+  th += (fbm3(p * vec2(5.0, 7.0) + vec2(seed + 14.0, -t * 0.08 + 2.0)) - 0.44)
+      * 0.05 * smoothstep(0.02, 0.10, s);
 
-  // Feather de pocos píxeles: el campo ya es irregular, no hace falta un
-  // degradé ancho para que el borde no sea un filo duro.
-  float soft = mix(0.010, 0.028, smoothstep(0.20, 0.80, base));
+  // Feather chico: el campo ya es irregular; el borde no debe ser un filo duro.
+  float soft = mix(0.012, 0.030, smoothstep(0.20, 0.80, base));
   float presence = smoothstep(th - soft, th + soft, F);
 
-  // El intro no puede mostrar ni un hueco.
-  presence = max(presence, 1.0 - smoothstep(0.0, 0.045, s));
-
   // Cuánto adentro de la masa está este píxel: gobierna opacidad y color.
-  float core = smoothstep(th + soft, th + 0.10, F);
+  float core = smoothstep(th + soft, th + 0.20, F);
 
   // Densidad: el núcleo es opaco y la translucidez vive sólo en la franja.
-  float body = (0.26 + 2.35 * core) * (0.90 + 0.22 * ridgeN);
-  body += 0.40 * thread * core;
+  float body = 0.20 + 1.30 * core;
+  body *= 0.90 + 0.20 * ridgeN;
+  body += 0.38 * thread * core;
   float dens = presence * body;
-  dens *= 1.0 - smoothstep(0.965, 1.0, s);
-  float alpha = 1.0 - exp(-max(dens, 0.0) * 1.55);
-  // Cobertura total mientras el intro está en pantalla.
-  alpha = max(alpha, 1.0 - smoothstep(0.0, 0.035, s));
+  dens *= 1.0 - smoothstep(0.95, 1.0, s);
+  float alpha = 1.0 - exp(-max(dens, 0.0) * 1.05);
 
-  // Color: cuerpo casi negro; el ámbar entra por las partes finas y el borde.
+  // El interior lejos del frente es negro plano, opaco. Nada de humo ahí.
+  float deep = smoothstep(0.60, 0.94, core);
+  alpha = mix(alpha, 1.0, deep);
+
+  // Color: cuerpo casi negro; el ámbar entra sólo por el borde y las hebras.
   float lightPatch = smoothstep(0.30, 0.75,
-    noise(vec2(r.x * 0.55 + seed + 3.4, r.y * 1.60 - t * 0.07 + 8.2)) * 0.70
-    + noise(vec2(r.x * 0.90 + 3.1, r.y * 2.40 + 2.7 + t * 0.05)) * 0.30
+    noise(vec2(r.x * 0.55 + seed + 3.4, r.y * 1.60 - t * 0.05 + 8.2)) * 0.70
+    + noise(vec2(r.x * 0.90 + 3.1, r.y * 2.40 + 2.7 + t * 0.04)) * 0.30
   );
-  float colorGate = smoothstep(0.010, 0.090, s);
-  float edgeLit = (1.0 - core) * presence;
+  float colorGate = smoothstep(0.010, 0.080, s);
+  float rim = 1.0 - core;
   vec3 blackCol = vec3(0.0045, 0.0007, 0.0012);
   vec3 deepCol = vec3(0.022, 0.0018, 0.0032);
   vec3 oxblood = vec3(0.200, 0.0140, 0.0190);
   vec3 ember = vec3(1.000, 0.260, 0.090);
   vec3 smokeCol = mix(deepCol, oxblood, clamp(core * 0.90 + ridgeN * 0.22, 0.0, 1.0));
   // El interior profundo se apaga hacia negro: da contraste contra el borde.
-  smokeCol = mix(smokeCol, blackCol, smoothstep(0.55, 1.0, core) * 0.60);
-  smokeCol = mix(smokeCol, ember, edgeLit * (0.10 + 0.70 * lightPatch));
-  smokeCol = mix(smokeCol, ember, ridgeN * thread * core * 0.35 * lightPatch);
+  smokeCol = mix(smokeCol, ember, rim * (0.18 + 0.78 * lightPatch));
+  smokeCol = mix(smokeCol, ember, ridgeN * thread * rim * 0.40 * lightPatch);
+  smokeCol = mix(smokeCol, blackCol, deep * 0.98);
   vec3 col = mix(blackCol, smokeCol, colorGate);
 
-  // Jirones rezagados: hilos ámbar que quedan flotando donde el humo ya se
-  // abrió. Impiden que el borde se lea como un corte limpio.
-  float outside = (1.0 - presence) * smoothstep(th - 0.20, th - 0.01, F);
+  // Jirones rezagados: hilos ámbar en el filo, del lado de la sala. Se apagan
+  // lejos del frente para que el resto de la pantalla quede limpio.
+  float outside = (1.0 - presence) * smoothstep(th - 0.22, th - 0.01, F);
   float wisp = thread * outside * (0.55 + 0.45 * lightPatch);
   float wispA = wisp * (0.22 + 0.55 * lightPatch);
-  wispA *= colorGate * (1.0 - smoothstep(0.78, 0.96, s));
-  wispA = clamp(wispA, 0.0, 0.38);
+  wispA *= colorGate * (1.0 - smoothstep(0.82, 0.98, s));
+  wispA = clamp(wispA, 0.0, 0.34);
   vec3 wispCol = mix(vec3(0.55, 0.070, 0.030), vec3(1.00, 0.36, 0.12), lightPatch);
   col = mix(col, wispCol, wispA);
   alpha = max(alpha, wispA * 0.70);
-
-  // Intro: negro plano, sin velo, hasta que el título empieza a salir.
-  float introBlack = 1.0 - smoothstep(0.150, 0.230, s);
-  col = mix(col, blackCol, introBlack);
-  alpha = max(alpha, introBlack);
 
   alpha = clamp(alpha, 0.0, 1.0);
   col = clamp(col, 0.0, 1.0);
